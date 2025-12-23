@@ -10,6 +10,8 @@ public class PlaidAdapterServiceApplication {
 		
 		SpringApplication.run(PlaidAdapterServiceApplication.class, args);
 
+	
+
 	}
 
 }
