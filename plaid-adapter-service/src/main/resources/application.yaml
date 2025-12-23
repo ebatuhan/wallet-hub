@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: plaid-adapter-service
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+
+server:
+  port: ${PLAID_SERVICE_PORT}

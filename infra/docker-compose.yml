@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  postgres-plaid:
+    image: postgres:15
+    container_name: postgres-plaid
+    env_file:
+      - ./.env.plaid-adapter
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres-plaid-data:/var/lib/postgresql/data
+
+  plaid-adapter-service:
+    build:
+      context: ../plaid-adapter-service
+    container_name: plaid-adapter-service
+    env_file:
+      - ./.env.plaid-adapter
+    ports:
+      - "${PLAID_SERVICE_PORT}:8084"
+    depends_on:
+      - postgres-plaid
+    volumes:
+      - maven-repo:/root/.m2
+      - ./../plaid-adapter-service/src:/app/src
+      - ./../plaid-adapter-service/pom.xml:/app/pom.xml
+      - ./../plaid-adapter-service/target:/app/target
+      
+volumes:
+  postgres-plaid-data:
+  maven-repo:
