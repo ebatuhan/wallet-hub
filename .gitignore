@@ -11,6 +11,28 @@
 *.sln.docstates
 *.env
 
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+release.properties
+
+# IDE
+*.iml
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Docker
+*.env
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
