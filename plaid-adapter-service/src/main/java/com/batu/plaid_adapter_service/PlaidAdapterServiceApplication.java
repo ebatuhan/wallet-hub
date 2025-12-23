@@ -7,10 +7,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class PlaidAdapterServiceApplication {
 
 	public static void main(String[] args) {
-		
-		SpringApplication.run(PlaidAdapterServiceApplication.class, args);
 
-	
+		SpringApplication.run(PlaidAdapterServiceApplication.class, args);
 
 	}
 
