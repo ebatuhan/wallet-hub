@@ -14,15 +14,10 @@ import org.hibernate.annotations.UpdateTimestamp
 @Entity
 @Table(name = "connection")
 class Connection @JvmOverloads constructor(
-    @Id
-    @Column(name = "connection_id", nullable = false)
-    @UuidGenerator
-    val connectionId: UUID = UUID.randomUUID(),
-
     @Column(name = "user_id", nullable = false)
-    val userId: UUID = UUID.randomUUID(),
+    val userId: UUID,
 
-    @Column(name="external_id", nullable = false, unique = true)
+    @Column(name = "external_id", nullable = false, unique = true)
     val externalId: String,
 
     @Column(nullable = false)
@@ -38,13 +33,18 @@ class Connection @JvmOverloads constructor(
     var connectionStatus: String = "ACTIVE",
 
     var errorCode: String? = null,
-
-    var lastCursor: String? = null,
+    var lastCursor: String? = null
+) {
+    @Id
+    @Column(name = "connection_id", nullable = false)
+    @UuidGenerator
+    val connectionId: UUID? = null
 
     @Column(nullable = false, updatable = false)
     @CreationTimestamp
-    val createdAt: LocalDateTime? = null,
+    val createdAt: LocalDateTime? = null
 
     @Column(nullable = false)
     @UpdateTimestamp
     val updatedAt: LocalDateTime? = null
+}

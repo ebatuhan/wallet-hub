@@ -2,10 +2,14 @@ package com.batu.plaid_adapter_service.service.impl;
 
 import java.util.UUID;
 
+import org.springframework.beans.BeanUtils;
+import org.springframework.stereotype.Service;
+
 import com.batu.plaid_adapter_service.entity.Connection;
 import com.batu.plaid_adapter_service.repository.ConnectionRepository;
 import com.batu.plaid_adapter_service.service.ConnectionService;
 
+@Service
 public class ConnectionServiceImpl implements ConnectionService {
 
     private final ConnectionRepository connectionRepository;
@@ -16,8 +20,9 @@ public class ConnectionServiceImpl implements ConnectionService {
 
     @Override
     public Connection readById(UUID connectionId) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'readById'");
+        return connectionRepository.findById(connectionId)
+                .orElseThrow(() -> new RuntimeException("AAA"));
+
     }
 
     @Override
@@ -27,20 +32,18 @@ public class ConnectionServiceImpl implements ConnectionService {
 
     @Override
     public void deleteById(UUID connectionId) {
-        try{
-            connectionRepository.deleteById(connectionId);
-        }
+        connectionRepository.deleteById(connectionId);
 
-        catch(IllegalArgumentException ex){
-            //throw new BusinessLogicException("ID was null.");
-        }
-        
     }
 
     @Override
     public Connection updateById(UUID connectionId, Connection target) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'updateById'");
+        Connection source = connectionRepository.findById(connectionId)
+                .orElseThrow(() -> new RuntimeException("H"));
+
+        BeanUtils.copyProperties(target, source);
+
+        return connectionRepository.save(source);
     }
 
 }
