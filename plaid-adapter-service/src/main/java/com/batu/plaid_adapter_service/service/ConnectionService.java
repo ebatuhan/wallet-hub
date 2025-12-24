@@ -14,5 +14,5 @@ public interface ConnectionService {
 
     void deleteById(UUID connectionId);
 
-    Connection updateById(UUID connectionId, Connection target);
+    Connection updateById(UUID connectionId, Connection source);
 }

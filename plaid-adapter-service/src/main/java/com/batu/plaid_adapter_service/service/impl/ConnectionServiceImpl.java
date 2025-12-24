@@ -6,6 +6,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import com.batu.plaid_adapter_service.entity.Connection;
+import com.batu.plaid_adapter_service.exception.ResourceNotFoundException;
 import com.batu.plaid_adapter_service.repository.ConnectionRepository;
 import com.batu.plaid_adapter_service.service.ConnectionService;
 
@@ -21,8 +22,7 @@ public class ConnectionServiceImpl implements ConnectionService {
     @Override
     public Connection readById(UUID connectionId) {
         return connectionRepository.findById(connectionId)
-                .orElseThrow(() -> new RuntimeException("AAA"));
-
+                .orElseThrow(() -> new ResourceNotFoundException("Connection with " + connectionId + "not found"));
     }
 
     @Override
@@ -33,17 +33,16 @@ public class ConnectionServiceImpl implements ConnectionService {
     @Override
     public void deleteById(UUID connectionId) {
         connectionRepository.deleteById(connectionId);
-
     }
 
     @Override
-    public Connection updateById(UUID connectionId, Connection target) {
-        Connection source = connectionRepository.findById(connectionId)
-                .orElseThrow(() -> new RuntimeException("H"));
+    public Connection updateById(UUID connectionId, Connection source) {
+        Connection target = connectionRepository.findById(connectionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Connection with " + connectionId + "not found"));
 
-        BeanUtils.copyProperties(target, source);
+        BeanUtils.copyProperties(source, target);
 
-        return connectionRepository.save(source);
+        return connectionRepository.save(target);
     }
 
 }
