@@ -2,11 +2,12 @@ package com.batu.plaid_adapter_service.service.impl;
 
 import java.util.UUID;
 
-import org.springframework.beans.BeanUtils;
+
 import org.springframework.stereotype.Service;
 
 import com.batu.plaid_adapter_service.entity.Connection;
 import com.batu.plaid_adapter_service.exception.ResourceNotFoundException;
+import com.batu.plaid_adapter_service.mapper.ConnectionMapper;
 import com.batu.plaid_adapter_service.repository.ConnectionRepository;
 import com.batu.plaid_adapter_service.service.ConnectionService;
 
@@ -14,9 +15,11 @@ import com.batu.plaid_adapter_service.service.ConnectionService;
 public class ConnectionServiceImpl implements ConnectionService {
 
     private final ConnectionRepository connectionRepository;
+    private final ConnectionMapper connectionMapper;
 
-    public ConnectionServiceImpl(ConnectionRepository connectionRepository) {
+    public ConnectionServiceImpl(ConnectionRepository connectionRepository, ConnectionMapper connectionMapper) {
         this.connectionRepository = connectionRepository;
+        this.connectionMapper = connectionMapper;
     }
 
     @Override
@@ -40,7 +43,7 @@ public class ConnectionServiceImpl implements ConnectionService {
         Connection target = connectionRepository.findById(connectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Connection with " + connectionId + "not found"));
 
-        BeanUtils.copyProperties(source, target);
+        connectionMapper.updateConnectionFromSource(source, target);
 
         return connectionRepository.save(target);
     }
