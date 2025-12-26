@@ -7,5 +7,5 @@ spring:
       ddl-auto: create-drop
     database-platform: org.hibernate.dialect.H2Dialect
 
-server: # This must be at the root level, NOT under spring
+server:
   port: 0
