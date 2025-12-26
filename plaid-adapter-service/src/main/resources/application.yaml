@@ -7,9 +7,16 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:8080/realms/keycloak-realm/protocol/openid-connect/certs
+
   jpa:
     hibernate:
       ddl-auto: create
 
 server:
   port: ${PLAID_SERVICE_PORT}
+

@@ -30,7 +30,9 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    restart: unless-stopped                       
+    restart: unless-stopped  
+
+                     
 
   keycloak:
     image: quay.io/keycloak/keycloak:23.0
@@ -43,7 +45,8 @@ services:
     depends_on:
       postgres-keycloak:
         condition: service_healthy
-    restart: unless-stopped                       
+    restart: unless-stopped
+                    
 
   plaid-adapter-service:
     build:
@@ -75,9 +78,7 @@ services:
     volumes:
       - maven-repo:/root/.m2
       - ./api-gateway/src:/app/src
-      - ./api-gateway/pom.xml:/app/pom.xml     
-
-
+      - ./api-gateway/pom.xml:/app/pom.xml   
 
 volumes:
   postgres-plaid-data:

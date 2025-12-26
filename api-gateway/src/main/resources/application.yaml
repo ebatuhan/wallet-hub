@@ -10,6 +10,26 @@ spring:
             - Path=/api/**
           filters:
             - StripPrefix=1
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: gateway
+            client-secret: jvXTiFNeBf1latLmgesumfqeXWqqfYmi
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope: openid,profile,email
+        provider:
+          keycloak:
+            authorization-uri: http://localhost:8080/realms/keycloak-realm/protocol/openid-connect/auth
+            token-uri: http://keycloak:8080/realms/keycloak-realm/protocol/openid-connect/token
+            user-info-uri: http://keycloak:8080/realms/keycloak-realm/protocol/openid-connect/userinfo
+            jwk-set-uri: http://keycloak:8080/realms/keycloak-realm/protocol/openid-connect/certs
+            user-name-attribute: preferred_username
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://keycloak:8080/realms/keycloak-realm/protocol/openid-connect/certs
 
 server:
-  port: ${API_GATEWAY_PORT}
+  port: ${API_GATEWAY_PORT:8085}
