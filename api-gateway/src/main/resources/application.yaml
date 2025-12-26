@@ -23,13 +23,13 @@ spring:
         provider:
           keycloak:
             authorization-uri: http://localhost:8080/realms/keycloak-realm/protocol/openid-connect/auth
-            token-uri: http://keycloak:8080/realms/keycloak-realm/protocol/openid-connect/token
-            user-info-uri: http://keycloak:8080/realms/keycloak-realm/protocol/openid-connect/userinfo
-            jwk-set-uri: http://keycloak:8080/realms/keycloak-realm/protocol/openid-connect/certs
+            token-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/token
+            user-info-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/userinfo
+            jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/certs
             user-name-attribute: preferred_username
       resourceserver:
         jwt:
-          jwk-set-uri: http://keycloak:8080/realms/keycloak-realm/protocol/openid-connect/certs
+          jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/certs
 
 server:
   port: ${API_GATEWAY_PORT:8085}

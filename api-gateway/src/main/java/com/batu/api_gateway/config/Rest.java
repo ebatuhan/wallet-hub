@@ -11,7 +11,7 @@ public class Rest {
 
     @GetMapping("/")
     public String index(@AuthenticationPrincipal OidcUser user){
-        return user.getSubject();
+        return  "Welcome! " + user.getFullName();
     }
 
 }
