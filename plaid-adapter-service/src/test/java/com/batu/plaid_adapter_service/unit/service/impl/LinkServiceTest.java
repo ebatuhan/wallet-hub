@@ -23,6 +23,7 @@ import com.batu.plaid_adapter_service.dto.LinkTokenRequestDto;
 import com.batu.plaid_adapter_service.dto.LinkTokenResponseDto;
 import com.batu.plaid_adapter_service.exception.PlaidClientException;
 import com.batu.plaid_adapter_service.service.impl.LinkServiceImpl;
+import com.plaid.client.model.ItemPublicTokenExchangeResponse;
 import com.plaid.client.model.LinkTokenCreateRequest;
 import com.plaid.client.model.LinkTokenCreateResponse;
 import com.plaid.client.request.PlaidApi;
@@ -38,7 +39,10 @@ public class LinkServiceTest {
     private PlaidApi plaidClient;
 
     @Mock
-    private Call<LinkTokenCreateResponse> mockCall;
+    private Call<LinkTokenCreateResponse> mockLinkTokenCall;
+
+    @Mock
+    private Call<ItemPublicTokenExchangeResponse> mockExchangeTokenCall;
 
     @Mock
     private Jwt principal;
@@ -64,9 +68,9 @@ public class LinkServiceTest {
         sucessResponse.setLinkToken(expectedLinkToken);
 
         when(plaidClient.linkTokenCreate(any(LinkTokenCreateRequest.class)))
-                .thenReturn(mockCall);
+                .thenReturn(mockLinkTokenCall);
 
-        when(mockCall.execute())
+        when(mockLinkTokenCall.execute())
                 .thenReturn(Response.success(sucessResponse));
 
         LinkTokenResponseDto result = linkService.createLinkToken(new LinkTokenRequestDto(), principal);
@@ -86,9 +90,9 @@ public class LinkServiceTest {
 
         ResponseBody errorBody = ResponseBody.create(errorJson, MediaType.parse("application/json"));
 
-        when(plaidClient.linkTokenCreate(any())).thenReturn(mockCall);
+        when(plaidClient.linkTokenCreate(any())).thenReturn(mockLinkTokenCall);
 
-        when(mockCall.execute())
+        when(mockLinkTokenCall.execute())
                 .thenReturn(Response.error(400, errorBody));
 
         PlaidClientException exception = assertThrows(PlaidClientException.class, () -> {
@@ -103,8 +107,8 @@ public class LinkServiceTest {
     void createLinkToken_NetworkError() throws IOException {
         when(principal.getSubject()).thenReturn("user-123");
 
-        when(plaidClient.linkTokenCreate(any())).thenReturn(mockCall);
-        when(mockCall.execute()).thenThrow(new IOException("Network failure"));
+        when(plaidClient.linkTokenCreate(any())).thenReturn(mockLinkTokenCall);
+        when(mockLinkTokenCall.execute()).thenThrow(new IOException("Network failure"));
 
         PlaidClientException exception = assertThrows(PlaidClientException.class, () -> {
             linkService.createLinkToken(new LinkTokenRequestDto(), principal);
@@ -123,9 +127,9 @@ public class LinkServiceTest {
                 + "}";
 
         ResponseBody errorBody = ResponseBody.create(errorJson, MediaType.parse("application/json"));
-        when(plaidClient.linkTokenCreate(any())).thenReturn(mockCall);
+        when(plaidClient.linkTokenCreate(any())).thenReturn(mockLinkTokenCall);
 
-        when(mockCall.execute())
+        when(mockLinkTokenCall.execute())
                 .thenReturn(Response.error(400, errorBody));
 
         PlaidClientException exception = assertThrows(PlaidClientException.class, () -> {
@@ -136,4 +140,5 @@ public class LinkServiceTest {
         assertEquals(HttpStatus.BAD_GATEWAY, exception.getHttpStatus());
 
     }
+
 }
