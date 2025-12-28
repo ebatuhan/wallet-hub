@@ -5,6 +5,6 @@ data class ExchangeTokenRequestDto
 constructor(
         val publicToken: String,
         val accountIds: List<String> = listOf(),
-        val institutionId: String
+        val institutionId: String,
         val institutionName: String
 )

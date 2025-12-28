@@ -47,4 +47,5 @@ class Connection @JvmOverloads constructor(
     @Column(nullable = false)
     @UpdateTimestamp
     val updatedAt: LocalDateTime? = null
+
 }

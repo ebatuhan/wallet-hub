@@ -1,5 +1,6 @@
 package com.batu.plaid_adapter_service.service.impl;
 
+import java.util.List;
 import java.util.UUID;
 
 
@@ -20,6 +21,11 @@ public class ConnectionServiceImpl implements ConnectionService {
     public ConnectionServiceImpl(ConnectionRepository connectionRepository, ConnectionMapper connectionMapper) {
         this.connectionRepository = connectionRepository;
         this.connectionMapper = connectionMapper;
+    }
+
+    @Override
+    public List<Connection> readAll(){
+        return connectionRepository.findAll();
     }
 
     @Override

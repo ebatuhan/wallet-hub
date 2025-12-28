@@ -1,5 +1,6 @@
 package com.batu.plaid_adapter_service.service;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -15,4 +16,6 @@ public interface ConnectionService {
     void deleteById(UUID connectionId);
 
     Connection updateById(UUID connectionId, Connection source);
+
+    List<Connection> readAll();
 }

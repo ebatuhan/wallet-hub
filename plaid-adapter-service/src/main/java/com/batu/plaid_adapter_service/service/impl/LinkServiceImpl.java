@@ -4,11 +4,10 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
-import javax.lang.model.type.ErrorType;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.stereotype.Service;
 
 import com.batu.plaid_adapter_service.dto.ExchangeTokenRequestDto;
 import com.batu.plaid_adapter_service.dto.ExhcangetokenResponseDto;
@@ -25,6 +24,8 @@ import com.plaid.client.model.Products;
 import com.plaid.client.request.PlaidApi;
 import com.plaid.client.model.PlaidError;
 
+
+@Service
 public class LinkServiceImpl implements LinkService {
 
     @Value("${plaid.webhook.url:}")
@@ -55,7 +56,9 @@ public class LinkServiceImpl implements LinkService {
             if (response.isSuccessful() && body != null) {
                 String linkToken = body.getLinkToken();
                 return new LinkTokenResponseDto(linkToken);
-            } else {
+            }
+
+            else {
                 var errorBody = response.errorBody();
 
                 if (errorBody != null) {
@@ -128,5 +131,4 @@ public class LinkServiceImpl implements LinkService {
             throw new PlaidClientException("Unable to connect to banking provider.", HttpStatus.SERVICE_UNAVAILABLE);
         }
     }
-
 }
