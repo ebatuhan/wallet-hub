@@ -24,6 +24,12 @@
             <artifactId>spring-boot-starter-oauth2-client</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.plaid</groupId>
+            <artifactId>plaid-java</artifactId>
+            <version>38.2.0</version>
+        </dependency>
+
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -186,12 +192,6 @@
                         <version>${kotlin.version}</version>
                     </dependency>
 
-                    <dependency>
-                        <groupId>com.plaid</groupId>
-                        <artifactId>plaid-java</artifactId>
-                        <version>39.0.0</version>
-                    </dependency>
-                    
                     <dependency>
                         <groupId>org.jetbrains.kotlin</groupId>
                         <artifactId>kotlin-maven-noarg</artifactId>

@@ -27,8 +27,8 @@ class Connection @JvmOverloads constructor(
     val institutionId: String,
 
     @Column(nullable = false)
-    val institutionName: String,
-
+    val institutionName: String, 
+    
     @Column(nullable = false)
     var connectionStatus: String = "ACTIVE",
 

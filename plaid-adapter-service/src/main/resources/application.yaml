@@ -20,3 +20,9 @@ spring:
 server:
   port: ${PLAID_SERVICE_PORT:8082}
 
+plaid:
+  api: ${PLAID_API_ID:68f013c09bda9e001fac9053}
+  secret: ${PLAID_API_SECRET:2a1cf9a2fc0dfb5152c552709accfc}
+  env: ${PLAID_ENV_TYPE:sandbox}
+  webhook:
+   url: ${PLAID_WEBHOOK_URL:https://71l6b2-2a0b-4140-ab40--2.ru.tuna.am/api/plaid/webhook}
