@@ -32,8 +32,6 @@ services:
       retries: 5
     restart: unless-stopped  
 
-                     
-
   keycloak:
     image: quay.io/keycloak/keycloak:23.0
     container_name: keycloak
@@ -65,6 +63,39 @@ services:
       - ./plaid-adapter-service/src:/app/src
       - ./plaid-adapter-service/pom.xml:/app/pom.xml
 
+  account-service:
+    build:
+      context: ./account-service
+      dockerfile: Dockerfile
+    container_name: account-service
+    env_file:
+      - config/.account
+    ports:
+      - "${ACCOUNT_SERVICE_PORT}:8083"
+    depends_on:
+      postgres-account:
+        condition: service_healthy
+    volumes:
+      - maven-repo:/root/.m2
+      - ./account-service/src:/app/src
+      - ./account-service/pom.xml:/app/pom.xml
+
+
+  postgres-account:
+    image: postgres:15
+    container_name: postgres-account
+    env_file:
+      - config/.postgres-account
+    ports:
+      - "${POSTGRES_ACCOUNT_PORT}:5432"
+    volumes:
+      - postgres-account-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 
   api-gateway:
     build:
@@ -83,5 +114,7 @@ services:
 volumes:
   postgres-plaid-data:
   postgres-keycloak-data:
+  postgres-account-data:
   maven-repo:
   api-gateway:
+  account-service:
