@@ -24,6 +24,10 @@ spring:
     # This forces Spring to wait for Hibernate to create tables BEFORE running data.sql
     defer-datasource-initialization: true 
     # --- CRITICAL SETTING END ---
+    show-sql: true
+    properties:
+      hibernate:
+      format_sql: true
     
     hibernate:
       ddl-auto: create # This will drop tables on every restart (good for testing)

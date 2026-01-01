@@ -4,10 +4,9 @@ import java.util.UUID
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
-data class AccountResponseDto @JvmOverloads constructor(
-    val accountId: UUID? = null,
+data class AccountResponseDto(
+    val accountId: UUID,
     val connectionId: UUID,
-    val userId: UUID,
     val externalId: String,
     val accountName: String,
     val accountType: String,
@@ -16,7 +15,6 @@ data class AccountResponseDto @JvmOverloads constructor(
     val currentBalance: BigDecimal,
     val availableBalance: BigDecimal,
     val isoCurrentCode: String,
-    val isActive: Boolean = true,
-    val createdAt: LocalDateTime? = null,
-    val updatedAt: LocalDateTime? = null
+    val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime?
 )

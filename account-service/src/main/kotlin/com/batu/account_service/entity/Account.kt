@@ -10,6 +10,7 @@ import java.math.BigDecimal
 
 @Entity
 @Table(name = "accounts")
+
 class Account( 
     @Column(name = "connection_id", nullable = false)
     val connectionId : UUID,

@@ -1,3 +1,4 @@
 API_GATEWAY_PORT=8085
 KEYCLOAK_SERVER_URL=http://keycloak:8080
 PLAID_ADAPTER_SERVICE_URL=http://plaid-adapter-service:8082
+ACCOUNT_SERVICE_URL=http://account-service:8083

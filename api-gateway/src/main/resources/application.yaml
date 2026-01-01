@@ -10,6 +10,13 @@ spring:
             - Path=/test/**
           filters:
             - StripPrefix=1
+        - id: account-service-route
+          uri: ${ACCOUNT_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/accounts/**
+          filters:
+            - StripPrefix=1
+
 
         - id: plaid-adapter-service-route
           uri: ${PLAID_ADAPTER_SERVICE_URL:http://localhost:8082}
@@ -17,6 +24,8 @@ spring:
             - Path=/api/**
           filters:
             - StripPrefix=1
+
+
   security:
     oauth2:
       resourceserver:
