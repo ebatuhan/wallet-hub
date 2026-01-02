@@ -16,6 +16,21 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres-transaction:
+    image: postgres:15
+    container_name: postgres-transaction
+    env_file:
+      - config/.postgres-transaction
+    ports:
+      - "${POSTGRES_TRANSACTION_PORT}:5432"
+    volumes:
+      - postgres-transaction-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   postgres-keycloak:                              
     image: postgres:15
     container_name: postgres-keycloak
@@ -80,6 +95,22 @@ services:
       - ./account-service/src:/app/src
       - ./account-service/pom.xml:/app/pom.xml
 
+  transaction-service:
+    build:
+      context: ./transaction-service
+      dockerfile: Dockerfile
+    container_name: transaction-service
+    env_file:
+      - config/.transaction-service
+    ports:
+      - "${TRANSACTION_SERVICE_PORT}:8083"
+    depends_on:
+      postgres-transaction:
+        condition: service_healthy
+    volumes:
+      - maven-repo:/root/.m2
+      - ./transaction-service/src:/app/src
+      - ./transaction-service/pom.xml:/app/pom.xml
 
   postgres-account:
     image: postgres:15
@@ -114,7 +145,10 @@ services:
 volumes:
   postgres-plaid-data:
   postgres-keycloak-data:
+  postgres-transaction-data:
   postgres-account-data:
+  transaction-service:
   maven-repo:
   api-gateway:
   account-service:
+  
