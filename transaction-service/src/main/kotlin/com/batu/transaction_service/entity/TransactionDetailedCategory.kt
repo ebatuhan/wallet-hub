@@ -17,7 +17,7 @@ class TransactionDetailedCategory(
     @Column(nullable = false)
     val detailedCode : String,
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "primary_category_id")
     val transactionPrimaryCategory : TransactionPrimaryCategory
 

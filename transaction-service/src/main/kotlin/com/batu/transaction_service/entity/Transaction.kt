@@ -28,7 +28,7 @@ class Transaction(
         var amount: BigDecimal,
 
         @Column(nullable = false, length = 3) 
-        val isoCurrentCode: String,
+        val isoCurrencyCode: String,
     
         @Column(nullable = false) 
         val transactionName: String,
@@ -44,7 +44,7 @@ class Transaction(
         @Column(nullable = false) 
         val paymentChannel: String,
 
-        @ManyToOne(fetch = FetchType.LAZY)
+        @ManyToOne(fetch = FetchType.EAGER)
         @JoinColumn(name = "detailed_category_id")
         val detailedCategory: TransactionDetailedCategory
 ) {

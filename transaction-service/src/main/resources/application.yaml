@@ -1,3 +1,36 @@
 spring:
   application:
     name: transaction-service
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/transaction_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/certs
+
+  # --- ADDED SECTION START ---
+  sql:
+    init:
+      mode: always # Ensures data.sql runs even on Postgres
+  # --- ADDED SECTION END ---
+
+  jpa:
+    # --- CRITICAL SETTING START ---
+    # This forces Spring to wait for Hibernate to create tables BEFORE running data.sql
+    defer-datasource-initialization: true 
+    # --- CRITICAL SETTING END ---
+    show-sql: true
+    properties:
+      hibernate:
+      format_sql: true
+    
+    hibernate:
+      ddl-auto: create # This will drop tables on every restart (good for testing)
+
+server:
+  port: ${TRANSACTION_SERVICE_PORT:8086}

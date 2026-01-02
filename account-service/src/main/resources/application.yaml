@@ -30,7 +30,7 @@ spring:
       format_sql: true
     
     hibernate:
-      ddl-auto: create # This will drop tables on every restart (good for testing)
+      ddl-auto: none # This will drop tables on every restart (good for testing)
 
 server:
   port: ${ACCOUNT_SERVICE_PORT:8083}

@@ -1,7 +1,7 @@
 package com.batu.account_service.repository.specs;
 
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Service;
+
 
 import com.batu.account_service.entity.Account;
 
