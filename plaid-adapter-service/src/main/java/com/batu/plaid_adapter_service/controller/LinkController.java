@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.batu.plaid_adapter_service.dto.ExchangeTokenRequestDto;
+import com.batu.plaid_adapter_service.dto.ExhcangetokenResponseDto;
 import com.batu.plaid_adapter_service.dto.LinkTokenRequestDto;
 import com.batu.plaid_adapter_service.dto.LinkTokenResponseDto;
 import com.batu.plaid_adapter_service.service.LinkService;
@@ -19,8 +21,13 @@ public class LinkController {
         this.linkService = linkService;
     }
 
-    @PostMapping
+    @PostMapping("/link")
     LinkTokenResponseDto createLinkToken(LinkTokenRequestDto request, @AuthenticationPrincipal Jwt jwt){
         return linkService.createLinkToken(request, jwt);
+    }
+
+    @PostMapping("/exchange")
+    ExhcangetokenResponseDto exchangeToken(ExchangeTokenRequestDto request, @AuthenticationPrincipal Jwt jwt){
+        return linkService.exchangeToken(request, jwt);
     }
 }

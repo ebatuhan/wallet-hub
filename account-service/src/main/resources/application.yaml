@@ -13,24 +13,20 @@ spring:
         jwt:
           jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/certs
 
-  # --- ADDED SECTION START ---
   sql:
     init:
-      mode: always # Ensures data.sql runs even on Postgres
-  # --- ADDED SECTION END ---
+      mode: always
 
   jpa:
-    # --- CRITICAL SETTING START ---
-    # This forces Spring to wait for Hibernate to create tables BEFORE running data.sql
+
     defer-datasource-initialization: true 
-    # --- CRITICAL SETTING END ---
+
     show-sql: true
     properties:
       hibernate:
       format_sql: true
     
     hibernate:
-      ddl-auto: none # This will drop tables on every restart (good for testing)
-
+      ddl-auto: none
 server:
   port: ${ACCOUNT_SERVICE_PORT:8083}

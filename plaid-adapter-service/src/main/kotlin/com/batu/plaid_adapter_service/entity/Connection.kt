@@ -38,11 +38,11 @@ class Connection @JvmOverloads constructor(
     @Id
     @Column(name = "connection_id", nullable = false)
     @UuidGenerator
-    val connectionId: UUID? = null,
+    val connectionId: UUID? = null
 
     @Column(nullable = false, updatable = false)
     @CreationTimestamp
-    val createdAt: LocalDateTime? = null,
+    val createdAt: LocalDateTime? = null
 
     @Column(nullable = false)
     @UpdateTimestamp

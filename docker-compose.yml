@@ -53,6 +53,7 @@ services:
       context: ./plaid-adapter-service
       dockerfile: Dockerfile
     container_name: plaid-adapter-service
+      
     env_file:
       - config/.plaid-adapter
     ports:
