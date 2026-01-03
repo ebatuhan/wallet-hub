@@ -44,9 +44,12 @@ class Transaction(
         @Column(nullable = false) 
         val paymentChannel: String,
 
-        @ManyToOne(fetch = FetchType.EAGER)
+        @ManyToOne(fetch = FetchType.LAZY)
         @JoinColumn(name = "detailed_category_id")
-        val detailedCategory: TransactionDetailedCategory
+        val detailedCategory: TransactionDetailedCategory,
+
+        @Column(name = "is_active", nullable = false)
+        var isActive: Boolean = true
 ) {
     @Id
     @UuidGenerator
