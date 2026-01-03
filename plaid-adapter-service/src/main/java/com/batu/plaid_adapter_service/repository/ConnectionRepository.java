@@ -1,5 +1,6 @@
 package com.batu.plaid_adapter_service.repository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,5 +11,7 @@ import com.batu.plaid_adapter_service.entity.Connection;
 @Repository
 
 public interface ConnectionRepository extends JpaRepository<Connection, UUID> {
+
+    Optional<Connection> findByExternalId(String externalId);
     
 }

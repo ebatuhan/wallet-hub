@@ -1,8 +1,8 @@
 package com.batu.plaid_adapter_service.service.impl;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
-
 
 import org.springframework.stereotype.Service;
 
@@ -24,7 +24,7 @@ public class ConnectionServiceImpl implements ConnectionService {
     }
 
     @Override
-    public List<Connection> readAll(){
+    public List<Connection> readAll() {
         return connectionRepository.findAll();
     }
 
@@ -52,6 +52,12 @@ public class ConnectionServiceImpl implements ConnectionService {
         connectionMapper.updateConnectionFromSource(source, target);
 
         return connectionRepository.save(target);
+    }
+
+    @Override
+    public Connection readByExternalId(String externalId) {
+        return connectionRepository.findByExternalId(externalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Connection with " + externalId + "not found"));
     }
 
 }
