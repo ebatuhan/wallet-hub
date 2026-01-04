@@ -16,8 +16,6 @@ services:
       timeout: 5s
       retries: 5
 
-
-
   postgres-keycloak:                              
     image: postgres:15
     container_name: postgres-keycloak

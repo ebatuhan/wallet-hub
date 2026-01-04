@@ -1,5 +1,6 @@
 package com.batu.account_service.service.impl;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.ScrollPosition;
@@ -9,6 +10,8 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 import com.batu.account_service.CursorResponse;
+import com.batu.account_service.dto.AccountInformationRequestDto;
+import com.batu.account_service.dto.AccountInformationResponseDto;
 import com.batu.account_service.dto.AccountResponseDto;
 import com.batu.account_service.dto.AccountViewDto;
 import com.batu.account_service.enums.AccountSortField;
@@ -74,6 +77,11 @@ public class AccountServiceImpl implements AccountService {
                 return accountRepository.findByAccountIdAndUserIdAndIsActiveTrue(accountId, userId)
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "This account is not exists, or access restricted."));
+        }
+
+        @Override
+        public List<AccountInformationResponseDto> getAccountsByGivenIds(AccountInformationRequestDto request) {
+                return accountRepository.findByAccountIdIn(request.getAccountIds());
         }
 
 }

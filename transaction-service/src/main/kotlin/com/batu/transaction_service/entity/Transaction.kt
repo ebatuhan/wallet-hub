@@ -21,6 +21,9 @@ class Transaction(
         @Column(name = "user_id", nullable = false) 
         val userId: UUID,
 
+        @Column(nullable = false)
+        val accountId: UUID,
+
         @Column(unique = true, nullable = false) 
         val externalId: String,
 

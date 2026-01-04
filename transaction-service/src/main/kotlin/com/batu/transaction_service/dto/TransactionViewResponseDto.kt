@@ -9,5 +9,7 @@ data class TransactionViewResponseDto (
     val transactionName : String,
     val isoCurrencyCode : String,
     val categoryDisplayName : String,
-    val detailedCategoryName : String
+    val detailedCategoryName : String,
+    val accountId : UUID? = null,
+    val accountName: String? = ""
 )

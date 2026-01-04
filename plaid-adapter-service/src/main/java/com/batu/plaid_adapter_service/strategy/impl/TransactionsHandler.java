@@ -40,18 +40,25 @@ public class TransactionsHandler implements WebhookStrategy {
     @Override
     public void handle(PlaidWebhookDto request) {
 
-        if (request.getWebhookCode() == WebhookCodeEnum.SYNC_UPDATES_AVAILABLE.getValue()) {
+        String code = request.getWebhookCode();
+
+        if (code.equals(WebhookCodeEnum.SYNC_UPDATES_AVAILABLE.getValue())
+                || code.equals("HISTORICAL_UPDATE")) {
             Connection connection = connectionService.readByExternalId(request.getItemId());
             syncTransactionsAndAccounts(connection);
-        } else {
+        } else if (code.equals("ERROR")) {
 
             switch (request.getError().getErrorCode()) {
                 default:
                     throw new IllegalArgumentException(
                             "Error type of : " + request.getError().getErrorCode() + " can't be handled.");
             }
-
         }
+
+        else {
+            throw new IllegalArgumentException("Code type of " + code + " can't be handled.");
+        }
+
     }
 
     public void syncTransactionsAndAccounts(Connection connection) {

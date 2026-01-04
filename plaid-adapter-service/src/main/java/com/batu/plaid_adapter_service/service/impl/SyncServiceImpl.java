@@ -21,7 +21,7 @@ import com.plaid.client.model.TransactionsSyncRequest;
 import com.plaid.client.model.TransactionsSyncRequestOptions;
 import com.plaid.client.request.PlaidApi;
 
-@Service
+@Service //TODELETE
 public class SyncServiceImpl implements SyncService {
 
     private final PlaidApi plaidClient;

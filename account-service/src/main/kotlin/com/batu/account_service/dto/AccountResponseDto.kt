@@ -14,7 +14,7 @@ data class AccountResponseDto(
     val accountMask: String,
     val currentBalance: BigDecimal,
     val availableBalance: BigDecimal,
-    val isoCurrentCode: String,
+    val isoCurrencyCode: String,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime?
 )

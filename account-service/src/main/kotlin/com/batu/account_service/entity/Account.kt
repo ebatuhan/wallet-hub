@@ -40,7 +40,7 @@ class Account(
     var availableBalance : BigDecimal,
 
     @Column(nullable = false)
-    var isoCurrentCode : String,
+    var isoCurrencyCode : String,
 
     @Column
     var isActive : Boolean = true
