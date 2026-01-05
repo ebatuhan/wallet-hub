@@ -13,6 +13,20 @@ spring:
         jwt:
           jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/certs
 
+      client:
+        registration:
+          keycloak:
+            provider: keycloak
+            client-id: transaction-service
+            client-secret: nWXtEyXO1hLTU1XfQYuLn74qHDoQjmMv
+            authorization-grant-type: client_credentials
+            scope: openid
+        provider:
+          keycloak:
+            # Note: For client credentials, we use the token-uri
+            token-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/token
+
+
   cloud:
     openfeign:
       circuitbreaker:

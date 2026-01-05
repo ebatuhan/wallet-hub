@@ -2,10 +2,13 @@ package com.batu.plaid_adapter_service.factory.impl;
 
 import java.util.Map;
 
+import org.springframework.stereotype.Component;
+
 import com.batu.plaid_adapter_service.dto.PlaidWebhookDto;
 import com.batu.plaid_adapter_service.factory.WebhookFactory;
 import com.batu.plaid_adapter_service.strategy.WebhookStrategy;
 
+@Component
 public class WebhookFactoryImpl implements WebhookFactory {
 
     private final Map<String, WebhookStrategy> webhookStrategyMap;

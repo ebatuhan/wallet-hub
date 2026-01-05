@@ -1,5 +1,6 @@
 package com.batu.account_service.util;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.KeysetScrollPosition;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.stereotype.Component;
@@ -20,9 +21,10 @@ public class CursorUtils {
 
     private final ObjectMapper objectMapper;
 
-    public CursorUtils(ObjectMapper objectMapper) {
+    public CursorUtils(@Qualifier("cursorObjectMapper") ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
+
 
     public ScrollPosition decode(String cursor) {
         if (cursor == null || cursor.isBlank()) {
@@ -73,3 +75,5 @@ public class CursorUtils {
         return value;
     }
 }
+
+

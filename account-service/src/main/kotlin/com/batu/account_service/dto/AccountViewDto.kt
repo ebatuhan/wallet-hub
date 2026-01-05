@@ -12,5 +12,6 @@ data class AccountViewDto(
     val currentBalance : BigDecimal,
     val accountType : String,
     val accountMask : String,
-    val createdAt: LocalDateTime?
+    val createdAt: LocalDateTime?,
+
 )

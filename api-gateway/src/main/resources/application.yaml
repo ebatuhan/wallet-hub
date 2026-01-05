@@ -4,12 +4,6 @@ spring:
   cloud:
     gateway:
       routes:
-        - id: jsonplaceholder-route
-          uri: https://jsonplaceholder.typicode.com
-          predicates:
-            - Path=/test/**
-          filters:
-            - StripPrefix=1
         - id: account-service-route
           uri: ${ACCOUNT_SERVICE_URL:http://localhost:8083}
           predicates:
@@ -17,11 +11,18 @@ spring:
           filters:
             - StripPrefix=1
 
+        - id: transaction-service-route
+          uri: ${TRANSACTION_SERVICE_URL:http://localhost:8086}
+          predicates:
+            - Path=/api/transactions/**
+          filters:
+            - StripPrefix=1
+
 
         - id: plaid-adapter-service-route
           uri: ${PLAID_ADAPTER_SERVICE_URL:http://localhost:8082}
           predicates:
-            - Path=/api/**
+            - Path=/api/plaid
           filters:
             - StripPrefix=1
 

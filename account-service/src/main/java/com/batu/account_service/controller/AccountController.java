@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
@@ -48,6 +49,7 @@ public class AccountController {
     }
 
     @PostMapping("/batch")
+    @PreAuthorize("hasAuthority('ROLE_SERVICE')")
     public ResponseEntity<List<AccountInformationResponseDto>> getAccountsByGivenIds(@RequestBody AccountInformationRequestDto request){
         return ResponseEntity.ok(accountService.getAccountsByGivenIds(request));
     }
