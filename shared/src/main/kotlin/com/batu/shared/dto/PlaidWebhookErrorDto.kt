@@ -1,4 +1,4 @@
-package com.batu.plaid_adapter_service.dto
+package com.batu.shared.dto
 
 data class PlaidWebhookErrorDto(
     val errorCode: String? = null,

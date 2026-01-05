@@ -2,10 +2,10 @@ package com.batu.plaid_adapter_service.strategy.impl;
 
 import org.springframework.stereotype.Component;
 
-import com.batu.plaid_adapter_service.dto.PlaidWebhookDto;
 import com.batu.plaid_adapter_service.entity.Connection;
 import com.batu.plaid_adapter_service.service.ConnectionService;
 import com.batu.plaid_adapter_service.strategy.WebhookStrategy;
+import com.batu.shared.dto.PlaidWebhookDto;
 
 import java.io.IOException;
 import java.util.ArrayList;

@@ -9,14 +9,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
-import com.batu.plaid_adapter_service.dto.ExchangeTokenRequestDto;
-import com.batu.plaid_adapter_service.dto.ExhcangetokenResponseDto;
-import com.batu.plaid_adapter_service.dto.LinkTokenRequestDto;
-import com.batu.plaid_adapter_service.dto.LinkTokenResponseDto;
 import com.batu.plaid_adapter_service.entity.Connection;
 import com.batu.plaid_adapter_service.exception.PlaidClientException;
 import com.batu.plaid_adapter_service.service.ConnectionService;
 import com.batu.plaid_adapter_service.service.LinkService;
+import com.batu.shared.dto.ExchangeTokenRequestDto;
+import com.batu.shared.dto.ExhcangetokenResponseDto;
+import com.batu.shared.dto.LinkTokenRequestDto;
+import com.batu.shared.dto.LinkTokenResponseDto;
 import com.google.gson.Gson;
 import com.plaid.client.model.ItemPublicTokenExchangeRequest;
 import com.plaid.client.model.LinkTokenCreateRequest;

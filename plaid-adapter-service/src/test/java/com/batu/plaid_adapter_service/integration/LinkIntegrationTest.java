@@ -21,15 +21,14 @@ import org.springframework.test.context.ActiveProfiles;
 
 import org.wiremock.spring.EnableWireMock;
 
-import com.batu.plaid_adapter_service.dto.ExchangeTokenRequestDto;
-import com.batu.plaid_adapter_service.dto.ExhcangetokenResponseDto;
-import com.batu.plaid_adapter_service.dto.LinkTokenRequestDto;
-import com.batu.plaid_adapter_service.dto.LinkTokenResponseDto;
 import com.batu.plaid_adapter_service.entity.Connection;
 
 import com.batu.plaid_adapter_service.service.impl.ConnectionServiceImpl;
 import com.batu.plaid_adapter_service.service.impl.LinkServiceImpl;
-
+import com.batu.shared.dto.ExchangeTokenRequestDto;
+import com.batu.shared.dto.ExhcangetokenResponseDto;
+import com.batu.shared.dto.LinkTokenRequestDto;
+import com.batu.shared.dto.LinkTokenResponseDto;
 import com.plaid.client.ApiClient;
 
 import com.plaid.client.request.PlaidApi;

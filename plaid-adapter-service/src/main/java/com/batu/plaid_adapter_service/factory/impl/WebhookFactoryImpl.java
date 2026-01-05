@@ -4,9 +4,9 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
-import com.batu.plaid_adapter_service.dto.PlaidWebhookDto;
 import com.batu.plaid_adapter_service.factory.WebhookFactory;
 import com.batu.plaid_adapter_service.strategy.WebhookStrategy;
+import com.batu.shared.dto.PlaidWebhookDto;
 
 @Component
 public class WebhookFactoryImpl implements WebhookFactory {

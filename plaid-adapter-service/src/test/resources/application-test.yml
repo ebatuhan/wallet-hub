@@ -7,5 +7,10 @@ spring:
       ddl-auto: create-drop
     database-platform: org.hibernate.dialect.H2Dialect
 
+  sql:
+    init:
+      mode: never  # <-- do NOT run any data.sql or schema.sql
+
+
 server:
   port: 0

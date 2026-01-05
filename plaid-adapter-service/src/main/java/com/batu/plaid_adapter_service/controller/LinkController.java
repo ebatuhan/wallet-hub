@@ -6,11 +6,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.batu.plaid_adapter_service.dto.ExchangeTokenRequestDto;
-import com.batu.plaid_adapter_service.dto.ExhcangetokenResponseDto;
-import com.batu.plaid_adapter_service.dto.LinkTokenRequestDto;
-import com.batu.plaid_adapter_service.dto.LinkTokenResponseDto;
 import com.batu.plaid_adapter_service.service.LinkService;
+import com.batu.shared.dto.ExchangeTokenRequestDto;
+import com.batu.shared.dto.ExhcangetokenResponseDto;
+import com.batu.shared.dto.LinkTokenRequestDto;
+import com.batu.shared.dto.LinkTokenResponseDto;
 
 @RestController
 @RequestMapping("/api/plaid")
