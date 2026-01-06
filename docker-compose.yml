@@ -1,5 +1,4 @@
 version: '3.8'
-
 services:
   postgres-plaid:
     image: postgres:15
@@ -16,7 +15,7 @@ services:
       timeout: 5s
       retries: 5
 
-  postgres-keycloak:                              
+  postgres-keycloak:
     image: postgres:15
     container_name: postgres-keycloak
     env_file:
@@ -30,7 +29,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    restart: unless-stopped  
+    restart: unless-stopped
 
   keycloak:
     image: quay.io/keycloak/keycloak:23.0
@@ -44,14 +43,12 @@ services:
       postgres-keycloak:
         condition: service_healthy
     restart: unless-stopped
-                    
 
   plaid-adapter-service:
     build:
-      context: ./plaid-adapter-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: plaid-adapter-service/Dockerfile
     container_name: plaid-adapter-service
-      
     env_file:
       - config/.plaid-adapter
     ports:
@@ -60,14 +57,13 @@ services:
       postgres-plaid:
         condition: service_healthy
     volumes:
-      - maven-repo:/root/.m2
       - ./plaid-adapter-service/src:/app/src
       - ./plaid-adapter-service/pom.xml:/app/pom.xml
 
   account-service:
     build:
-      context: ./account-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: account-service/Dockerfile
     container_name: account-service
     env_file:
       - config/.account
@@ -77,14 +73,13 @@ services:
       postgres-account:
         condition: service_healthy
     volumes:
-      - maven-repo:/root/.m2
       - ./account-service/src:/app/src
       - ./account-service/pom.xml:/app/pom.xml
 
   transaction-service:
     build:
-      context: ./transaction-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: transaction-service/Dockerfile
     container_name: transaction-service
     env_file:
       - config/.transaction-service
@@ -94,7 +89,6 @@ services:
       postgres-transaction:
         condition: service_healthy
     volumes:
-      - maven-repo:/root/.m2
       - ./transaction-service/src:/app/src
       - ./transaction-service/pom.xml:/app/pom.xml
 
@@ -128,28 +122,21 @@ services:
       timeout: 5s
       retries: 5
 
-
   api-gateway:
     build:
-      context: ./api-gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: api-gateway/Dockerfile
     container_name: api-gateway
     env_file:
       - config/.api-gateway
     ports:
       - "${API_GATEWAY_PORT}:8085"
     volumes:
-      - maven-repo:/root/.m2
       - ./api-gateway/src:/app/src
-      - ./api-gateway/pom.xml:/app/pom.xml   
+      - ./api-gateway/pom.xml:/app/pom.xml
 
 volumes:
   postgres-plaid-data:
   postgres-keycloak-data:
   postgres-transaction-data:
   postgres-account-data:
-  transaction-service:
-  maven-repo:
-  api-gateway:
-  account-service:
-  

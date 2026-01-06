@@ -18,9 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.batu.transaction_service.dto.TransactionDetailedCategoryDto;
 import com.batu.transaction_service.dto.TransactionDto;
 import com.batu.transaction_service.dto.TransactionPrimaryCategoryDto;
-import com.batu.transaction_service.dto.AccountInformationResponseDto;
+import com.batu.shared.dto.AccountNameRequestDto;
+import com.batu.shared.dto.AccountNameResponseDto;
 import com.batu.transaction_service.client.AccountServiceClient;
-import com.batu.transaction_service.dto.AccountInformationRequestDto;
 import com.batu.transaction_service.dto.CursorResponse;
 import com.batu.transaction_service.dto.TransactionViewResponseDto;
 import com.batu.transaction_service.entity.Transaction;
@@ -67,14 +67,14 @@ public class TransactionServiceImpl {
                 .map(acc -> acc.getAccountId())
                 .collect(Collectors.toSet());
 
-        var request = new AccountInformationRequestDto(accountIds);
-        List<AccountInformationResponseDto> response = accountClient
-                .getAccountInformations(request)
+        var request = new AccountNameRequestDto(accountIds);
+        List<AccountNameResponseDto> response = accountClient
+                .getAccountNames(request)
                 .getBody();
 
         Map<UUID, String> accountInformationsMap = response.stream().collect(Collectors.toMap(
-                AccountInformationResponseDto::getAccountId,
-                AccountInformationResponseDto::getAccountName));
+                AccountNameResponseDto::getAccountId,
+                AccountNameResponseDto::getAccountName));
 
         var dtos = window.getContent().stream()
                 .map(

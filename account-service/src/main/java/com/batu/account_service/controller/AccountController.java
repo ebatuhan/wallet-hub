@@ -22,12 +22,12 @@ import jakarta.validation.constraints.Min;
 
 import com.batu.account_service.CursorResponse;
 
-import com.batu.account_service.dto.AccountInformationRequestDto;
-import com.batu.account_service.dto.AccountInformationResponseDto;
 import com.batu.account_service.dto.AccountResponseDto;
 import com.batu.account_service.dto.AccountViewDto;
 import com.batu.account_service.enums.AccountSortField;
 import com.batu.account_service.service.AccountService;
+import com.batu.shared.dto.AccountNameRequestDto;
+import com.batu.shared.dto.AccountNameResponseDto;
 
 @RestController
 @RequestMapping("/accounts")
@@ -50,9 +50,10 @@ public class AccountController {
 
     @PostMapping("/batch")
     @PreAuthorize("hasAuthority('ROLE_SERVICE')")
-    public ResponseEntity<List<AccountInformationResponseDto>> getAccountsByGivenIds(@RequestBody AccountInformationRequestDto request){
+    public ResponseEntity<List<AccountNameResponseDto>> getAccountsByGivenIds(@RequestBody AccountNameRequestDto request){
         return ResponseEntity.ok(accountService.getAccountsByGivenIds(request));
-    }
+    } 
+
 
     @GetMapping
     public ResponseEntity<CursorResponse<AccountViewDto>> getAllAccounts(

@@ -10,8 +10,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 import com.batu.account_service.CursorResponse;
-import com.batu.account_service.dto.AccountInformationRequestDto;
-import com.batu.account_service.dto.AccountInformationResponseDto;
+
 import com.batu.account_service.dto.AccountResponseDto;
 import com.batu.account_service.dto.AccountViewDto;
 import com.batu.account_service.enums.AccountSortField;
@@ -20,6 +19,8 @@ import com.batu.account_service.repository.AccountRepository;
 import com.batu.account_service.repository.specs.AccountSpecification;
 import com.batu.account_service.service.AccountService;
 import com.batu.account_service.util.CursorUtils;
+import com.batu.shared.dto.AccountNameRequestDto;
+import com.batu.shared.dto.AccountNameResponseDto;
 
 @Service
 public class AccountServiceImpl implements AccountService {
@@ -80,7 +81,7 @@ public class AccountServiceImpl implements AccountService {
         }
 
         @Override
-        public List<AccountInformationResponseDto> getAccountsByGivenIds(AccountInformationRequestDto request) {
+        public List<AccountNameResponseDto> getAccountsByGivenIds(AccountNameRequestDto request) {
                 return accountRepository.findByAccountIdIn(request.getAccountIds());
         }
 

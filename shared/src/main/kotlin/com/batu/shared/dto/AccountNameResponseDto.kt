@@ -1,8 +1,8 @@
-package com.batu.account_service.dto
+package com.batu.shared.dto
 
 import java.util.UUID
 
-data class AccountInformationResponseDto(
+data class AccountNameResponseDto(
     val accountId : UUID,
     val accountName : String
 )

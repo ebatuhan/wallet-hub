@@ -47,4 +47,6 @@ echo "✅ Webhook URL:   $PLAID_WEBHOOK_URL"
 echo "------------------------------------------------"
 
 # 7. Start Spring Boot via Maven
+
+
 exec mvn spring-boot:run -Dspring-boot.run.profiles=dev

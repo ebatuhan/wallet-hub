@@ -9,13 +9,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 
-import com.batu.account_service.dto.AccountInformationResponseDto;
 import com.batu.account_service.dto.AccountResponseDto;
 import com.batu.account_service.entity.Account;
+import com.batu.shared.dto.AccountNameResponseDto;
 
 public interface AccountRepository extends JpaRepository<Account, UUID>, JpaSpecificationExecutor<Account>{
     Optional<AccountResponseDto> findByAccountIdAndUserIdAndIsActiveTrue(UUID accountId, UUID userId);
 
-    List<AccountInformationResponseDto> findByAccountIdIn(Set<UUID> accountIds);
+    List<AccountNameResponseDto> findByAccountIdIn(Set<UUID> accountIds);
 
 }

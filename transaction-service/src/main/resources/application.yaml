@@ -30,7 +30,7 @@ spring:
   cloud:
     openfeign:
       circuitbreaker:
-        enabled: true
+        enabled: false
   sql:
     init:
       mode: always

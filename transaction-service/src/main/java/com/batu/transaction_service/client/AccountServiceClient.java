@@ -7,14 +7,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import com.batu.shared.dto.AccountNameRequestDto;
+import com.batu.shared.dto.AccountNameResponseDto;
 import com.batu.transaction_service.config.ClientCredentialsFeignConfiguration;
-import com.batu.transaction_service.dto.AccountInformationRequestDto;
-import com.batu.transaction_service.dto.AccountInformationResponseDto;
 
-@FeignClient(name = "accounts", url = "${accountclient.url}",fallback = AccountServiceClientFallback.class,  configuration = ClientCredentialsFeignConfiguration.class)
+@FeignClient(name = "accounts", url = "${accountclient.url}", fallback = AccountServiceClientFallback.class, configuration = ClientCredentialsFeignConfiguration.class)
 public interface AccountServiceClient {
     @PostMapping("/batch")
-    ResponseEntity<List<AccountInformationResponseDto>> getAccountInformations(
-            @RequestBody AccountInformationRequestDto request);
+    ResponseEntity<List<AccountNameResponseDto>> getAccountNames(
+            @RequestBody AccountNameRequestDto request);
 
 }
