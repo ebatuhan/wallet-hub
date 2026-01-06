@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
@@ -22,6 +23,7 @@ import com.batu.transaction_service.util.KeycloakRoleConverter;
 import com.batu.transaction_service.util.KeycloakScopeConverter;
 
 @Configuration
+@EnableMethodSecurity
 public class KeycloakConfiguration {
     @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
     private String jwkSetUri;

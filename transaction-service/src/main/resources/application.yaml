@@ -23,7 +23,6 @@ spring:
             scope: openid
         provider:
           keycloak:
-            # Note: For client credentials, we use the token-uri
             token-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/token
 
 

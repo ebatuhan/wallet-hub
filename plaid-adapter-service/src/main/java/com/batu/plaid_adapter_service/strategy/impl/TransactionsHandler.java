@@ -2,16 +2,22 @@ package com.batu.plaid_adapter_service.strategy.impl;
 
 import org.springframework.stereotype.Component;
 
+import com.batu.plaid_adapter_service.client.AccountServiceClient;
 import com.batu.plaid_adapter_service.entity.Connection;
 import com.batu.plaid_adapter_service.service.ConnectionService;
 import com.batu.plaid_adapter_service.strategy.WebhookStrategy;
+import com.batu.shared.dto.AccountRequestDto;
+import com.batu.shared.dto.AccountsUpsertRequestDto;
+import com.batu.shared.dto.AccountsUpsertResponseDto;
 import com.batu.shared.dto.PlaidWebhookDto;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 
@@ -31,10 +37,13 @@ public class TransactionsHandler implements WebhookStrategy {
 
     private final ConnectionService connectionService;
     private final PlaidApi plaidClient;
+    private final AccountServiceClient accountServiceClient;
 
-    public TransactionsHandler(ConnectionService connectionService, PlaidApi plaidClient) {
+    public TransactionsHandler(ConnectionService connectionService, PlaidApi plaidClient,
+            AccountServiceClient accountServiceClient) {
         this.connectionService = connectionService;
         this.plaidClient = plaidClient;
+        this.accountServiceClient = accountServiceClient;
     }
 
     @Override
@@ -134,6 +143,29 @@ public class TransactionsHandler implements WebhookStrategy {
                 throw new PlaidClientException("Plaid API refused the connection.", HttpStatus.SERVICE_UNAVAILABLE);
             }
 
+        }
+
+        List<AccountRequestDto> accountsToUpsert = accounts.stream()
+                .map(
+                        acc -> new AccountRequestDto(connection.getConnectionId(),
+                                connection.getUserId(),
+                                acc.getAccountId(),
+                                acc.getName(),
+                                acc.getType().getValue(),
+                                acc.getSubtype().getValue(),
+                                acc.getMask(),
+                                BigDecimal.valueOf(acc.getBalances().getCurrent()),
+                                BigDecimal.valueOf(acc.getBalances().getAvailable()),
+                                acc.getBalances().getIsoCurrencyCode(),
+                                true))
+                .collect(Collectors.toList());
+
+        var accountsUpsertRequest = new AccountsUpsertRequestDto(accountsToUpsert);
+        
+        AccountsUpsertResponseDto accountsUpsertResponse = accountServiceClient.upsertAccountsBatch(accountsUpsertRequest).getBody();
+
+        if(accountsUpsertResponse != null){
+            System.out.println(accountsUpsertResponse.getInsertedAccountsMap());
         }
     }
 

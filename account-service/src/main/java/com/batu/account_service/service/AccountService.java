@@ -13,6 +13,8 @@ import com.batu.account_service.dto.AccountViewDto;
 import com.batu.account_service.enums.AccountSortField;
 import com.batu.shared.dto.AccountNameRequestDto;
 import com.batu.shared.dto.AccountNameResponseDto;
+import com.batu.shared.dto.AccountsUpsertRequestDto;
+import com.batu.shared.dto.AccountsUpsertResponseDto;
 
 public interface AccountService {
 
@@ -29,4 +31,6 @@ public interface AccountService {
     AccountResponseDto getAccount(UUID accountId, Jwt principal);
 
     List<AccountNameResponseDto> getAccountsByGivenIds(AccountNameRequestDto request);
+
+    AccountsUpsertResponseDto upsertAccounts(AccountsUpsertRequestDto request);
 }

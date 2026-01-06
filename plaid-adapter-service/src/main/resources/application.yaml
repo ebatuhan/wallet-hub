@@ -12,6 +12,24 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/certs
+      client:
+        registration:
+          keycloak:
+            provider: keycloak
+            client-id: plaid-adapter-service
+            client-secret: BeFZtmL7fXpYG7QsOJdIQ6voP71alW1z
+            authorization-grant-type: client_credentials
+            scope: openid
+        provider:
+          keycloak:
+            token-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/token
+
+
+
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: false
 
   jpa:
     hibernate:
@@ -26,3 +44,9 @@ plaid:
   env: ${PLAID_ENV_TYPE:sandbox}
   webhook:
    url: ${PLAID_WEBHOOK_URL:https://71l6b2-2a0b-4140-ab40--2.ru.tuna.am/api/plaid/webhook}
+
+accountclient:
+  url: ${ACCOUNT_SERVICE_URL:http://localhost:8083}/accounts
+
+transactionclient:
+  url: ${TRANSACTION_SERVICE_URL:http://localhost:8086}/transactions

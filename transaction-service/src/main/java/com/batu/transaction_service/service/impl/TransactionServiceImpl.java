@@ -20,6 +20,7 @@ import com.batu.transaction_service.dto.TransactionDto;
 import com.batu.transaction_service.dto.TransactionPrimaryCategoryDto;
 import com.batu.shared.dto.AccountNameRequestDto;
 import com.batu.shared.dto.AccountNameResponseDto;
+import com.batu.shared.dto.TransactionsUpsertRequestDto;
 import com.batu.transaction_service.client.AccountServiceClient;
 import com.batu.transaction_service.dto.CursorResponse;
 import com.batu.transaction_service.dto.TransactionViewResponseDto;
@@ -141,4 +142,8 @@ public class TransactionServiceImpl {
                 t.getUpdatedAt());
     }
 
+    public Boolean batchUpsertTransactions(TransactionsUpsertRequestDto request){
+        return true;
+    }
+    
 }

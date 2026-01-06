@@ -1,7 +1,10 @@
 package com.batu.account_service.service.impl;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Sort;
@@ -13,6 +16,7 @@ import com.batu.account_service.CursorResponse;
 
 import com.batu.account_service.dto.AccountResponseDto;
 import com.batu.account_service.dto.AccountViewDto;
+import com.batu.account_service.entity.Account;
 import com.batu.account_service.enums.AccountSortField;
 import com.batu.account_service.exception.ResourceNotFoundException;
 import com.batu.account_service.repository.AccountRepository;
@@ -21,6 +25,9 @@ import com.batu.account_service.service.AccountService;
 import com.batu.account_service.util.CursorUtils;
 import com.batu.shared.dto.AccountNameRequestDto;
 import com.batu.shared.dto.AccountNameResponseDto;
+import com.batu.shared.dto.AccountRequestDto;
+import com.batu.shared.dto.AccountsUpsertRequestDto;
+import com.batu.shared.dto.AccountsUpsertResponseDto;
 
 @Service
 public class AccountServiceImpl implements AccountService {
@@ -83,6 +90,28 @@ public class AccountServiceImpl implements AccountService {
         @Override
         public List<AccountNameResponseDto> getAccountsByGivenIds(AccountNameRequestDto request) {
                 return accountRepository.findByAccountIdIn(request.getAccountIds());
+        }
+
+        // Will be reworked to batch process
+        @Override
+        public AccountsUpsertResponseDto upsertAccounts(AccountsUpsertRequestDto request) {
+                Map<String, UUID> insertedAccountsMap = new HashMap<>();
+
+                for (AccountRequestDto accRequest : request.getAccounts()) {
+                        UUID accountId = accountRepository
+                                        .upsertAccount(accRequest.getConnectionId(), accRequest.getUserId(),
+                                                        accRequest.getExternalId(), accRequest.getAccountName(),
+                                                        accRequest.getAccountType(), accRequest.getAccountSubtype(),
+                                                        accRequest.getAccountMask(), accRequest.getCurrentBalance(),
+                                                        accRequest.getAvailableBalance(),
+                                                        accRequest.getIsoCurrencyCode(),
+                                                        accRequest.isActive())
+                                        .get(0);
+
+                        insertedAccountsMap.put(accRequest.getExternalId(), accountId);
+                }
+
+                return new AccountsUpsertResponseDto(insertedAccountsMap);
         }
 
 }

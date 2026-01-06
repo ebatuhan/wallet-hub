@@ -28,6 +28,8 @@ import com.batu.account_service.enums.AccountSortField;
 import com.batu.account_service.service.AccountService;
 import com.batu.shared.dto.AccountNameRequestDto;
 import com.batu.shared.dto.AccountNameResponseDto;
+import com.batu.shared.dto.AccountsUpsertRequestDto;
+import com.batu.shared.dto.AccountsUpsertResponseDto;
 
 @RestController
 @RequestMapping("/accounts")
@@ -81,5 +83,11 @@ public class AccountController {
                 direction);
 
         return ResponseEntity.ok(response);
+    }
+
+
+    @PostMapping("/batch-upsert")
+    public ResponseEntity<AccountsUpsertResponseDto> upsertAccounts(@RequestBody AccountsUpsertRequestDto request){
+        return ResponseEntity.ok().build();
     }
 }
