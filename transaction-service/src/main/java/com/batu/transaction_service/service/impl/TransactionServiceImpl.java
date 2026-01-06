@@ -56,6 +56,7 @@ public class TransactionServiceImpl {
                 ? ScrollPosition.keyset()
                 : cursorUtils.decode(cursor);
 
+
         Window<Transaction> window = transactionRepository
                 .<Transaction, Window<Transaction>>findBy(spec, query -> query
                         .sortBy(sort)

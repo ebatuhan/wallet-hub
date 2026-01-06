@@ -1,16 +1,16 @@
-version: '3.8'
+version: "3.8"
+
 services:
   postgres-plaid:
     image: postgres:15
     container_name: postgres-plaid
-    env_file:
-      - config/.postgres-plaid-adapter
+    env_file: config/.postgres-plaid-adapter
     ports:
       - "${POSTGRES_PLAID_PORT}:5432"
     volumes:
       - postgres-plaid-data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -18,25 +18,51 @@ services:
   postgres-keycloak:
     image: postgres:15
     container_name: postgres-keycloak
-    env_file:
-      - config/.postgres-keycloak
+    env_file: config/.postgres-keycloak
     ports:
       - "${POSTGRES_KEYCLOAK_PORT}:5432"
     volumes:
       - postgres-keycloak-data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
     restart: unless-stopped
 
+  postgres-account:
+    image: postgres:15
+    container_name: postgres-account
+    env_file: config/.postgres-account
+    ports:
+      - "${POSTGRES_ACCOUNT_PORT}:5432"
+    volumes:
+      - postgres-account-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-transaction:
+    image: postgres:15
+    container_name: postgres-transaction
+    env_file: config/.postgres-transaction
+    ports:
+      - "${POSTGRES_TRANSACTION_PORT}:5432"
+    volumes:
+      - postgres-transaction-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   keycloak:
     image: quay.io/keycloak/keycloak:23.0
     container_name: keycloak
     command: start-dev
-    env_file:
-      - config/.keycloak
+    env_file: config/.keycloak
     ports:
       - "${KEYCLOAK_PORT}:8080"
     depends_on:
@@ -49,94 +75,65 @@ services:
       context: .
       dockerfile: plaid-adapter-service/Dockerfile
     container_name: plaid-adapter-service
-    env_file:
-      - config/.plaid-adapter
+    env_file: config/.plaid-adapter
     ports:
       - "${PLAID_SERVICE_PORT}:8082"
     depends_on:
       postgres-plaid:
         condition: service_healthy
     volumes:
-      - ./plaid-adapter-service/src:/app/src
-      - ./plaid-adapter-service/pom.xml:/app/pom.xml
+      - ./plaid-adapter-service:/app
+      - ./shared:/shared
+      - maven-repo:/root/.m2
 
   account-service:
     build:
       context: .
       dockerfile: account-service/Dockerfile
     container_name: account-service
-    env_file:
-      - config/.account
+    env_file: config/.account
     ports:
       - "${ACCOUNT_SERVICE_PORT}:8083"
     depends_on:
       postgres-account:
         condition: service_healthy
     volumes:
-      - ./account-service/src:/app/src
-      - ./account-service/pom.xml:/app/pom.xml
+      - ./account-service:/app
+      - ./shared:/shared
+      - maven-repo:/root/.m2
 
   transaction-service:
     build:
       context: .
       dockerfile: transaction-service/Dockerfile
     container_name: transaction-service
-    env_file:
-      - config/.transaction-service
+    env_file: config/.transaction-service
     ports:
       - "${TRANSACTION_SERVICE_PORT}:8086"
     depends_on:
       postgres-transaction:
         condition: service_healthy
     volumes:
-      - ./transaction-service/src:/app/src
-      - ./transaction-service/pom.xml:/app/pom.xml
-
-  postgres-transaction:
-    image: postgres:15
-    container_name: postgres-transaction
-    env_file:
-      - config/.postgres-transaction
-    ports:
-      - "${POSTGRES_TRANSACTION_PORT}:5432"
-    volumes:
-      - postgres-transaction-data:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  postgres-account:
-    image: postgres:15
-    container_name: postgres-account
-    env_file:
-      - config/.postgres-account
-    ports:
-      - "${POSTGRES_ACCOUNT_PORT}:5432"
-    volumes:
-      - postgres-account-data:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - ./transaction-service:/app
+      - ./shared:/shared
+      - maven-repo:/root/.m2
 
   api-gateway:
     build:
       context: .
       dockerfile: api-gateway/Dockerfile
     container_name: api-gateway
-    env_file:
-      - config/.api-gateway
+    env_file: config/.api-gateway
     ports:
       - "${API_GATEWAY_PORT}:8085"
     volumes:
-      - ./api-gateway/src:/app/src
-      - ./api-gateway/pom.xml:/app/pom.xml
+      - ./api-gateway:/app
+      - ./shared:/shared
+      - maven-repo:/root/.m2
 
 volumes:
   postgres-plaid-data:
   postgres-keycloak-data:
   postgres-transaction-data:
   postgres-account-data:
+  maven-repo:
