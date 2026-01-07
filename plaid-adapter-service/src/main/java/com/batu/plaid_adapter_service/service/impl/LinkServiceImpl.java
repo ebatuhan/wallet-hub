@@ -5,8 +5,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import javax.security.auth.login.AccountException;
-import javax.swing.event.ListDataEvent;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -22,10 +20,9 @@ import com.batu.shared.dto.ExhcangetokenResponseDto;
 import com.batu.shared.dto.LinkTokenRequestDto;
 import com.batu.shared.dto.LinkTokenResponseDto;
 import com.google.gson.Gson;
-import com.plaid.client.model.AccountBase;
+
 import com.plaid.client.model.ItemPublicTokenExchangeRequest;
 import com.plaid.client.model.LinkTokenCreateRequest;
-import com.plaid.client.model.NewAccountsAvailableWebhook;
 import com.plaid.client.model.Products;
 import com.plaid.client.model.SandboxPublicTokenCreateRequest;
 import com.plaid.client.model.SandboxPublicTokenCreateRequestOptions;

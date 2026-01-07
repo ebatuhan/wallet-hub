@@ -1,6 +1,5 @@
 package com.batu.plaid_adapter_service.strategy.impl;
 
-import org.springframework.stereotype.Component;
 
 import com.batu.plaid_adapter_service.client.AccountServiceClient;
 import com.batu.plaid_adapter_service.client.TransactionServiceClient;
@@ -36,7 +35,7 @@ import com.plaid.client.model.TransactionsSyncRequestOptions;
 import com.plaid.client.model.SandboxItemFireWebhookRequest.WebhookCodeEnum;
 import com.plaid.client.request.PlaidApi;
 
-@Component("TRANSACTIONS")
+//@Component("TRANSACTIONS")
 public class TransactionsHandler implements WebhookStrategy {
 
     private final ConnectionService connectionService;

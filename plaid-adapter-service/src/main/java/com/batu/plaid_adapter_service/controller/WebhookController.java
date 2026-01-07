@@ -6,23 +6,23 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.batu.plaid_adapter_service.factory.WebhookFactory;
+import com.batu.plaid_adapter_service.strategy.WebhookStrategy;
 import com.batu.shared.dto.PlaidWebhookDto;
 
 @RestController
 @RequestMapping("/api/plaid/webhook")
 public class WebhookController {
 
-    private final WebhookFactory webhookFactory;
+    private final WebhookStrategy webhookFactory;
 
-    public WebhookController(WebhookFactory webhookFactory) {
-        this.webhookFactory = webhookFactory;
+    public WebhookController(WebhookStrategy webhookTypeFactory) {
+        this.webhookFactory = webhookTypeFactory;
     }
 
     @PostMapping
     public ResponseEntity<Void> handleWebhook(@RequestBody PlaidWebhookDto payload) {
 
-        webhookFactory.executeHandling(payload);
+        webhookFactory.handle(payload);
 
         return ResponseEntity.ok().build();
     }
