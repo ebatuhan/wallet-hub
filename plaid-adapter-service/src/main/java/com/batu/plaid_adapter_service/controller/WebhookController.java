@@ -21,7 +21,9 @@ public class WebhookController {
 
     @PostMapping
     public ResponseEntity<Void> handleWebhook(@RequestBody PlaidWebhookDto payload) {
+
         webhookFactory.executeHandling(payload);
+
         return ResponseEntity.ok().build();
     }
 }

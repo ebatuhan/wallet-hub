@@ -16,6 +16,6 @@ data class TransactionRequestDto(
     val date: LocalDate,
     val is_pending: Boolean? = false,
     val paymentChannel: String,
-    val detailedCategory: TransactionDetailedCategoryRequestDto,
+    val detailedCategoryCode: String,
     val isActive: Boolean = true
 )

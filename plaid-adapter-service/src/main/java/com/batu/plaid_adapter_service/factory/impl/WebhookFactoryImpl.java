@@ -21,7 +21,7 @@ public class WebhookFactoryImpl implements WebhookFactory {
         WebhookStrategy strategy = webhookStrategyMap.get(webhookType);
 
         if (strategy == null) {
-            throw new IllegalArgumentException("No handlers supported for webhook type: " + webhookType);
+            System.out.println("No handlers supported for webhook type: " + webhookType);
         }
 
         return strategy;

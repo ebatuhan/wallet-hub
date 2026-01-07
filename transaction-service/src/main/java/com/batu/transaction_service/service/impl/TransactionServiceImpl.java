@@ -1,5 +1,6 @@
 package com.batu.transaction_service.service.impl;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -20,130 +21,171 @@ import com.batu.transaction_service.dto.TransactionDto;
 import com.batu.transaction_service.dto.TransactionPrimaryCategoryDto;
 import com.batu.shared.dto.AccountNameRequestDto;
 import com.batu.shared.dto.AccountNameResponseDto;
+import com.batu.shared.dto.TransactionRequestDto;
 import com.batu.shared.dto.TransactionsUpsertRequestDto;
 import com.batu.transaction_service.client.AccountServiceClient;
 import com.batu.transaction_service.dto.CursorResponse;
 import com.batu.transaction_service.dto.TransactionViewResponseDto;
 import com.batu.transaction_service.entity.Transaction;
+import com.batu.transaction_service.entity.TransactionDetailedCategory;
 import com.batu.transaction_service.repository.TransactionRepository;
 import com.batu.transaction_service.repository.spec.TransactionSpecs;
+import com.batu.transaction_service.service.DetailedCategoryService;
 import com.batu.transaction_service.util.CursorUtils;
 
 @Service
 public class TransactionServiceImpl {
 
-    private final TransactionRepository transactionRepository;
-    private final CursorUtils cursorUtils;
-    private final AccountServiceClient accountClient;
+        private final TransactionRepository transactionRepository;
+        private final CursorUtils cursorUtils;
+        private final AccountServiceClient accountClient;
+        private final DetailedCategoryService detailedCategoryService;
 
-    public TransactionServiceImpl(TransactionRepository transactionRepository, CursorUtils cursorUtils,
-            AccountServiceClient accountService) {
-        this.transactionRepository = transactionRepository;
-        this.cursorUtils = cursorUtils;
-        this.accountClient = accountService;
-    }
-
-    @Transactional(readOnly = true)
-    public CursorResponse<TransactionViewResponseDto> transatcions(Jwt principal, String category, String cursor,
-            int limit) {
-
-        UUID userId = UUID.fromString(principal.getSubject());
-
-        Specification<Transaction> spec = TransactionSpecs.withDynamicFilters(userId, category);
-
-        Sort sort = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("transactionId"));
-
-        ScrollPosition position = (cursor == null || cursor.isEmpty())
-                ? ScrollPosition.keyset()
-                : cursorUtils.decode(cursor);
-
-
-        Window<Transaction> window = transactionRepository
-                .<Transaction, Window<Transaction>>findBy(spec, query -> query
-                        .sortBy(sort)
-                        .limit(limit)
-                        .scroll(position));
-
-        Set<UUID> accountIds = window.getContent()
-                .stream()
-                .map(acc -> acc.getAccountId())
-                .collect(Collectors.toSet());
-
-        var request = new AccountNameRequestDto(accountIds);
-        List<AccountNameResponseDto> response = accountClient
-                .getAccountNames(request)
-                .getBody();
-
-        Map<UUID, String> accountInformationsMap = response.stream().collect(Collectors.toMap(
-                AccountNameResponseDto::getAccountId,
-                AccountNameResponseDto::getAccountName));
-
-        var dtos = window.getContent().stream()
-                .map(
-                        tx -> new TransactionViewResponseDto(tx.getTransactionId(),
-                                tx.getAmount(),
-                                tx.getTransactionName(),
-                                tx.getIsoCurrencyCode(),
-                                tx.getDetailedCategory().getTransactionPrimaryCategory().getDisplayName(),
-                                tx.getDetailedCategory().getDisplayName(),
-                                tx.getAccountId(),
-                                accountInformationsMap.getOrDefault(tx.getAccountId(), " ")))
-                .collect(Collectors.toList());
-
-        String nextCursor = null;
-
-        if (window.hasNext()) {
-            ScrollPosition nextPos = window.positionAt(window.getContent().size() - 1);
-            nextCursor = cursorUtils.encode(nextPos);
+        public TransactionServiceImpl(TransactionRepository transactionRepository, CursorUtils cursorUtils,
+                        AccountServiceClient accountService, DetailedCategoryService detailedCategoryService) {
+                this.transactionRepository = transactionRepository;
+                this.cursorUtils = cursorUtils;
+                this.accountClient = accountService;
+                this.detailedCategoryService = detailedCategoryService;
         }
 
-        return new CursorResponse<>(dtos, window.hasNext(), nextCursor);
-    }
+        @Transactional(readOnly = true)
+        public CursorResponse<TransactionViewResponseDto> transatcions(Jwt principal, String category, UUID accountId,
+                        String cursor,
+                        int limit) {
 
-    public TransactionDto getTransactionById(Jwt principial, UUID transactionId) {
-        UUID userId = UUID.fromString(principial.getSubject());
-        Transaction transaction = transactionRepository
-                .findByTransactionIdAndUserIdAndIsActiveTrue(transactionId, userId)
-                .get();
+                UUID userId = UUID.fromString(principal.getSubject());
 
-        return mapToResponseDto(transaction);
-    }
+                Specification<Transaction> spec = TransactionSpecs.withDynamicFilters(userId, accountId, category);
 
-    private TransactionDto mapToResponseDto(Transaction t) {
-        if (t == null) {
-            return null;
+                Sort sort = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("transactionId"));
+
+                ScrollPosition position = (cursor == null || cursor.isEmpty())
+                                ? ScrollPosition.keyset()
+                                : cursorUtils.decode(cursor);
+
+                Window<Transaction> window = transactionRepository
+                                .<Transaction, Window<Transaction>>findBy(spec, query -> query
+                                                .sortBy(sort)
+                                                .limit(limit)
+                                                .scroll(position));
+
+                Set<UUID> accountIds = window.getContent()
+                                .stream()
+                                .map(acc -> acc.getAccountId())
+                                .collect(Collectors.toSet());
+
+                var request = new AccountNameRequestDto(accountIds);
+                List<AccountNameResponseDto> response = accountClient
+                                .getAccountNames(request)
+                                .getBody();
+
+                Map<UUID, String> accountInformationsMap = response.stream().collect(Collectors.toMap(
+                                AccountNameResponseDto::getAccountId,
+                                AccountNameResponseDto::getAccountName));
+
+                var dtos = window.getContent().stream()
+                                .map(
+                                                tx -> new TransactionViewResponseDto(tx.getTransactionId(),
+                                                                tx.getAmount(),
+                                                                tx.getTransactionName(),
+                                                                tx.getIsoCurrencyCode(),
+                                                                tx.getDetailedCategory().getTransactionPrimaryCategory()
+                                                                                .getDisplayName(),
+                                                                tx.getDetailedCategory().getDisplayName(),
+                                                                tx.getAccountId(),
+                                                                accountInformationsMap.getOrDefault(tx.getAccountId(),
+                                                                                " ")))
+                                .collect(Collectors.toList());
+
+                String nextCursor = null;
+
+                if (window.hasNext()) {
+                        ScrollPosition nextPos = window.positionAt(window.getContent().size() - 1);
+                        nextCursor = cursorUtils.encode(nextPos);
+                }
+
+                return new CursorResponse<>(dtos, window.hasNext(), nextCursor);
         }
 
-        TransactionPrimaryCategoryDto primaryCategoryDto = new TransactionPrimaryCategoryDto(
-                t.getDetailedCategory().getTransactionPrimaryCategory().getTransactionPrimaryCategoryId(),
-                t.getDetailedCategory().getTransactionPrimaryCategory().getCategoryCode(),
-                t.getDetailedCategory().getTransactionPrimaryCategory().getDisplayName(),
-                t.getDetailedCategory().getTransactionPrimaryCategory().getIconUrl());
+        public TransactionDto getTransactionById(Jwt principial, UUID transactionId) {
+                UUID userId = UUID.fromString(principial.getSubject());
+                Transaction transaction = transactionRepository
+                                .findByTransactionIdAndUserIdAndIsActiveTrue(transactionId, userId)
+                                .get();
 
-        TransactionDetailedCategoryDto detailedCategoryDto = new TransactionDetailedCategoryDto(
-                t.getDetailedCategory().getTransactionDetailedCategoryId(),
-                t.getDetailedCategory().getDisplayName(),
-                t.getDetailedCategory().getDetailedCode(),
-                primaryCategoryDto);
+                return mapToResponseDto(transaction);
+        }
 
-        return new TransactionDto(
-                t.getTransactionId(),
-                t.getUserId(),
-                t.getExternalId(),
-                t.getAmount(),
-                t.getIsoCurrencyCode(),
-                t.getTransactionName(),
-                t.getTransactionType(),
-                t.getDate(),
-                t.is_pending(),
-                t.getPaymentChannel(),
-                detailedCategoryDto,
-                t.getCreatedAt(),
-                t.getUpdatedAt());
-    }
+        private TransactionDto mapToResponseDto(Transaction t) {
+                if (t == null) {
+                        return null;
+                }
 
-    public Boolean batchUpsertTransactions(TransactionsUpsertRequestDto request){
-        return true;
-    }
-    
+                TransactionPrimaryCategoryDto primaryCategoryDto = new TransactionPrimaryCategoryDto(
+                                t.getDetailedCategory().getTransactionPrimaryCategory()
+                                                .getTransactionPrimaryCategoryId(),
+                                t.getDetailedCategory().getTransactionPrimaryCategory().getCategoryCode(),
+                                t.getDetailedCategory().getTransactionPrimaryCategory().getDisplayName(),
+                                t.getDetailedCategory().getTransactionPrimaryCategory().getIconUrl());
+
+                TransactionDetailedCategoryDto detailedCategoryDto = new TransactionDetailedCategoryDto(
+                                t.getDetailedCategory().getTransactionDetailedCategoryId(),
+                                t.getDetailedCategory().getDisplayName(),
+                                t.getDetailedCategory().getCategoryCode(),
+                                primaryCategoryDto);
+
+                return new TransactionDto(
+                                t.getTransactionId(),
+                                t.getUserId(),
+                                t.getExternalId(),
+                                t.getAmount(),
+                                t.getIsoCurrencyCode(),
+                                t.getTransactionName(),
+                                t.getTransactionType(),
+                                t.getDate(),
+                                t.is_pending(),
+                                t.getPaymentChannel(),
+                                detailedCategoryDto,
+                                t.getCreatedAt(),
+                                t.getUpdatedAt());
+        }
+
+        @Transactional
+        public Boolean batchUpsertTransactions(TransactionsUpsertRequestDto request) {
+
+                var transactionsToUpsert = request.getTransactions();
+
+                List<Transaction> transactionsToSave = new ArrayList<>();
+
+                for (TransactionRequestDto txDto : transactionsToUpsert) {
+                        TransactionDetailedCategory detailedCategory = detailedCategoryService
+                                        .getByCategoryCode(txDto.getDetailedCategoryCode());
+
+                        var transaction = transactionRepository.findByExternalId(txDto.getExternalId())
+                                        .orElseGet(() -> new Transaction(
+                                                        txDto.getUserId(),
+                                                        txDto.getAccountId(),
+                                                        txDto.getExternalId(),
+                                                        txDto.getAmount(),
+                                                        txDto.getIsoCurrencyCode(),
+                                                        txDto.getTransactionName(),
+                                                        txDto.getTransactionType(),
+                                                        txDto.getDate(),
+                                                        txDto.is_pending(),
+                                                        txDto.getPaymentChannel(),
+                                                        detailedCategory,
+                                                        txDto.isActive()));
+
+                        transaction.setActive(txDto.isActive());
+                        transaction.set_pending(txDto.is_pending());
+                        transaction.setAmount(txDto.getAmount());
+
+                        transactionsToSave.add(transaction);
+                }
+                transactionRepository.saveAll(transactionsToSave);
+
+                return true;
+        }
+
 }

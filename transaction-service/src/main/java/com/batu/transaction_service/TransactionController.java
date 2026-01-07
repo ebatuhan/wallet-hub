@@ -35,11 +35,13 @@ public class TransactionController {
             @AuthenticationPrincipal Jwt principal,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) UUID accountId,
             @RequestParam(defaultValue = "10") int limit) {
 
         CursorResponse<TransactionViewResponseDto> response = transactionService.transatcions(
                 principal,
                 category,
+                accountId,
                 cursor,
                 limit);
         return ResponseEntity.ok(response);
@@ -52,11 +54,11 @@ public class TransactionController {
         return ResponseEntity.ok(transactionService.getTransactionById(principal, transactionId));
     }
 
-    @PostMapping("/batch-insert")
+    @PostMapping("/batch-upsert")
     @PreAuthorize("hasAuthority('ROLE_SERVICE')")
     public ResponseEntity<Boolean> batchUpsertTransactions(@RequestBody TransactionsUpsertRequestDto request){
-        return ResponseEntity.ok(true);
-        //return ResponseEntity.ok(transactionService.batchUpsertTransactions(request));
+        return ResponseEntity.ok(transactionService.batchUpsertTransactions(request));
+        
     }
 
 }

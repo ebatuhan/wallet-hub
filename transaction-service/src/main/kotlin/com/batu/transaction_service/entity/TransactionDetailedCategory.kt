@@ -15,11 +15,13 @@ class TransactionDetailedCategory(
     val displayName : String,
 
     @Column(nullable = false)
-    val detailedCode : String,
+    val categoryCode : String,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "primary_category_id")
-    val transactionPrimaryCategory : TransactionPrimaryCategory
+    val transactionPrimaryCategory : TransactionPrimaryCategory,
+
+    val description : String? = ""
 
 ){
     @Id

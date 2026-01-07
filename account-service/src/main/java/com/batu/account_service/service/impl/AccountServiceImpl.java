@@ -1,5 +1,6 @@
 package com.batu.account_service.service.impl;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,8 @@ import com.batu.shared.dto.AccountNameResponseDto;
 import com.batu.shared.dto.AccountRequestDto;
 import com.batu.shared.dto.AccountsUpsertRequestDto;
 import com.batu.shared.dto.AccountsUpsertResponseDto;
+
+import jakarta.transaction.Transactional;
 
 @Service
 public class AccountServiceImpl implements AccountService {
@@ -94,21 +97,40 @@ public class AccountServiceImpl implements AccountService {
 
         // Will be reworked to batch process
         @Override
+        @Transactional
         public AccountsUpsertResponseDto upsertAccounts(AccountsUpsertRequestDto request) {
+
                 Map<String, UUID> insertedAccountsMap = new HashMap<>();
 
                 for (AccountRequestDto accRequest : request.getAccounts()) {
-                        UUID accountId = accountRepository
-                                        .upsertAccount(accRequest.getConnectionId(), accRequest.getUserId(),
-                                                        accRequest.getExternalId(), accRequest.getAccountName(),
-                                                        accRequest.getAccountType(), accRequest.getAccountSubtype(),
-                                                        accRequest.getAccountMask(), accRequest.getCurrentBalance(),
+
+                        Account account = accountRepository
+                                        .findByExternalId(accRequest.getExternalId())
+                                        .orElseGet(() -> new Account(
+                                                        accRequest.getConnectionId(),
+                                                        accRequest.getUserId(),
+                                                        accRequest.getExternalId(),
+                                                        accRequest.getAccountName(),
+                                                        accRequest.getAccountType(),
+                                                        accRequest.getAccountSubtype(),
+                                                        accRequest.getAccountMask(),
+                                                        accRequest.getCurrentBalance(),
                                                         accRequest.getAvailableBalance(),
                                                         accRequest.getIsoCurrencyCode(),
-                                                        accRequest.isActive())
-                                        .get(0);
+                                                        accRequest.isActive()));
 
-                        insertedAccountsMap.put(accRequest.getExternalId(), accountId);
+                        account.setAccountName(accRequest.getAccountName());
+                        account.setAccountType(accRequest.getAccountType());
+                        account.setAccountSubtype(accRequest.getAccountSubtype());
+                        account.setCurrentBalance(accRequest.getCurrentBalance());
+                        account.setAvailableBalance(accRequest.getAvailableBalance());
+                        account.setIsoCurrencyCode(accRequest.getIsoCurrencyCode());
+
+                        Account saved = accountRepository.save(account);
+
+                        insertedAccountsMap.put(
+                                        accRequest.getExternalId(),
+                                        saved.getAccountId());
                 }
 
                 return new AccountsUpsertResponseDto(insertedAccountsMap);

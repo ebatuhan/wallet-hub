@@ -28,7 +28,7 @@ class Account(
     var accountType : String,
 
     @Column
-    var accountSubtype : String,
+    var accountSubtype : String? = "",
 
     @Column(nullable = false)
     var accountMask : String, 

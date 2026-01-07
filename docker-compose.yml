@@ -84,7 +84,7 @@ services:
     volumes:
       - ./plaid-adapter-service:/app
       - ./shared:/shared
-      - maven-repo:/root/.m2
+      - ~/.m2:/root/.m2
 
   account-service:
     build:
@@ -100,7 +100,7 @@ services:
     volumes:
       - ./account-service:/app
       - ./shared:/shared
-      - maven-repo:/root/.m2
+      - ~/.m2:/root/.m2
 
   transaction-service:
     build:
@@ -116,7 +116,7 @@ services:
     volumes:
       - ./transaction-service:/app
       - ./shared:/shared
-      - maven-repo:/root/.m2
+      - ~/.m2:/root/.m2
 
   api-gateway:
     build:
@@ -129,7 +129,7 @@ services:
     volumes:
       - ./api-gateway:/app
       - ./shared:/shared
-      - maven-repo:/root/.m2
+      - ~/.m2:/root/.m2
 
 volumes:
   postgres-plaid-data:

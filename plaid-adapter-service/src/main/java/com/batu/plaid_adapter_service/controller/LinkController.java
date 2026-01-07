@@ -19,7 +19,7 @@ import com.batu.shared.dto.LinkTokenResponseDto;
 @RequestMapping("/api/plaid")
 public class LinkController {
     private final LinkService linkService;
-    
+
     private final AccountServiceClient c1;
     private final TransactionServiceClient c2;
 
@@ -30,14 +30,19 @@ public class LinkController {
     }
 
     @PostMapping("/link")
-    LinkTokenResponseDto createLinkToken(LinkTokenRequestDto request, @AuthenticationPrincipal Jwt jwt){
+    LinkTokenResponseDto createLinkToken(LinkTokenRequestDto request, @AuthenticationPrincipal Jwt jwt) {
         return linkService.createLinkToken(request, jwt);
     }
 
     @PostMapping("/exchange")
-    ExhcangetokenResponseDto exchangeToken(ExchangeTokenRequestDto request, @AuthenticationPrincipal Jwt jwt){
+    ExhcangetokenResponseDto exchangeToken(ExchangeTokenRequestDto request, @AuthenticationPrincipal Jwt jwt) {
         return linkService.exchangeToken(request, jwt);
     }
 
+    @PostMapping("/mock")
+    ExhcangetokenResponseDto mockToken(@AuthenticationPrincipal Jwt principal) {
+
+        return linkService.mockToken(principal);
+    }
 
 }

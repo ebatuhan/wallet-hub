@@ -16,6 +16,7 @@ class TransactionPrimaryCategory(
     val displayName : String,
 
     val iconUrl : String? = "default"
+
 ){
     @Id
     @UuidGenerator

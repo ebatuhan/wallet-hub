@@ -1,8 +1,12 @@
 package com.batu.plaid_adapter_service.service.impl;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+
+import javax.security.auth.login.AccountException;
+import javax.swing.event.ListDataEvent;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -18,12 +22,16 @@ import com.batu.shared.dto.ExhcangetokenResponseDto;
 import com.batu.shared.dto.LinkTokenRequestDto;
 import com.batu.shared.dto.LinkTokenResponseDto;
 import com.google.gson.Gson;
+import com.plaid.client.model.AccountBase;
 import com.plaid.client.model.ItemPublicTokenExchangeRequest;
 import com.plaid.client.model.LinkTokenCreateRequest;
+import com.plaid.client.model.NewAccountsAvailableWebhook;
 import com.plaid.client.model.Products;
+import com.plaid.client.model.SandboxPublicTokenCreateRequest;
+import com.plaid.client.model.SandboxPublicTokenCreateRequestOptions;
+import com.plaid.client.model.SandboxPublicTokenCreateResponse;
 import com.plaid.client.request.PlaidApi;
 import com.plaid.client.model.PlaidError;
-
 
 @Service
 public class LinkServiceImpl implements LinkService {
@@ -56,9 +64,7 @@ public class LinkServiceImpl implements LinkService {
             if (response.isSuccessful() && body != null) {
                 String linkToken = body.getLinkToken();
                 return new LinkTokenResponseDto(linkToken);
-            }
-
-            else {
+            } else {
                 var errorBody = response.errorBody();
 
                 if (errorBody != null) {
@@ -108,9 +114,7 @@ public class LinkServiceImpl implements LinkService {
 
                 return new ExhcangetokenResponseDto(savedConnection.getInstitutionId(),
                         savedConnection.getInstitutionName());
-            }
-
-            else {
+            } else {
                 var errorBody = response.errorBody();
 
                 if (errorBody != null) {
@@ -125,10 +129,44 @@ public class LinkServiceImpl implements LinkService {
                 }
                 throw new PlaidClientException("Plaid sent empty error", HttpStatus.BAD_GATEWAY);
             }
-        }
-
-        catch (IOException ex) {
+        } catch (IOException ex) {
             throw new PlaidClientException("Unable to connect to banking provider.", HttpStatus.SERVICE_UNAVAILABLE);
+        }
+    }
+
+    @Override
+    public ExhcangetokenResponseDto mockToken(Jwt principal) {
+        final String institutionId = "ins_109508";
+
+        try {
+            SandboxPublicTokenCreateRequest request = new SandboxPublicTokenCreateRequest()
+                    .institutionId(institutionId)
+                    .initialProducts(List.of(Products.AUTH, Products.TRANSACTIONS))
+                    .options(new SandboxPublicTokenCreateRequestOptions()
+                            .webhook(webhookUrl)
+                            .overrideUsername("user_transactions_dynamic")
+                            .overridePassword("user_good"));
+
+            SandboxPublicTokenCreateResponse response = plaidClient
+                    .sandboxPublicTokenCreate(request)
+                    .execute()
+                    .body();
+
+            if (response == null) {
+                throw new PlaidClientException("Plaid sent empty response", HttpStatus.BAD_GATEWAY);
+            }
+
+            ExchangeTokenRequestDto dto = new ExchangeTokenRequestDto(
+                    response.getPublicToken(),
+                    Collections.emptyList(),
+                    institutionId,
+                    "Sandbox Bank");
+
+
+            return exchangeToken(dto, principal);
+
+        } catch (IOException e) {
+            throw new PlaidClientException("Unable to connect to Plaid sandbox.", HttpStatus.SERVICE_UNAVAILABLE);
         }
     }
 }

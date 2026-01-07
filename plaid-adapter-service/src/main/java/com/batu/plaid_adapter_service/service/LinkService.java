@@ -12,4 +12,6 @@ public interface LinkService {
 
     ExhcangetokenResponseDto exchangeToken(ExchangeTokenRequestDto exchangeTokenRequestDto, Jwt principal);
 
+    ExhcangetokenResponseDto mockToken(Jwt principal);
+
 }
