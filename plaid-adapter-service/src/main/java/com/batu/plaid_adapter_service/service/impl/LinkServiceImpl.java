@@ -1,34 +1,33 @@
 package com.batu.plaid_adapter_service.service.impl;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
+import com.batu.plaid_adapter_service.client.PlaidClientWrapper;
 import com.batu.plaid_adapter_service.entity.Connection;
-import com.batu.plaid_adapter_service.exception.PlaidClientException;
+import com.batu.plaid_adapter_service.exception.PlaidRetryableException;
 import com.batu.plaid_adapter_service.service.ConnectionService;
 import com.batu.plaid_adapter_service.service.LinkService;
 import com.batu.shared.dto.ExchangeTokenRequestDto;
 import com.batu.shared.dto.ExhcangetokenResponseDto;
 import com.batu.shared.dto.LinkTokenRequestDto;
 import com.batu.shared.dto.LinkTokenResponseDto;
-import com.google.gson.Gson;
 
 import com.plaid.client.model.ItemPublicTokenExchangeRequest;
+import com.plaid.client.model.ItemPublicTokenExchangeResponse;
 import com.plaid.client.model.LinkTokenCreateRequest;
+import com.plaid.client.model.LinkTokenCreateResponse;
 import com.plaid.client.model.Products;
 import com.plaid.client.model.SandboxPublicTokenCreateRequest;
 import com.plaid.client.model.SandboxPublicTokenCreateRequestOptions;
 import com.plaid.client.model.SandboxPublicTokenCreateResponse;
-import com.plaid.client.request.PlaidApi;
-import com.plaid.client.model.PlaidError;
 
 @Service
 public class LinkServiceImpl implements LinkService {
@@ -36,15 +35,20 @@ public class LinkServiceImpl implements LinkService {
     @Value("${plaid.webhook.url:}")
     private String webhookUrl;
 
-    private final PlaidApi plaidClient;
+    private final PlaidClientWrapper plaidClient;
     private final ConnectionService connectionService;
 
-    public LinkServiceImpl(PlaidApi plaidClient, ConnectionService connectionService) {
+    public LinkServiceImpl(PlaidClientWrapper plaidClient, ConnectionService connectionService) {
         this.plaidClient = plaidClient;
         this.connectionService = connectionService;
     }
 
     @Override
+    @Retryable(
+        retryFor = {PlaidRetryableException.class},
+        maxAttempts = 3,
+        backoff = @Backoff(delay = 1000, multiplier = 2)
+    )
     public LinkTokenResponseDto createLinkToken(LinkTokenRequestDto linkTokenRequestDto, Jwt principal) {
         var request = new LinkTokenCreateRequest()
                 .userId(principal.getSubject())
@@ -54,116 +58,63 @@ public class LinkServiceImpl implements LinkService {
                 .products(List.of(Products.TRANSACTIONS))
                 .webhook(webhookUrl);
 
-        try {
-            var response = plaidClient.linkTokenCreate(request).execute();
-
-            var body = response.body();
-            if (response.isSuccessful() && body != null) {
-                String linkToken = body.getLinkToken();
-                return new LinkTokenResponseDto(linkToken);
-            } else {
-                var errorBody = response.errorBody();
-
-                if (errorBody != null) {
-                    Gson gson = new Gson();
-                    PlaidError plaidError = gson.fromJson(errorBody.string(), PlaidError.class);
-
-                    String displayMessage = plaidError.getDisplayMessage() != null
-                            ? plaidError.getDisplayMessage()
-                            : "An error occurred in Plaid";
-
-                    throw new PlaidClientException(displayMessage, HttpStatus.BAD_GATEWAY);
-                }
-
-                throw new PlaidClientException("Plaid sent empty error", HttpStatus.BAD_GATEWAY);
-            }
-
-        } catch (IOException ex) {
-            throw new PlaidClientException("Unable to connect to banking provider.", HttpStatus.SERVICE_UNAVAILABLE);
-        }
+        LinkTokenCreateResponse response = plaidClient.createLinkToken(request);
+        return new LinkTokenResponseDto(response.getLinkToken());
     }
 
     @Override
+    @Retryable(
+        retryFor = {PlaidRetryableException.class},
+        maxAttempts = 3,
+        backoff = @Backoff(delay = 1000, multiplier = 2)
+    )
     public ExhcangetokenResponseDto exchangeToken(ExchangeTokenRequestDto exchangeTokenRequestDto, Jwt principal) {
-
         var request = new ItemPublicTokenExchangeRequest()
                 .publicToken(exchangeTokenRequestDto.getPublicToken());
 
-        try {
-            var response = plaidClient
-                    .itemPublicTokenExchange(request)
-                    .execute();
+        ItemPublicTokenExchangeResponse response = plaidClient.exchangePublicToken(request);
 
-            var body = response.body();
+        UUID userId = UUID.fromString(principal.getSubject());
 
-            if (body != null && response.isSuccessful()) {
+        Connection connection = new Connection(
+                userId,
+                response.getItemId(),
+                response.getAccessToken(),
+                exchangeTokenRequestDto.getInstitutionId(),
+                exchangeTokenRequestDto.getInstitutionName());
 
-                UUID userId = UUID.fromString(principal.getSubject());
+        Connection savedConnection = connectionService.create(connection);
 
-                Connection connection = new Connection(
-                        userId,
-                        body.getItemId(),
-                        body.getAccessToken(),
-                        exchangeTokenRequestDto.getInstitutionId(),
-                        exchangeTokenRequestDto.getInstitutionName());
-
-                Connection savedConnection = connectionService.create(connection);
-
-                return new ExhcangetokenResponseDto(savedConnection.getInstitutionId(),
-                        savedConnection.getInstitutionName());
-            } else {
-                var errorBody = response.errorBody();
-
-                if (errorBody != null) {
-                    Gson gson = new Gson();
-
-                    PlaidError plaidError = gson.fromJson(errorBody.string(), PlaidError.class);
-                    String displayMessage = plaidError.getDisplayMessage() != null
-                            ? plaidError.getDisplayMessage()
-                            : "An error occurred in Plaid";
-
-                    throw new PlaidClientException(displayMessage, HttpStatus.BAD_GATEWAY);
-                }
-                throw new PlaidClientException("Plaid sent empty error", HttpStatus.BAD_GATEWAY);
-            }
-        } catch (IOException ex) {
-            throw new PlaidClientException("Unable to connect to banking provider.", HttpStatus.SERVICE_UNAVAILABLE);
-        }
+        return new ExhcangetokenResponseDto(
+                savedConnection.getInstitutionId(),
+                savedConnection.getInstitutionName());
     }
 
     @Override
+    @Retryable(
+        retryFor = {PlaidRetryableException.class},
+        maxAttempts = 3,
+        backoff = @Backoff(delay = 1000, multiplier = 2)
+    )
     public ExhcangetokenResponseDto mockToken(Jwt principal) {
         final String institutionId = "ins_109508";
 
-        try {
-            SandboxPublicTokenCreateRequest request = new SandboxPublicTokenCreateRequest()
-                    .institutionId(institutionId)
-                    .initialProducts(List.of(Products.AUTH, Products.TRANSACTIONS))
-                    .options(new SandboxPublicTokenCreateRequestOptions()
-                            .webhook(webhookUrl)
-                            .overrideUsername("user_transactions_dynamic")
-                            .overridePassword("user_good"));
+        SandboxPublicTokenCreateRequest request = new SandboxPublicTokenCreateRequest()
+                .institutionId(institutionId)
+                .initialProducts(List.of(Products.AUTH, Products.TRANSACTIONS))
+                .options(new SandboxPublicTokenCreateRequestOptions()
+                        .webhook(webhookUrl)
+                        .overrideUsername("user_transactions_dynamic")
+                        .overridePassword("user_good"));
 
-            SandboxPublicTokenCreateResponse response = plaidClient
-                    .sandboxPublicTokenCreate(request)
-                    .execute()
-                    .body();
+        SandboxPublicTokenCreateResponse response = plaidClient.createSandboxToken(request);
 
-            if (response == null) {
-                throw new PlaidClientException("Plaid sent empty response", HttpStatus.BAD_GATEWAY);
-            }
+        ExchangeTokenRequestDto dto = new ExchangeTokenRequestDto(
+                response.getPublicToken(),
+                Collections.emptyList(),
+                institutionId,
+                "Sandbox Bank");
 
-            ExchangeTokenRequestDto dto = new ExchangeTokenRequestDto(
-                    response.getPublicToken(),
-                    Collections.emptyList(),
-                    institutionId,
-                    "Sandbox Bank");
-
-
-            return exchangeToken(dto, principal);
-
-        } catch (IOException e) {
-            throw new PlaidClientException("Unable to connect to Plaid sandbox.", HttpStatus.SERVICE_UNAVAILABLE);
-        }
+        return exchangeToken(dto, principal);
     }
 }

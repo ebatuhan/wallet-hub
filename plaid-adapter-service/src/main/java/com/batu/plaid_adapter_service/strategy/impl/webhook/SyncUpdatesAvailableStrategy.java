@@ -2,6 +2,7 @@ package com.batu.plaid_adapter_service.strategy.impl.webhook;
 
 import org.springframework.stereotype.Component;
 
+import com.batu.model.SyncDataModel;
 import com.batu.plaid_adapter_service.entity.Connection;
 import com.batu.plaid_adapter_service.service.ConnectionService;
 import com.batu.plaid_adapter_service.service.SyncService;
@@ -13,6 +14,7 @@ public class SyncUpdatesAvailableStrategy implements WebhookStrategy {
 
     private final ConnectionService connectionService;
     private final SyncService syncService;
+    private final OrchestrationService orchestrationService;
 
     public SyncUpdatesAvailableStrategy(ConnectionService connectionService, SyncService syncService) {
         this.connectionService = connectionService;
@@ -24,7 +26,8 @@ public class SyncUpdatesAvailableStrategy implements WebhookStrategy {
         String conectionExternalId = dto.getItemId();
         Connection connection = connectionService.readByExternalId(conectionExternalId);
 
-        syncService.SyncTransactionsAndAccounts(connection);
-    }
+        SyncDataModel syncData = syncService.SyncTransactionsAndAccounts(connection);
 
+        orchestrationService.orchestrate(syncData);
+    }
 }
