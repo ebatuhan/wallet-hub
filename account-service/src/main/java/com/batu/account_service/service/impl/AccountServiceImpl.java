@@ -1,11 +1,9 @@
 package com.batu.account_service.service.impl;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Sort;
@@ -13,10 +11,6 @@ import org.springframework.data.domain.Window;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
-import com.batu.account_service.CursorResponse;
-
-import com.batu.account_service.dto.AccountResponseDto;
-import com.batu.account_service.dto.AccountViewDto;
 import com.batu.account_service.entity.Account;
 import com.batu.account_service.enums.AccountSortField;
 import com.batu.account_service.exception.ResourceNotFoundException;
@@ -24,11 +18,14 @@ import com.batu.account_service.repository.AccountRepository;
 import com.batu.account_service.repository.specs.AccountSpecification;
 import com.batu.account_service.service.AccountService;
 import com.batu.account_service.util.CursorUtils;
-import com.batu.shared.dto.AccountNameRequestDto;
-import com.batu.shared.dto.AccountNameResponseDto;
-import com.batu.shared.dto.AccountRequestDto;
-import com.batu.shared.dto.AccountsUpsertRequestDto;
-import com.batu.shared.dto.AccountsUpsertResponseDto;
+import com.batu.shared.dto.request.AccountNameRequestDto;
+import com.batu.shared.dto.request.AccountRequestDto;
+import com.batu.shared.dto.request.AccountsUpsertRequestDto;
+import com.batu.shared.dto.response.AccountNameResponseDto;
+import com.batu.shared.dto.response.AccountResponseDto;
+import com.batu.shared.dto.response.AccountViewDto;
+import com.batu.shared.dto.response.AccountsUpsertResponseDto;
+import com.batu.shared.dto.response.CursorResponse;
 
 import jakarta.transaction.Transactional;
 

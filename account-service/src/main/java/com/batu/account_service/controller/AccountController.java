@@ -20,16 +20,15 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
-import com.batu.account_service.CursorResponse;
-
-import com.batu.account_service.dto.AccountResponseDto;
-import com.batu.account_service.dto.AccountViewDto;
 import com.batu.account_service.enums.AccountSortField;
 import com.batu.account_service.service.AccountService;
-import com.batu.shared.dto.AccountNameRequestDto;
-import com.batu.shared.dto.AccountNameResponseDto;
-import com.batu.shared.dto.AccountsUpsertRequestDto;
-import com.batu.shared.dto.AccountsUpsertResponseDto;
+import com.batu.shared.dto.request.AccountNameRequestDto;
+import com.batu.shared.dto.request.AccountsUpsertRequestDto;
+import com.batu.shared.dto.response.AccountNameResponseDto;
+import com.batu.shared.dto.response.AccountResponseDto;
+import com.batu.shared.dto.response.AccountViewDto;
+import com.batu.shared.dto.response.AccountsUpsertResponseDto;
+import com.batu.shared.dto.response.CursorResponse;
 
 @RestController
 @RequestMapping("/accounts")

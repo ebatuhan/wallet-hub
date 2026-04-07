@@ -8,10 +8,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.batu.plaid_adapter_service.service.LinkService;
-import com.batu.shared.dto.ExchangeTokenRequestDto;
-import com.batu.shared.dto.ExhcangetokenResponseDto;
-import com.batu.shared.dto.LinkTokenRequestDto;
-import com.batu.shared.dto.LinkTokenResponseDto;
+import com.batu.shared.dto.request.ExchangeTokenRequestDto;
+import com.batu.shared.dto.request.LinkTokenRequestDto;
+import com.batu.shared.dto.response.ExchangeTokenResponseDto;
+import com.batu.shared.dto.response.LinkTokenResponseDto;
 
 @RestController
 @RequestMapping("/api/plaid")
@@ -29,12 +29,12 @@ public class LinkController {
     }
 
     @PostMapping("/exchange")
-    ExhcangetokenResponseDto exchangeToken(ExchangeTokenRequestDto request, @AuthenticationPrincipal Jwt jwt) {
+    ExchangeTokenResponseDto exchangeToken(ExchangeTokenRequestDto request, @AuthenticationPrincipal Jwt jwt) {
         return linkService.exchangeToken(request, jwt);
     }
 
     @PostMapping("/mock")
-    ExhcangetokenResponseDto mockToken(@AuthenticationPrincipal Jwt principal) {
+    ExchangeTokenResponseDto mockToken(@AuthenticationPrincipal Jwt principal) {
 
         return linkService.mockToken(principal);
     }

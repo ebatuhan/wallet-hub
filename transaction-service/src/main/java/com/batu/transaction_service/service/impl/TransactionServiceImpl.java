@@ -16,22 +16,22 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.batu.transaction_service.dto.TransactionDetailedCategoryDto;
-import com.batu.transaction_service.dto.TransactionDto;
-import com.batu.transaction_service.dto.TransactionPrimaryCategoryDto;
-import com.batu.shared.dto.AccountNameRequestDto;
-import com.batu.shared.dto.AccountNameResponseDto;
-import com.batu.shared.dto.TransactionRequestDto;
-import com.batu.shared.dto.TransactionsUpsertRequestDto;
 import com.batu.transaction_service.client.AccountServiceClient;
-import com.batu.transaction_service.dto.CursorResponse;
-import com.batu.transaction_service.dto.TransactionViewResponseDto;
 import com.batu.transaction_service.entity.Transaction;
 import com.batu.transaction_service.entity.TransactionDetailedCategory;
 import com.batu.transaction_service.repository.TransactionRepository;
 import com.batu.transaction_service.repository.spec.TransactionSpecs;
 import com.batu.transaction_service.service.DetailedCategoryService;
 import com.batu.transaction_service.util.CursorUtils;
+import com.batu.shared.dto.request.AccountNameRequestDto;
+import com.batu.shared.dto.request.TransactionRequestDto;
+import com.batu.shared.dto.request.TransactionsUpsertRequestDto;
+import com.batu.shared.dto.response.AccountNameResponseDto;
+import com.batu.shared.dto.response.CursorResponse;
+import com.batu.shared.dto.response.TransactionDetailedCategoryDto;
+import com.batu.shared.dto.response.TransactionDto;
+import com.batu.shared.dto.response.TransactionPrimaryCategoryDto;
+import com.batu.shared.dto.response.TransactionViewResponseDto;
 
 @Service
 public class TransactionServiceImpl {
@@ -144,7 +144,7 @@ public class TransactionServiceImpl {
                                 t.getTransactionName(),
                                 t.getTransactionType(),
                                 t.getDate(),
-                                t.is_pending(),
+                                t.getPending(),
                                 t.getPaymentChannel(),
                                 detailedCategoryDto,
                                 t.getCreatedAt(),
@@ -172,13 +172,13 @@ public class TransactionServiceImpl {
                                                         txDto.getTransactionName(),
                                                         txDto.getTransactionType(),
                                                         txDto.getDate(),
-                                                        txDto.is_pending(),
+                                                        txDto.getPending(),
                                                         txDto.getPaymentChannel(),
                                                         detailedCategory,
                                                         txDto.isActive()));
 
                         transaction.setActive(txDto.isActive());
-                        transaction.set_pending(txDto.is_pending());
+                        transaction.setPending(txDto.getPending());
                         transaction.setAmount(txDto.getAmount());
 
                         transactionsToSave.add(transaction);

@@ -8,69 +8,27 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
 <packaging>jar</packaging>
 
 <properties>
-    <kotlin.version>2.2.21</kotlin.version>
+    <lombok.version>1.18.38</lombok.version>
     <java.version>21</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 </properties>
 
 <dependencies>
     <dependency>
-        <groupId>org.jetbrains.kotlin</groupId>
-        <artifactId>kotlin-stdlib</artifactId>
-        <version>${kotlin.version}</version>
-    </dependency>
-    <dependency>
-        <groupId>org.jetbrains.kotlin</groupId>
-        <artifactId>kotlin-reflect</artifactId>
-        <version>${kotlin.version}</version>
-    </dependency>
-    <dependency>
         <groupId>tools.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
         <version>3.0.2</version>
     </dependency>
     <dependency>
-        <groupId>tools.jackson.module</groupId>
-        <artifactId>jackson-module-kotlin</artifactId>
-        <version>3.0.2</version>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <version>${lombok.version}</version>
+        <scope>provided</scope>
     </dependency>
 </dependencies>
 
 <build>
     <plugins>
-        <plugin>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-maven-plugin</artifactId>
-            <version>${kotlin.version}</version>
-            <executions>
-                <execution>
-                    <id>compile</id>
-                    <phase>compile</phase>
-                    <goals>
-                        <goal>compile</goal>
-                    </goals>
-                    <configuration>
-                        <sourceDirs>
-                            <sourceDir>${project.basedir}/src/main/kotlin</sourceDir>
-                            <sourceDir>${project.basedir}/src/main/java</sourceDir>
-                        </sourceDirs>
-                    </configuration>
-                </execution>
-                <execution>
-                    <id>test-compile</id>
-                    <phase>test-compile</phase>
-                    <goals>
-                        <goal>test-compile</goal>
-                    </goals>
-                    <configuration>
-                        <sourceDirs>
-                            <sourceDir>${project.basedir}/src/test/kotlin</sourceDir>
-                            <sourceDir>${project.basedir}/src/test/java</sourceDir>
-                        </sourceDirs>
-                    </configuration>
-                </execution>
-            </executions>
-        </plugin>
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
@@ -78,6 +36,14 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
             <configuration>
                 <source>${java.version}</source>
                 <target>${java.version}</target>
+                <parameters>true</parameters>
+                <annotationProcessorPaths>
+                    <path>
+                        <groupId>org.projectlombok</groupId>
+                        <artifactId>lombok</artifactId>
+                        <version>${lombok.version}</version>
+                    </path>
+                </annotationProcessorPaths>
             </configuration>
             <executions>
                 <execution>

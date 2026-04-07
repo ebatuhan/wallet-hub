@@ -6,12 +6,12 @@ import com.batu.plaid_adapter_service.client.TransactionServiceClient;
 import com.batu.plaid_adapter_service.entity.Connection;
 import com.batu.plaid_adapter_service.service.ConnectionService;
 import com.batu.plaid_adapter_service.strategy.WebhookStrategy;
-import com.batu.shared.dto.AccountRequestDto;
-import com.batu.shared.dto.AccountsUpsertRequestDto;
-import com.batu.shared.dto.AccountsUpsertResponseDto;
-import com.batu.shared.dto.PlaidWebhookDto;
-import com.batu.shared.dto.TransactionRequestDto;
-import com.batu.shared.dto.TransactionsUpsertRequestDto;
+import com.batu.shared.dto.request.AccountRequestDto;
+import com.batu.shared.dto.request.AccountsUpsertRequestDto;
+import com.batu.shared.dto.request.PlaidWebhookDto;
+import com.batu.shared.dto.request.TransactionRequestDto;
+import com.batu.shared.dto.request.TransactionsUpsertRequestDto;
+import com.batu.shared.dto.response.AccountsUpsertResponseDto;
 
 import java.io.IOException;
 import java.math.BigDecimal;

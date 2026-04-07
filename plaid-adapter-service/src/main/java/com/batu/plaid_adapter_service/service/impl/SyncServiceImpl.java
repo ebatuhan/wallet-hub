@@ -21,11 +21,11 @@ import com.batu.plaid_adapter_service.entity.Connection;
 import com.batu.plaid_adapter_service.exception.PlaidRetryableException;
 import com.batu.plaid_adapter_service.service.ConnectionService;
 import com.batu.plaid_adapter_service.service.SyncService;
-import com.batu.shared.dto.AccountRequestDto;
-import com.batu.shared.dto.AccountsUpsertRequestDto;
-import com.batu.shared.dto.AccountsUpsertResponseDto;
-import com.batu.shared.dto.TransactionRequestDto;
-import com.batu.shared.dto.TransactionsUpsertRequestDto;
+import com.batu.shared.dto.request.AccountRequestDto;
+import com.batu.shared.dto.request.AccountsUpsertRequestDto;
+import com.batu.shared.dto.request.TransactionRequestDto;
+import com.batu.shared.dto.request.TransactionsUpsertRequestDto;
+import com.batu.shared.dto.response.AccountsUpsertResponseDto;
 
 import com.plaid.client.model.AccountBase;
 import com.plaid.client.model.RemovedTransaction;

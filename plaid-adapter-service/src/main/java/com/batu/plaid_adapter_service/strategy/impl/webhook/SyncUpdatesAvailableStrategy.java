@@ -7,7 +7,7 @@ import com.batu.plaid_adapter_service.entity.Connection;
 import com.batu.plaid_adapter_service.service.ConnectionService;
 import com.batu.plaid_adapter_service.service.SyncService;
 import com.batu.plaid_adapter_service.strategy.WebhookStrategy;
-import com.batu.shared.dto.PlaidWebhookDto;
+import com.batu.shared.dto.request.PlaidWebhookDto;
 
 @Component("SYNC_UPDATES_AVAILABLE")
 public class SyncUpdatesAvailableStrategy implements WebhookStrategy {

@@ -25,10 +25,10 @@ import com.batu.plaid_adapter_service.entity.Connection;
 import com.batu.plaid_adapter_service.exception.PlaidClientException;
 import com.batu.plaid_adapter_service.service.ConnectionService;
 import com.batu.plaid_adapter_service.service.impl.LinkServiceImpl;
-import com.batu.shared.dto.ExchangeTokenRequestDto;
-import com.batu.shared.dto.LinkTokenResponseDto;
-import com.batu.shared.dto.ExhcangetokenResponseDto;
-import com.batu.shared.dto.LinkTokenRequestDto;
+import com.batu.shared.dto.request.ExchangeTokenRequestDto;
+import com.batu.shared.dto.request.LinkTokenRequestDto;
+import com.batu.shared.dto.response.ExchangeTokenResponseDto;
+import com.batu.shared.dto.response.LinkTokenResponseDto;
 import com.plaid.client.model.ItemPublicTokenExchangeRequest;
 import com.plaid.client.model.ItemPublicTokenExchangeResponse;
 import com.plaid.client.model.LinkTokenCreateRequest;
@@ -174,7 +174,7 @@ public class LinkServiceTest {
                 UUID.fromString(validUuid), itemId, accessToken, institutionId, institutionName);
         when(connectionService.create(any(Connection.class))).thenReturn(savedConnection);
 
-        ExhcangetokenResponseDto result = linkService.exchangeToken(requestDto, principal);
+        ExchangeTokenResponseDto result = linkService.exchangeToken(requestDto, principal);
 
         assertNotNull(result);
         assertEquals(institutionId, result.getInstitutionId());

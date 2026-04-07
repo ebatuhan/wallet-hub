@@ -5,8 +5,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 
 import com.batu.plaid_adapter_service.config.OpenFeignConfiguration;
-import com.batu.shared.dto.AccountsUpsertRequestDto;
-import com.batu.shared.dto.AccountsUpsertResponseDto;
+import com.batu.shared.dto.request.AccountsUpsertRequestDto;
+import com.batu.shared.dto.response.AccountsUpsertResponseDto;
 
 @FeignClient(name = "accounts", url = "${accountclient.url}", configuration = OpenFeignConfiguration.class)
 public interface AccountServiceClient {

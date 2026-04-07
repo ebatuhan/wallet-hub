@@ -5,7 +5,7 @@ import java.util.Map;
 import org.springframework.stereotype.Component;
 
 import com.batu.plaid_adapter_service.strategy.WebhookStrategy;
-import com.batu.shared.dto.PlaidWebhookDto;
+import com.batu.shared.dto.request.PlaidWebhookDto;
 
 @Component
 public class WebhookFactory {

@@ -14,11 +14,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.batu.shared.dto.TransactionsUpsertRequestDto;
-import com.batu.transaction_service.dto.CursorResponse;
-import com.batu.transaction_service.dto.TransactionDto;
-import com.batu.transaction_service.dto.TransactionViewResponseDto;
 import com.batu.transaction_service.service.impl.TransactionServiceImpl;
+import com.batu.shared.dto.request.TransactionsUpsertRequestDto;
+import com.batu.shared.dto.response.CursorResponse;
+import com.batu.shared.dto.response.TransactionDto;
+import com.batu.shared.dto.response.TransactionViewResponseDto;
 
 @RestController
 @RequestMapping("/transactions")

@@ -15,10 +15,10 @@ import com.batu.plaid_adapter_service.entity.Connection;
 import com.batu.plaid_adapter_service.exception.PlaidRetryableException;
 import com.batu.plaid_adapter_service.service.ConnectionService;
 import com.batu.plaid_adapter_service.service.LinkService;
-import com.batu.shared.dto.ExchangeTokenRequestDto;
-import com.batu.shared.dto.ExhcangetokenResponseDto;
-import com.batu.shared.dto.LinkTokenRequestDto;
-import com.batu.shared.dto.LinkTokenResponseDto;
+import com.batu.shared.dto.request.ExchangeTokenRequestDto;
+import com.batu.shared.dto.request.LinkTokenRequestDto;
+import com.batu.shared.dto.response.ExchangeTokenResponseDto;
+import com.batu.shared.dto.response.LinkTokenResponseDto;
 
 import com.plaid.client.model.ItemPublicTokenExchangeRequest;
 import com.plaid.client.model.ItemPublicTokenExchangeResponse;
@@ -68,7 +68,7 @@ public class LinkServiceImpl implements LinkService {
         maxAttempts = 3,
         backoff = @Backoff(delay = 1000, multiplier = 2)
     )
-    public ExhcangetokenResponseDto exchangeToken(ExchangeTokenRequestDto exchangeTokenRequestDto, Jwt principal) {
+    public ExchangeTokenResponseDto exchangeToken(ExchangeTokenRequestDto exchangeTokenRequestDto, Jwt principal) {
         var request = new ItemPublicTokenExchangeRequest()
                 .publicToken(exchangeTokenRequestDto.getPublicToken());
 
@@ -85,7 +85,7 @@ public class LinkServiceImpl implements LinkService {
 
         Connection savedConnection = connectionService.create(connection);
 
-        return new ExhcangetokenResponseDto(
+        return new ExchangeTokenResponseDto(
                 savedConnection.getInstitutionId(),
                 savedConnection.getInstitutionName());
     }
@@ -96,7 +96,7 @@ public class LinkServiceImpl implements LinkService {
         maxAttempts = 3,
         backoff = @Backoff(delay = 1000, multiplier = 2)
     )
-    public ExhcangetokenResponseDto mockToken(Jwt principal) {
+    public ExchangeTokenResponseDto mockToken(Jwt principal) {
         final String institutionId = "ins_109508";
 
         SandboxPublicTokenCreateRequest request = new SandboxPublicTokenCreateRequest()

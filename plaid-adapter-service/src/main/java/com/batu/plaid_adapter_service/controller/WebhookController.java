@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.batu.plaid_adapter_service.strategy.WebhookStrategy;
-import com.batu.shared.dto.PlaidWebhookDto;
+import com.batu.shared.dto.request.PlaidWebhookDto;
 
 @RestController
 @RequestMapping("/api/plaid/webhook")
