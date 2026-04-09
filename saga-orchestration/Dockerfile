@@ -5,6 +5,6 @@ COPY shared/pom.xml .
 COPY shared/src ./src
 
 WORKDIR /app
-COPY api-gateway/pom.xml .
+COPY saga-orchestration/pom.xml .
 
 CMD ["mvn", "spring-boot:run", "-Dspring-boot.run.profiles=dev"]

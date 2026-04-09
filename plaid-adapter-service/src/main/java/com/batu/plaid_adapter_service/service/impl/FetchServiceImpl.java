@@ -1,4 +1,5 @@
-package com.batu.plaid_adapter_service.service.impl;
+
+/*package com.batu.plaid_adapter_service.service.impl;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -55,7 +56,7 @@ public class SyncServiceImpl implements SyncService {
     @Override
     @Retryable(retryFor = {
             PlaidRetryableException.class }, maxAttempts = 5, backoff = @Backoff(delay = 2000, multiplier = 2, maxDelay = 60000))
-    public SyncDataModel SyncTransactionsAndAccounts(Connection connection) {
+    public void SyncTransactionsAndAccounts(Connection connection) {
         List<Transaction> addedTransactions = new ArrayList<>();
         List<Transaction> modifiedTransactions = new ArrayList<>();
         List<RemovedTransaction> removedTransactions = new ArrayList<>();
@@ -82,13 +83,6 @@ public class SyncServiceImpl implements SyncService {
             cursor = response.getNextCursor();
             hasMore = response.getHasMore();
         }
-
-        return new SyncDataModel(
-                accounts,
-                addedTransactions,
-                modifiedTransactions,
-                removedTransactions,
-                connection);
     }
 
     private void upsertAccountsAndTransactions(Connection connection,
@@ -142,3 +136,4 @@ public class SyncServiceImpl implements SyncService {
         }
     }
 }
+ */
