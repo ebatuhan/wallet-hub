@@ -1,19 +1,19 @@
 package com.batu.shared.messaging.saga;
 
-import java.util.List;
+import java.util.Map;
 import java.util.UUID;
-
-import com.batu.shared.dto.request.AccountRequestDto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class FetchAccountsEvent {
+public class FetchInitialTransactionsCommand {
+    private UUID sagaId;
     private UUID connectionId;
-    private UUID userId;
-    private List<AccountRequestDto> accountsPayload;
+    private Map<String, UUID> accountIdMap;
 }

@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.batu.plaid_adapter_service.service.LinkService;
+import com.batu.plaid_adapter_service.service.PlaidIntegrationService;
 import com.batu.shared.dto.request.ExchangeTokenRequestDto;
 import com.batu.shared.dto.request.LinkTokenRequestDto;
 import com.batu.shared.dto.response.ExchangeTokenResponseDto;
@@ -16,9 +16,9 @@ import com.batu.shared.dto.response.LinkTokenResponseDto;
 @RestController
 @RequestMapping("/api/plaid")
 public class LinkController {
-    private final LinkService linkService;
+    private final PlaidIntegrationService linkService;
 
-    public LinkController(LinkService linkService) {
+    public LinkController(PlaidIntegrationService linkService) {
         this.linkService = linkService;
 
     }

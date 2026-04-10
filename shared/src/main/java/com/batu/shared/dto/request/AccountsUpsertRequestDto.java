@@ -11,6 +11,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+
 public class AccountsUpsertRequestDto {
 
     private List<AccountRequestDto> accounts = new ArrayList<>();

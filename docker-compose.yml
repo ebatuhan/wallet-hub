@@ -131,36 +131,6 @@ services:
       - ./shared:/shared
       - ~/.m2:/root/.m2
 
-  saga-orchestration:
-    build:
-      context: .
-      dockerfile: saga-orchestration/Dockerfile
-    container_name: saga-orchestration
-    env_file: config/.saga-orchestration
-    ports:
-      - "${SAGA_ORCHESTRATION_PORT}:8087"
-    depends_on:
-      postgres-saga:
-        condition: service_healthy
-    volumes:
-      - ./saga-orchestration:/app
-      - ./shared:/shared
-      - ~/.m2:/root/.m2
-
-  postgres-saga:
-    image: postgres:15
-    container_name: postgres-saga
-    env_file: config/.postgres-saga
-    ports:
-      - "${SAGA_DB_PORT}:5432"
-    volumes:
-      - postgres-saga-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   rabbitmq:
     image: rabbitmq:4-management
     container_name: rabbitmq
@@ -177,7 +147,6 @@ services:
 
 volumes:
   postgres-plaid-data:
-  postgres-saga-data:
   postgres-keycloak-data:
   postgres-transaction-data:
   postgres-account-data:

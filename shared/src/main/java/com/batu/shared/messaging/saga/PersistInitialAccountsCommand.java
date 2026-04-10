@@ -8,12 +8,14 @@ import com.batu.shared.dto.request.AccountRequestDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class FetchAccountsEvent {
+public class PersistInitialAccountsCommand {
+    private UUID sagaId;
     private UUID connectionId;
-    private UUID userId;
-    private List<AccountRequestDto> accountsPayload;
+    private List<AccountRequestDto> accounts;
 }

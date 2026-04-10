@@ -24,7 +24,7 @@ import org.wiremock.spring.EnableWireMock;
 import com.batu.plaid_adapter_service.entity.Connection;
 
 import com.batu.plaid_adapter_service.service.impl.ConnectionServiceImpl;
-import com.batu.plaid_adapter_service.service.impl.LinkServiceImpl;
+import com.batu.plaid_adapter_service.service.impl.PlaidIntegrationServiceImpl;
 import com.batu.shared.dto.request.ExchangeTokenRequestDto;
 import com.batu.shared.dto.request.LinkTokenRequestDto;
 import com.batu.shared.dto.response.ExchangeTokenResponseDto;
@@ -43,7 +43,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 public class LinkIntegrationTest {
 
     @Autowired
-    private LinkServiceImpl linkServiceImpl;
+    private PlaidIntegrationServiceImpl linkServiceImpl;
 
     @Autowired
     private ConnectionServiceImpl connectionService;

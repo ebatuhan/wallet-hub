@@ -24,7 +24,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.batu.plaid_adapter_service.entity.Connection;
 import com.batu.plaid_adapter_service.exception.PlaidClientException;
 import com.batu.plaid_adapter_service.service.ConnectionService;
-import com.batu.plaid_adapter_service.service.impl.LinkServiceImpl;
+import com.batu.plaid_adapter_service.service.impl.PlaidIntegrationServiceImpl;
 import com.batu.shared.dto.request.ExchangeTokenRequestDto;
 import com.batu.shared.dto.request.LinkTokenRequestDto;
 import com.batu.shared.dto.response.ExchangeTokenResponseDto;
@@ -59,7 +59,7 @@ public class LinkServiceTest {
     private Jwt principal;
 
     @InjectMocks
-    private LinkServiceImpl linkService;
+    private PlaidIntegrationServiceImpl linkService;
 
     @BeforeEach
     void setUp() {

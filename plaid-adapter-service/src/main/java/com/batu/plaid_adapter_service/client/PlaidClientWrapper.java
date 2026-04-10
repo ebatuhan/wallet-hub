@@ -9,6 +9,8 @@ import com.batu.plaid_adapter_service.exception.PlaidClientException;
 import com.batu.plaid_adapter_service.exception.PlaidRetryableException;
 import com.batu.plaid_adapter_service.factory.PlaidErrorHandlerFactory;
 import com.google.gson.Gson;
+import com.plaid.client.model.AccountsGetRequest;
+import com.plaid.client.model.AccountsGetResponse;
 import com.plaid.client.model.ItemPublicTokenExchangeRequest;
 import com.plaid.client.model.ItemPublicTokenExchangeResponse;
 import com.plaid.client.model.LinkTokenCreateRequest;
@@ -16,6 +18,8 @@ import com.plaid.client.model.LinkTokenCreateResponse;
 import com.plaid.client.model.PlaidError;
 import com.plaid.client.model.SandboxPublicTokenCreateRequest;
 import com.plaid.client.model.SandboxPublicTokenCreateResponse;
+import com.plaid.client.model.TransactionsGetRequest;
+import com.plaid.client.model.TransactionsGetResponse;
 import com.plaid.client.model.TransactionsSyncRequest;
 import com.plaid.client.model.TransactionsSyncResponse;
 import com.plaid.client.request.PlaidApi;
@@ -49,6 +53,10 @@ public class PlaidClientWrapper {
 
     public TransactionsSyncResponse syncTransactions(TransactionsSyncRequest request) {
         return executeRequest(() -> plaidClient.transactionsSync(request).execute());
+    }
+
+    public AccountsGetResponse accountsGet(AccountsGetRequest request) {
+        return executeRequest(() -> plaidClient.accountsGet(request).execute());
     }
 
     private <T> T executeRequest(PlaidRequestSupplier<T> supplier) {
