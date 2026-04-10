@@ -15,6 +15,7 @@ import com.batu.account_service.entity.Account;
 import com.batu.account_service.enums.AccountSortField;
 import com.batu.account_service.exception.ResourceNotFoundException;
 import com.batu.account_service.repository.AccountRepository;
+import com.batu.account_service.repository.projection.AccountUpsertProjection;
 import com.batu.account_service.repository.specs.AccountSpecification;
 import com.batu.account_service.service.AccountService;
 import com.batu.account_service.util.CursorUtils;
@@ -92,42 +93,26 @@ public class AccountServiceImpl implements AccountService {
                 return accountRepository.findByAccountIdIn(request.getAccountIds());
         }
 
-        // Will be reworked to batch process
         @Override
         @Transactional
         public AccountsUpsertResponseDto upsertAccounts(AccountsUpsertRequestDto request) {
-
                 Map<String, UUID> insertedAccountsMap = new HashMap<>();
 
                 for (AccountRequestDto accRequest : request.getAccounts()) {
-
-                        Account account = accountRepository
-                                        .findByExternalId(accRequest.getExternalId())
-                                        .orElseGet(() -> new Account(
-                                                        accRequest.getConnectionId(),
-                                                        accRequest.getUserId(),
-                                                        accRequest.getExternalId(),
-                                                        accRequest.getAccountName(),
-                                                        accRequest.getAccountType(),
-                                                        accRequest.getAccountSubtype(),
-                                                        accRequest.getAccountMask(),
-                                                        accRequest.getCurrentBalance(),
-                                                        accRequest.getAvailableBalance(),
-                                                        accRequest.getIsoCurrencyCode(),
-                                                        accRequest.isActive()));
-
-                        account.setAccountName(accRequest.getAccountName());
-                        account.setAccountType(accRequest.getAccountType());
-                        account.setAccountSubtype(accRequest.getAccountSubtype());
-                        account.setCurrentBalance(accRequest.getCurrentBalance());
-                        account.setAvailableBalance(accRequest.getAvailableBalance());
-                        account.setIsoCurrencyCode(accRequest.getIsoCurrencyCode());
-
-                        Account saved = accountRepository.save(account);
-
-                        insertedAccountsMap.put(
+                        AccountUpsertProjection row = accountRepository.upsertAccounts(
+                                        accRequest.getConnectionId(),
+                                        accRequest.getUserId(),
                                         accRequest.getExternalId(),
-                                        saved.getAccountId());
+                                        accRequest.getAccountName(),
+                                        accRequest.getAccountType(),
+                                        accRequest.getAccountSubtype(),
+                                        accRequest.getAccountMask(),
+                                        accRequest.getCurrentBalance(),
+                                        accRequest.getAvailableBalance(),
+                                        accRequest.getIsoCurrencyCode(),
+                                        accRequest.isActive());
+
+                        insertedAccountsMap.put(row.getExternalId(), row.getAccountId());
                 }
 
                 return new AccountsUpsertResponseDto(insertedAccountsMap);

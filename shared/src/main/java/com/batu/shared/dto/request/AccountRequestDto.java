@@ -2,6 +2,9 @@ package com.batu.shared.dto.request;
 
 import java.math.BigDecimal;
 import java.util.UUID;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,5 +26,6 @@ public class AccountRequestDto {
     private BigDecimal currentBalance;
     private BigDecimal availableBalance;
     private String isoCurrencyCode;
+    @JsonProperty("isActive")
     private boolean isActive = true;
 }

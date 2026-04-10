@@ -153,39 +153,27 @@ public class TransactionServiceImpl {
 
         @Transactional
         public Boolean batchUpsertTransactions(TransactionsUpsertRequestDto request) {
-
-                var transactionsToUpsert = request.getTransactions();
-
-                List<Transaction> transactionsToSave = new ArrayList<>();
-
-                for (TransactionRequestDto txDto : transactionsToUpsert) {
+                for (TransactionRequestDto txDto : request.getTransactions()) {
                         TransactionDetailedCategory detailedCategory = detailedCategoryService
                                         .getByCategoryCode(txDto.getDetailedCategoryCode());
 
-                        var transaction = transactionRepository.findByExternalId(txDto.getExternalId())
-                                        .orElseGet(() -> new Transaction(
-                                                        txDto.getUserId(),
-                                                        txDto.getAccountId(),
-                                                        txDto.getExternalId(),
-                                                        txDto.getAmount(),
-                                                        txDto.getIsoCurrencyCode(),
-                                                        txDto.getTransactionName(),
-                                                        txDto.getTransactionType(),
-                                                        txDto.getDate(),
-                                                        txDto.getPending(),
-                                                        txDto.getPaymentChannel(),
-                                                        detailedCategory,
-                                                        txDto.isActive()));
-
-                        transaction.setActive(txDto.isActive());
-                        transaction.setPending(txDto.getPending());
-                        transaction.setAmount(txDto.getAmount());
-
-                        transactionsToSave.add(transaction);
+                        transactionRepository.upsertTransaction(
+                                        txDto.getUserId(),
+                                        txDto.getAccountId(),
+                                        txDto.getExternalId(),
+                                        txDto.getAmount(),
+                                        txDto.getIsoCurrencyCode(),
+                                        txDto.getTransactionName(),
+                                        txDto.getTransactionType(),
+                                        txDto.getDate(),
+                                        txDto.getPending(),
+                                        txDto.getPaymentChannel(),
+                                        detailedCategory.getTransactionDetailedCategoryId(),
+                                        txDto.isActive());
                 }
-                transactionRepository.saveAll(transactionsToSave);
+
+
 
                 return true;
         }
-
 }

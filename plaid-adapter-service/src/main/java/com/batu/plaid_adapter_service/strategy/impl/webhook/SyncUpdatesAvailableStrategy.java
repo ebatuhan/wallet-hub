@@ -2,7 +2,9 @@ package com.batu.plaid_adapter_service.strategy.impl.webhook;
 
 import org.springframework.stereotype.Component;
 
+import com.batu.plaid_adapter_service.entity.Connection;
 import com.batu.plaid_adapter_service.service.ConnectionService;
+import com.batu.plaid_adapter_service.service.PlaidIntegrationService;
 import com.batu.plaid_adapter_service.strategy.WebhookStrategy;
 import com.batu.shared.dto.request.PlaidWebhookDto;
 
@@ -10,13 +12,16 @@ import com.batu.shared.dto.request.PlaidWebhookDto;
 public class SyncUpdatesAvailableStrategy implements WebhookStrategy {
 
     private final ConnectionService connectionService;
+    private final PlaidIntegrationService plaidIntegrationService;
 
-    public SyncUpdatesAvailableStrategy(ConnectionService connectionService) {
+    public SyncUpdatesAvailableStrategy(ConnectionService connectionService, PlaidIntegrationService plaidIntegrationService) {
         this.connectionService = connectionService;
+        this.plaidIntegrationService = plaidIntegrationService;
     }
 
     @Override
     public void handle(PlaidWebhookDto dto) {
-        //TODO
+        Connection connection = connectionService.readByExternalId(dto.getItemId());
+        plaidIntegrationService.syncAccountsAndTransactions(connection);
     }
 }

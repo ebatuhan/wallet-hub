@@ -22,10 +22,7 @@ spring:
         - id: plaid-adapter-service-route
           uri: ${PLAID_ADAPTER_SERVICE_URL:http://localhost:8082}
           predicates:
-            - Path=/api/plaid
-          filters:
-            - StripPrefix=1
-
+            - Path=/api/plaid/**
 
   security:
     oauth2:
