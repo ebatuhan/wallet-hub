@@ -87,7 +87,6 @@ public class AccountController {
 
     @PostMapping("/batch-upsert")
     public ResponseEntity<AccountsUpsertResponseDto> upsertAccounts(@RequestBody AccountsUpsertRequestDto request){
-        System.out.println("account saved");
         return ResponseEntity.ok(accountService.upsertAccounts(request));
     }
 }

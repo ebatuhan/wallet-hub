@@ -19,6 +19,7 @@ import com.batu.shared.dto.request.TransactionsUpsertRequestDto;
 import com.batu.shared.dto.response.CursorResponse;
 import com.batu.shared.dto.response.TransactionDto;
 import com.batu.shared.dto.response.TransactionViewResponseDto;
+import com.batu.shared.dto.response.TransactionsUpsertResponseDto;
 
 @RestController
 @RequestMapping("/transactions")
@@ -56,7 +57,7 @@ public class TransactionController {
 
     @PostMapping("/batch-upsert")
     @PreAuthorize("hasAuthority('ROLE_SERVICE')")
-    public ResponseEntity<Boolean> batchUpsertTransactions(@RequestBody TransactionsUpsertRequestDto request){
+    public ResponseEntity<TransactionsUpsertResponseDto> batchUpsertTransactions(@RequestBody TransactionsUpsertRequestDto request){
         return ResponseEntity.ok(transactionService.batchUpsertTransactions(request));
         
     }

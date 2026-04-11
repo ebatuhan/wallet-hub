@@ -12,7 +12,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.batu.account_service.entity.Account;
-import com.batu.account_service.repository.projection.AccountUpsertProjection;
 import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.shared.dto.response.AccountResponseDto;
 
@@ -67,9 +66,9 @@ public interface AccountRepository extends JpaRepository<Account, UUID>, JpaSpec
                 iso_currency_code = EXCLUDED.iso_currency_code,
                 is_active         = EXCLUDED.is_active,
                 updated_at        = CURRENT_TIMESTAMP
-            RETURNING account_id AS accountId, external_id AS externalId
+            RETURNING *
             """, nativeQuery = true)
-    AccountUpsertProjection upsertAccounts(
+    Account upsertAccounts(
             @Param("connectionId") UUID connectionId,
             @Param("userId") UUID userId,
             @Param("externalId") String externalId,

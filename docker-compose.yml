@@ -97,6 +97,8 @@ services:
     depends_on:
       postgres-account:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     volumes:
       - ./account-service:/app
       - ./shared:/shared
@@ -113,10 +115,46 @@ services:
     depends_on:
       postgres-transaction:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     volumes:
       - ./transaction-service:/app
       - ./shared:/shared
       - ~/.m2:/root/.m2
+
+  insights-service:
+    build:
+      context: .
+      dockerfile: insights-service/Dockerfile
+    container_name: insights-service
+    env_file: config/.insights-service
+    ports:
+      - "${INSIGHTS_SERVICE_PORT}:8088"
+    depends_on:
+      clickhouse-insights:
+        condition: service_healthy
+    #  rabbitmq:
+  #      condition: service_healthy
+    volumes:
+      - ./insights-service:/app
+      - ./shared:/shared
+      - ~/.m2:/root/.m2
+
+  clickhouse-insights:
+    image: clickhouse/clickhouse-server:26.2
+    container_name: clickhouse-insights
+    ports:
+      - "${CLICKHOUSE_HTTP_PORT}:8123"
+      - "${CLICKHOUSE_NATIVE_PORT}:9000"
+    env_file: config/.clickhouse-insights
+    volumes:
+      - clickhouse-insights-data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   api-gateway:
     build:
@@ -130,6 +168,8 @@ services:
       - ./api-gateway:/app
       - ./shared:/shared
       - ~/.m2:/root/.m2
+    
+
 
   rabbitmq:
     image: rabbitmq:4-management
@@ -152,3 +192,4 @@ volumes:
   postgres-account-data:
   maven-repo:
   rabbitmq-data:
+  clickhouse-insights-data:

@@ -19,7 +19,7 @@ public class ObjectMapperConfig {
         return mapper;
     }
 
-    @Bean("cursorObjectMapper")
+    @Bean("cursorObjectMapper") //TODO WUN DA FUK
     public ObjectMapper cursorObjectMapper() {
         // Simple ObjectMapper for cursor encoding/decoding
         ObjectMapper mapper = new ObjectMapper();

@@ -8,6 +8,7 @@ import com.batu.shared.dto.request.TransactionsUpsertRequestDto;
 import com.batu.shared.dto.response.CursorResponse;
 import com.batu.shared.dto.response.TransactionDto;
 import com.batu.shared.dto.response.TransactionViewResponseDto;
+import com.batu.shared.dto.response.TransactionsUpsertResponseDto;
 
 public interface TransactionService {
     CursorResponse<TransactionViewResponseDto> transatcions(Jwt principal,
@@ -18,5 +19,5 @@ public interface TransactionService {
 
     TransactionDto getTransactionById(Jwt principial, UUID transactionId);
 
-    Boolean batchUpsertTransactions(TransactionsUpsertRequestDto request);
+    TransactionsUpsertResponseDto batchUpsertTransactions(TransactionsUpsertRequestDto request);
 }

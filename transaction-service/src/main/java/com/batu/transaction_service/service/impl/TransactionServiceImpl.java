@@ -1,5 +1,6 @@
 package com.batu.transaction_service.service.impl;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -8,6 +9,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Window;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.batu.transaction_service.client.AccountServiceClient;
 import com.batu.transaction_service.entity.Transaction;
 import com.batu.transaction_service.entity.TransactionDetailedCategory;
+import com.batu.transaction_service.messaging.TransactionsPersistedDomainEvent;
 import com.batu.transaction_service.repository.TransactionRepository;
 import com.batu.transaction_service.repository.spec.TransactionSpecs;
 import com.batu.transaction_service.service.DetailedCategoryService;
@@ -32,6 +35,9 @@ import com.batu.shared.dto.response.TransactionDetailedCategoryDto;
 import com.batu.shared.dto.response.TransactionDto;
 import com.batu.shared.dto.response.TransactionPrimaryCategoryDto;
 import com.batu.shared.dto.response.TransactionViewResponseDto;
+import com.batu.shared.dto.response.PersistedTransactionDto;
+import com.batu.shared.dto.response.TransactionsUpsertResponseDto;
+import com.batu.shared.messaging.event.TransactionPersistedEvent;
 
 @Service
 public class TransactionServiceImpl {
@@ -40,13 +46,16 @@ public class TransactionServiceImpl {
         private final CursorUtils cursorUtils;
         private final AccountServiceClient accountClient;
         private final DetailedCategoryService detailedCategoryService;
+        private final ApplicationEventPublisher eventPublisher;
 
         public TransactionServiceImpl(TransactionRepository transactionRepository, CursorUtils cursorUtils,
-                        AccountServiceClient accountService, DetailedCategoryService detailedCategoryService) {
+                        AccountServiceClient accountService, DetailedCategoryService detailedCategoryService,
+                        ApplicationEventPublisher eventPublisher) {
                 this.transactionRepository = transactionRepository;
                 this.cursorUtils = cursorUtils;
                 this.accountClient = accountService;
                 this.detailedCategoryService = detailedCategoryService;
+                this.eventPublisher = eventPublisher;
         }
 
         @Transactional(readOnly = true)
@@ -152,12 +161,15 @@ public class TransactionServiceImpl {
         }
 
         @Transactional
-        public Boolean batchUpsertTransactions(TransactionsUpsertRequestDto request) {
+        public TransactionsUpsertResponseDto batchUpsertTransactions(TransactionsUpsertRequestDto request) {
+                List<TransactionPersistedEvent> persistedTransactions = new ArrayList<>();
+                List<PersistedTransactionDto> savedTransactions = new ArrayList<>();
+
                 for (TransactionRequestDto txDto : request.getTransactions()) {
                         TransactionDetailedCategory detailedCategory = detailedCategoryService
                                         .getByCategoryCode(txDto.getDetailedCategoryCode());
 
-                        transactionRepository.upsertTransaction(
+                        Transaction savedTransaction = transactionRepository.upsertTransaction(
                                         txDto.getUserId(),
                                         txDto.getAccountId(),
                                         txDto.getExternalId(),
@@ -170,10 +182,51 @@ public class TransactionServiceImpl {
                                         txDto.getPaymentChannel(),
                                         detailedCategory.getTransactionDetailedCategoryId(),
                                         txDto.isActive());
+
+                        savedTransactions.add(toPersistedTransactionDto(savedTransaction));
+                        persistedTransactions.add(new TransactionPersistedEvent(
+                                        UUID.randomUUID(),
+                                        Instant.now(),
+                                        "transaction-service",
+                                        savedTransaction.getTransactionId(),
+                                        savedTransaction.getUserId(),
+                                        savedTransaction.getAccountId(),
+                                        savedTransaction.getExternalId(),
+                                        savedTransaction.getAmount(),
+                                        savedTransaction.getIsoCurrencyCode(),
+                                        savedTransaction.getTransactionName(),
+                                        savedTransaction.getTransactionType(),
+                                        savedTransaction.getDate(),
+                                        savedTransaction.getPending(),
+                                        savedTransaction.getPaymentChannel(),
+                                        savedTransaction.getDetailedCategory().getTransactionPrimaryCategory().getDisplayName(), //TODO fix 2n+1 problem here xD
+                                        savedTransaction.isActive())); 
                 }
 
+                if (!persistedTransactions.isEmpty()) {
+                        eventPublisher.publishEvent(new TransactionsPersistedDomainEvent(persistedTransactions));
+                }
 
+                return new TransactionsUpsertResponseDto(savedTransactions);
+        }
 
-                return true;
+        private PersistedTransactionDto toPersistedTransactionDto(Transaction transaction) {
+                return new PersistedTransactionDto(
+                                transaction.getTransactionId(),
+                                transaction.getUserId(),
+                                transaction.getAccountId(),
+                                transaction.getExternalId(),
+                                transaction.getAmount(),
+                                transaction.getIsoCurrencyCode(),
+                                transaction.getTransactionName(),
+                                transaction.getTransactionType(),
+                                transaction.getDate(),
+                                transaction.getPending(),
+                                transaction.getPaymentChannel(),
+                                transaction.getDetailedCategory().getTransactionDetailedCategoryId(),
+                                transaction.getDetailedCategory().getCategoryCode(),
+                                transaction.isActive(),
+                                transaction.getCreatedAt(),
+                                transaction.getUpdatedAt());
         }
 }

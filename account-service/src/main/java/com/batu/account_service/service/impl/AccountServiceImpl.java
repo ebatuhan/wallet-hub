@@ -1,10 +1,13 @@
 package com.batu.account_service.service.impl;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Window;
@@ -14,8 +17,8 @@ import org.springframework.stereotype.Service;
 import com.batu.account_service.entity.Account;
 import com.batu.account_service.enums.AccountSortField;
 import com.batu.account_service.exception.ResourceNotFoundException;
+import com.batu.account_service.messaging.AccountsPersistedDomainEvent;
 import com.batu.account_service.repository.AccountRepository;
-import com.batu.account_service.repository.projection.AccountUpsertProjection;
 import com.batu.account_service.repository.specs.AccountSpecification;
 import com.batu.account_service.service.AccountService;
 import com.batu.account_service.util.CursorUtils;
@@ -27,6 +30,7 @@ import com.batu.shared.dto.response.AccountResponseDto;
 import com.batu.shared.dto.response.AccountViewDto;
 import com.batu.shared.dto.response.AccountsUpsertResponseDto;
 import com.batu.shared.dto.response.CursorResponse;
+import com.batu.shared.messaging.event.AccountPersistedEvent;
 
 import jakarta.transaction.Transactional;
 
@@ -35,10 +39,13 @@ public class AccountServiceImpl implements AccountService {
 
         private final AccountRepository accountRepository;
         private final CursorUtils cursorUtils;
+        private final ApplicationEventPublisher eventPublisher;
 
-        public AccountServiceImpl(AccountRepository accountRepository, CursorUtils cursorUtils) {
+        public AccountServiceImpl(AccountRepository accountRepository, CursorUtils cursorUtils,
+                        ApplicationEventPublisher eventPublisher) {
                 this.accountRepository = accountRepository;
                 this.cursorUtils = cursorUtils;
+                this.eventPublisher = eventPublisher;
         }
 
         @Override
@@ -97,9 +104,10 @@ public class AccountServiceImpl implements AccountService {
         @Transactional
         public AccountsUpsertResponseDto upsertAccounts(AccountsUpsertRequestDto request) {
                 Map<String, UUID> insertedAccountsMap = new HashMap<>();
+                List<AccountPersistedEvent> persistedAccounts = new ArrayList<>();
 
                 for (AccountRequestDto accRequest : request.getAccounts()) {
-                        AccountUpsertProjection row = accountRepository.upsertAccounts(
+                        Account savedAccount = accountRepository.upsertAccounts(
                                         accRequest.getConnectionId(),
                                         accRequest.getUserId(),
                                         accRequest.getExternalId(),
@@ -112,7 +120,27 @@ public class AccountServiceImpl implements AccountService {
                                         accRequest.getIsoCurrencyCode(),
                                         accRequest.isActive());
 
-                        insertedAccountsMap.put(row.getExternalId(), row.getAccountId());
+                        insertedAccountsMap.put(savedAccount.getExternalId(), savedAccount.getAccountId());
+                        persistedAccounts.add(new AccountPersistedEvent(
+                                        UUID.randomUUID(),
+                                        Instant.now(),
+                                        "account-service",
+                                        savedAccount.getAccountId(),
+                                        savedAccount.getConnectionId(),
+                                        savedAccount.getUserId(),
+                                        savedAccount.getExternalId(),
+                                        savedAccount.getAccountName(),
+                                        savedAccount.getAccountType(),
+                                        savedAccount.getAccountSubtype(),
+                                        savedAccount.getAccountMask(),
+                                        savedAccount.getCurrentBalance(),
+                                        savedAccount.getAvailableBalance(),
+                                        savedAccount.getIsoCurrencyCode(),
+                                        savedAccount.isActive()));
+                }
+
+                if (!persistedAccounts.isEmpty()) {
+                        eventPublisher.publishEvent(new AccountsPersistedDomainEvent(persistedAccounts));
                 }
 
                 return new AccountsUpsertResponseDto(insertedAccountsMap);

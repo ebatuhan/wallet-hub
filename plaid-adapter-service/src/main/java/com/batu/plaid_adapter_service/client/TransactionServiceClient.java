@@ -6,12 +6,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 
 import com.batu.plaid_adapter_service.config.OpenFeignConfiguration;
 import com.batu.shared.dto.request.TransactionsUpsertRequestDto;
+import com.batu.shared.dto.response.TransactionsUpsertResponseDto;
 
 @FeignClient(name = "transactions", url = "${transactionclient.url}", configuration = OpenFeignConfiguration.class)
 
 public interface TransactionServiceClient {
 
     @PostMapping("/batch-upsert")
-    ResponseEntity<Boolean> upsertTransactionsBatch(TransactionsUpsertRequestDto request);
+    ResponseEntity<TransactionsUpsertResponseDto> upsertTransactionsBatch(TransactionsUpsertRequestDto request);
 
 }

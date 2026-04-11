@@ -3,3 +3,4 @@ KEYCLOAK_SERVER_URL=http://keycloak:8080
 PLAID_ADAPTER_SERVICE_URL=http://plaid-adapter-service:8082
 ACCOUNT_SERVICE_URL=http://account-service:8083
 TRANSACTION_SERVICE_URL=http://transaction-service:8086
+INSIGHTS_SERVICE_URL=http://insights-service:8084

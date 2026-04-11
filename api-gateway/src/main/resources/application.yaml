@@ -18,11 +18,15 @@ spring:
           filters:
             - StripPrefix=1
 
-
         - id: plaid-adapter-service-route
           uri: ${PLAID_ADAPTER_SERVICE_URL:http://localhost:8082}
           predicates:
             - Path=/api/plaid/**
+
+        - id: insights-service-route
+          uri: ${INSIGHTS_SERVICE_URL:http://localhost:8088}
+          predicates:
+            - Path=/api/insights/**
 
   security:
     oauth2:

@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: insights-service
+  datasource: 
+    url: ${SPRING_DATASOURCE_URL:jdbc:clickhouse://localhost:8123/clickhouse}}
+    username: ${SPRING_DATASOURCE_USERNAME:${CLICKHOUSE_USER:clickhouse}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${CLICKHOUSE_PASSWORD:clickhouse}}
+    driver-class-name: com.clickhouse.jdbc.ClickHouseDriver
+
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:rabbitmq}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:guest}
+    password: ${SPRING_RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        retry:
+          enabled: true
+          initial-interval: 2s
+          max-attempts: 3
+    template:
+      retry:
+        enabled: true
+        initial-interval: 2s
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/certs
+
+
+  sql:
+    init:
+      mode: always
+
+server:
+  port: ${INSIGHTS_SERVICE_PORT:8084}
+

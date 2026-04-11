@@ -1,0 +1,40 @@
+INSERT INTO clickhouse.transactions (
+    date,
+    primary_category_code,
+    payment_channel,
+    amount,
+    iso_currency_code,
+    user_id,
+    account_id,
+    transaction_id
+) VALUES
+(
+    '2026-04-01',
+    'FOOD',
+    'CARD',
+    12.50,
+    'EUR',
+    'b3f287ff-05f0-4e27-96e1-ed770dc574ee',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    '00000000-0000-0000-0000-000000000001'
+),
+(
+    '2026-04-02',
+    'TRANSPORT',
+    'CASH',
+    5.20,
+    'EUR',
+    'b3f287ff-05f0-4e27-96e1-ed770dc574ee',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    '00000000-0000-0000-0000-000000000002'
+),
+(
+    '2026-04-03',
+    'SHOPPING',
+    'CARD',
+    99.99,
+    'EUR',
+    'b3f287ff-05f0-4e27-96e1-ed770dc574ee',
+    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+    '00000000-0000-0000-0000-000000000003'
+);
