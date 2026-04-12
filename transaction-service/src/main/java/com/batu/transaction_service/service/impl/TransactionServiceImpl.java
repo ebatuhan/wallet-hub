@@ -1,8 +1,5 @@
 package com.batu.transaction_service.service.impl;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,46 +15,48 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.batu.shared.dto.request.AccountNameRequestDto;
+import com.batu.shared.dto.response.AccountNameResponseDto;
+import com.batu.shared.dto.response.CursorResponse;
+import com.batu.shared.dto.response.TransactionDto;
+import com.batu.shared.dto.response.TransactionViewResponseDto;
+import com.batu.shared.messaging.command.TransactionSyncCommand;
 import com.batu.transaction_service.client.AccountServiceClient;
 import com.batu.transaction_service.entity.Transaction;
 import com.batu.transaction_service.entity.TransactionDetailedCategory;
+import com.batu.transaction_service.exception.ResourceNotFoundException;
+import com.batu.transaction_service.exception.SyncStateException;
+import com.batu.transaction_service.mapper.TransactionSyncMapper;
 import com.batu.transaction_service.messaging.TransactionsPersistedDomainEvent;
 import com.batu.transaction_service.repository.TransactionRepository;
 import com.batu.transaction_service.repository.spec.TransactionSpecs;
 import com.batu.transaction_service.service.DetailedCategoryService;
+import com.batu.transaction_service.service.TransactionService;
 import com.batu.transaction_service.util.CursorUtils;
-import com.batu.shared.dto.request.AccountNameRequestDto;
-import com.batu.shared.dto.request.TransactionRequestDto;
-import com.batu.shared.dto.request.TransactionsUpsertRequestDto;
-import com.batu.shared.dto.response.AccountNameResponseDto;
-import com.batu.shared.dto.response.CursorResponse;
-import com.batu.shared.dto.response.TransactionDetailedCategoryDto;
-import com.batu.shared.dto.response.TransactionDto;
-import com.batu.shared.dto.response.TransactionPrimaryCategoryDto;
-import com.batu.shared.dto.response.TransactionViewResponseDto;
-import com.batu.shared.dto.response.PersistedTransactionDto;
-import com.batu.shared.dto.response.TransactionsUpsertResponseDto;
-import com.batu.shared.messaging.event.TransactionPersistedEvent;
 
 @Service
-public class TransactionServiceImpl {
+public class TransactionServiceImpl implements TransactionService {
 
         private final TransactionRepository transactionRepository;
         private final CursorUtils cursorUtils;
         private final AccountServiceClient accountClient;
         private final DetailedCategoryService detailedCategoryService;
         private final ApplicationEventPublisher eventPublisher;
+        private final TransactionSyncMapper transactionSyncMapper;
 
         public TransactionServiceImpl(TransactionRepository transactionRepository, CursorUtils cursorUtils,
                         AccountServiceClient accountService, DetailedCategoryService detailedCategoryService,
-                        ApplicationEventPublisher eventPublisher) {
+                        ApplicationEventPublisher eventPublisher,
+                        TransactionSyncMapper transactionSyncMapper) {
                 this.transactionRepository = transactionRepository;
                 this.cursorUtils = cursorUtils;
                 this.accountClient = accountService;
                 this.detailedCategoryService = detailedCategoryService;
                 this.eventPublisher = eventPublisher;
+                this.transactionSyncMapper = transactionSyncMapper;
         }
 
+        @Override
         @Transactional(readOnly = true)
         public CursorResponse<TransactionViewResponseDto> transatcions(Jwt principal, String category, UUID accountId,
                         String cursor,
@@ -89,7 +88,9 @@ public class TransactionServiceImpl {
                                 .getAccountNames(request)
                                 .getBody();
 
-                Map<UUID, String> accountInformationsMap = response.stream().collect(Collectors.toMap(
+                List<AccountNameResponseDto> accountNames = response == null ? List.of() : response;
+
+                Map<UUID, String> accountInformationsMap = accountNames.stream().collect(Collectors.toMap(
                                 AccountNameResponseDto::getAccountId,
                                 AccountNameResponseDto::getAccountName));
 
@@ -101,10 +102,10 @@ public class TransactionServiceImpl {
                                                                 tx.getIsoCurrencyCode(),
                                                                 tx.getDetailedCategory().getTransactionPrimaryCategory()
                                                                                 .getDisplayName(),
-                                                                tx.getDetailedCategory().getDisplayName(),
-                                                                tx.getAccountId(),
-                                                                accountInformationsMap.getOrDefault(tx.getAccountId(),
-                                                                                " ")))
+                                                                 tx.getDetailedCategory().getDisplayName(),
+                                                                 tx.getAccountId(),
+                                                                 accountInformationsMap.getOrDefault(tx.getAccountId(),
+                                                                                 "")))
                                 .collect(Collectors.toList());
 
                 String nextCursor = null;
@@ -117,116 +118,117 @@ public class TransactionServiceImpl {
                 return new CursorResponse<>(dtos, window.hasNext(), nextCursor);
         }
 
+        @Override
         public TransactionDto getTransactionById(Jwt principial, UUID transactionId) {
                 UUID userId = UUID.fromString(principial.getSubject());
                 Transaction transaction = transactionRepository
-                                .findByTransactionIdAndUserIdAndIsActiveTrue(transactionId, userId)
-                                .get();
+                                .findByTransactionIdAndUserIdWithCategory(transactionId, userId)
+                                .filter(Transaction::isActive)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Transaction with id " + transactionId + " not found"));
 
-                return mapToResponseDto(transaction);
+                return transactionSyncMapper.toDto(transaction);
         }
 
-        private TransactionDto mapToResponseDto(Transaction t) {
-                if (t == null) {
-                        return null;
-                }
-
-                TransactionPrimaryCategoryDto primaryCategoryDto = new TransactionPrimaryCategoryDto(
-                                t.getDetailedCategory().getTransactionPrimaryCategory()
-                                                .getTransactionPrimaryCategoryId(),
-                                t.getDetailedCategory().getTransactionPrimaryCategory().getCategoryCode(),
-                                t.getDetailedCategory().getTransactionPrimaryCategory().getDisplayName(),
-                                t.getDetailedCategory().getTransactionPrimaryCategory().getIconUrl());
-
-                TransactionDetailedCategoryDto detailedCategoryDto = new TransactionDetailedCategoryDto(
-                                t.getDetailedCategory().getTransactionDetailedCategoryId(),
-                                t.getDetailedCategory().getDisplayName(),
-                                t.getDetailedCategory().getCategoryCode(),
-                                primaryCategoryDto);
-
-                return new TransactionDto(
-                                t.getTransactionId(),
-                                t.getUserId(),
-                                t.getExternalId(),
-                                t.getAmount(),
-                                t.getIsoCurrencyCode(),
-                                t.getTransactionName(),
-                                t.getTransactionType(),
-                                t.getDate(),
-                                t.getPending(),
-                                t.getPaymentChannel(),
-                                detailedCategoryDto,
-                                t.getCreatedAt(),
-                                t.getUpdatedAt());
-        }
-
+        @Override
         @Transactional
-        public TransactionsUpsertResponseDto batchUpsertTransactions(TransactionsUpsertRequestDto request) {
-                List<TransactionPersistedEvent> persistedTransactions = new ArrayList<>();
-                List<PersistedTransactionDto> savedTransactions = new ArrayList<>();
+        public void create(TransactionSyncCommand command) {
+                if (transactionRepository.findByTransactionIdAndUserIdWithCategory(
+                                command.getTransactionId(),
+                                command.getUserId()).isPresent()) {
+                        return;
+                }
 
-                for (TransactionRequestDto txDto : request.getTransactions()) {
-                        TransactionDetailedCategory detailedCategory = detailedCategoryService
-                                        .getByCategoryCode(txDto.getDetailedCategoryCode());
+                TransactionDetailedCategory detailedCategory = detailedCategoryService
+                                .getByCategoryCode(command.getDetailedCategoryCode());
 
-                        Transaction savedTransaction = transactionRepository.upsertTransaction(
-                                        txDto.getUserId(),
-                                        txDto.getAccountId(),
-                                        txDto.getExternalId(),
-                                        txDto.getAmount(),
-                                        txDto.getIsoCurrencyCode(),
-                                        txDto.getTransactionName(),
-                                        txDto.getTransactionType(),
-                                        txDto.getDate(),
-                                        txDto.getPending(),
-                                        txDto.getPaymentChannel(),
+                try {
+                        transactionRepository.insertSyncedTransaction(
+                                        command.getTransactionId(),
+                                        command.getUserId(),
+                                        command.getAccountId(),
+                                        command.getAmount(),
+                                        command.getIsoCurrencyCode(),
+                                        command.getTransactionName(),
+                                        command.getTransactionType(),
+                                        command.getDate(),
+                                        command.getPending(),
+                                        command.getPaymentChannel(),
                                         detailedCategory.getTransactionDetailedCategoryId(),
-                                        txDto.isActive());
+                                        command.isActive());
+                } catch (RuntimeException ex) {
+                        if (transactionRepository.findByTransactionIdAndUserIdWithCategory(
+                                        command.getTransactionId(),
+                                        command.getUserId()).isPresent()) {
+                                return;
+                        }
 
-                        savedTransactions.add(toPersistedTransactionDto(savedTransaction));
-                        persistedTransactions.add(new TransactionPersistedEvent(
-                                        UUID.randomUUID(),
-                                        Instant.now(),
-                                        "transaction-service",
-                                        savedTransaction.getTransactionId(),
-                                        savedTransaction.getUserId(),
-                                        savedTransaction.getAccountId(),
-                                        savedTransaction.getExternalId(),
-                                        savedTransaction.getAmount(),
-                                        savedTransaction.getIsoCurrencyCode(),
-                                        savedTransaction.getTransactionName(),
-                                        savedTransaction.getTransactionType(),
-                                        savedTransaction.getDate(),
-                                        savedTransaction.getPending(),
-                                        savedTransaction.getPaymentChannel(),
-                                        savedTransaction.getDetailedCategory().getTransactionPrimaryCategory().getDisplayName(), //TODO fix 2n+1 problem here xD
-                                        savedTransaction.isActive())); 
+                        throw ex;
                 }
 
-                if (!persistedTransactions.isEmpty()) {
-                        eventPublisher.publishEvent(new TransactionsPersistedDomainEvent(persistedTransactions));
-                }
-
-                return new TransactionsUpsertResponseDto(savedTransactions);
+                eventPublisher.publishEvent(new TransactionsPersistedDomainEvent(
+                                java.util.List.of(transactionSyncMapper.toPersistedEvent(command, detailedCategory))));
         }
 
-        private PersistedTransactionDto toPersistedTransactionDto(Transaction transaction) {
-                return new PersistedTransactionDto(
-                                transaction.getTransactionId(),
-                                transaction.getUserId(),
-                                transaction.getAccountId(),
-                                transaction.getExternalId(),
-                                transaction.getAmount(),
-                                transaction.getIsoCurrencyCode(),
-                                transaction.getTransactionName(),
-                                transaction.getTransactionType(),
-                                transaction.getDate(),
-                                transaction.getPending(),
-                                transaction.getPaymentChannel(),
-                                transaction.getDetailedCategory().getTransactionDetailedCategoryId(),
-                                transaction.getDetailedCategory().getCategoryCode(),
-                                transaction.isActive(),
-                                transaction.getCreatedAt(),
-                                transaction.getUpdatedAt());
+        @Override
+        @Transactional
+        public void update(TransactionSyncCommand command) {
+                if (!command.isActive()) {
+                        deactivate(command);
+                        return;
+                }
+
+                TransactionDetailedCategory detailedCategory = detailedCategoryService
+                                .getByCategoryCode(command.getDetailedCategoryCode());
+
+                int updatedRows = transactionRepository.updateSyncedTransaction(
+                                command.getTransactionId(),
+                                command.getUserId(),
+                                command.getAccountId(),
+                                command.getAmount(),
+                                command.getIsoCurrencyCode(),
+                                command.getTransactionName(),
+                                command.getTransactionType(),
+                                command.getDate(),
+                                command.getPending(),
+                                command.getPaymentChannel(),
+                                detailedCategory,
+                                command.isActive());
+
+                if (updatedRows == 0) {
+                        create(command);
+                        return;
+                }
+
+                eventPublisher.publishEvent(new TransactionsPersistedDomainEvent(
+                                java.util.List.of(transactionSyncMapper.toPersistedEvent(command, detailedCategory))));
+        }
+
+        private void deactivate(TransactionSyncCommand command) {
+                Transaction transaction = transactionRepository.findByTransactionIdAndUserIdWithCategory(
+                                command.getTransactionId(),
+                                command.getUserId())
+                                .orElse(null);
+
+                if (transaction == null) {
+                        return;
+                }
+
+                if (!transaction.isActive()) {
+                        return;
+                }
+
+                int updatedRows = transactionRepository.deactivateSyncedTransaction(
+                                command.getTransactionId(),
+                                command.getUserId());
+
+                if (updatedRows == 0) {
+                        return;
+                }
+
+                transaction.setActive(false);
+
+                eventPublisher.publishEvent(new TransactionsPersistedDomainEvent(
+                                java.util.List.of(transactionSyncMapper.toPersistedEvent(transaction))));
         }
 }

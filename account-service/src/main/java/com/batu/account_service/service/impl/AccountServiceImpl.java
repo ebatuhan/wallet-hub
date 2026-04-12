@@ -1,10 +1,6 @@
 package com.batu.account_service.service.impl;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -16,21 +12,20 @@ import org.springframework.stereotype.Service;
 
 import com.batu.account_service.entity.Account;
 import com.batu.account_service.enums.AccountSortField;
+import com.batu.account_service.exception.SyncStateException;
 import com.batu.account_service.exception.ResourceNotFoundException;
+import com.batu.account_service.mapper.AccountSyncMapper;
 import com.batu.account_service.messaging.AccountsPersistedDomainEvent;
 import com.batu.account_service.repository.AccountRepository;
 import com.batu.account_service.repository.specs.AccountSpecification;
 import com.batu.account_service.service.AccountService;
 import com.batu.account_service.util.CursorUtils;
 import com.batu.shared.dto.request.AccountNameRequestDto;
-import com.batu.shared.dto.request.AccountRequestDto;
-import com.batu.shared.dto.request.AccountsUpsertRequestDto;
 import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.shared.dto.response.AccountResponseDto;
 import com.batu.shared.dto.response.AccountViewDto;
-import com.batu.shared.dto.response.AccountsUpsertResponseDto;
 import com.batu.shared.dto.response.CursorResponse;
-import com.batu.shared.messaging.event.AccountPersistedEvent;
+import com.batu.shared.messaging.command.AccountSyncCommand;
 
 import jakarta.transaction.Transactional;
 
@@ -40,19 +35,23 @@ public class AccountServiceImpl implements AccountService {
         private final AccountRepository accountRepository;
         private final CursorUtils cursorUtils;
         private final ApplicationEventPublisher eventPublisher;
+        private final AccountSyncMapper accountSyncMapper;
 
-        public AccountServiceImpl(AccountRepository accountRepository, CursorUtils cursorUtils,
-                        ApplicationEventPublisher eventPublisher) {
+        public AccountServiceImpl(AccountRepository accountRepository,
+                        CursorUtils cursorUtils,
+                        ApplicationEventPublisher eventPublisher,
+                        AccountSyncMapper accountSyncMapper) {
                 this.accountRepository = accountRepository;
                 this.cursorUtils = cursorUtils;
                 this.eventPublisher = eventPublisher;
+                this.accountSyncMapper = accountSyncMapper;
         }
 
         @Override
         public CursorResponse<AccountViewDto> getAccountsViewPaginated(
                         Jwt principal,
                         String accountName,
-                        String institutionId,
+                        String institutionName,
                         String accountType,
                         String accountSubtype,
                         String cursor,
@@ -70,7 +69,7 @@ public class AccountServiceImpl implements AccountService {
                                 ? cursorUtils.decode(cursor)
                                 : ScrollPosition.keyset();
 
-                var spec = AccountSpecification.filter(userId, accountName, institutionId, accountType, accountSubtype);
+                var spec = AccountSpecification.filter(userId, accountName, institutionName, accountType, accountSubtype);
 
                 Window<AccountViewDto> accounts = accountRepository.findBy(spec, query -> query
                                 .as(AccountViewDto.class)
@@ -102,48 +101,91 @@ public class AccountServiceImpl implements AccountService {
 
         @Override
         @Transactional
-        public AccountsUpsertResponseDto upsertAccounts(AccountsUpsertRequestDto request) {
-                Map<String, UUID> insertedAccountsMap = new HashMap<>();
-                List<AccountPersistedEvent> persistedAccounts = new ArrayList<>();
-
-                for (AccountRequestDto accRequest : request.getAccounts()) {
-                        Account savedAccount = accountRepository.upsertAccounts(
-                                        accRequest.getConnectionId(),
-                                        accRequest.getUserId(),
-                                        accRequest.getExternalId(),
-                                        accRequest.getAccountName(),
-                                        accRequest.getAccountType(),
-                                        accRequest.getAccountSubtype(),
-                                        accRequest.getAccountMask(),
-                                        accRequest.getCurrentBalance(),
-                                        accRequest.getAvailableBalance(),
-                                        accRequest.getIsoCurrencyCode(),
-                                        accRequest.isActive());
-
-                        insertedAccountsMap.put(savedAccount.getExternalId(), savedAccount.getAccountId());
-                        persistedAccounts.add(new AccountPersistedEvent(
-                                        UUID.randomUUID(),
-                                        Instant.now(),
-                                        "account-service",
-                                        savedAccount.getAccountId(),
-                                        savedAccount.getConnectionId(),
-                                        savedAccount.getUserId(),
-                                        savedAccount.getExternalId(),
-                                        savedAccount.getAccountName(),
-                                        savedAccount.getAccountType(),
-                                        savedAccount.getAccountSubtype(),
-                                        savedAccount.getAccountMask(),
-                                        savedAccount.getCurrentBalance(),
-                                        savedAccount.getAvailableBalance(),
-                                        savedAccount.getIsoCurrencyCode(),
-                                        savedAccount.isActive()));
+        public void create(AccountSyncCommand command) {
+                if (accountRepository.findByAccountIdAndUserId(command.getAccountId(), command.getUserId()).isPresent()) {
+                        return;
                 }
 
-                if (!persistedAccounts.isEmpty()) {
-                        eventPublisher.publishEvent(new AccountsPersistedDomainEvent(persistedAccounts));
+                try {
+                        accountRepository.insertSyncedAccount(
+                                        command.getAccountId(),
+                                        command.getUserId(),
+                                        command.getInstitutionName(),
+                                        command.getAccountName(),
+                                        command.getAccountType(),
+                                        command.getAccountSubtype(),
+                                        command.getAccountMask(),
+                                        command.getCurrentBalance(),
+                                        command.getAvailableBalance(),
+                                        command.getIsoCurrencyCode(),
+                                        command.isActive());
+                } catch (RuntimeException ex) {
+                        if (accountRepository.findByAccountIdAndUserId(command.getAccountId(), command.getUserId()).isPresent()) {
+                                return;
+                        }
+
+                        throw ex;
                 }
 
-                return new AccountsUpsertResponseDto(insertedAccountsMap);
+                eventPublisher.publishEvent(new AccountsPersistedDomainEvent(
+                                java.util.List.of(accountSyncMapper.toPersistedEvent(command))));
         }
 
+        @Override
+        @Transactional
+        public void update(AccountSyncCommand command) {
+                if (!command.isActive()) {
+                        deactivate(command);
+                        return;
+                }
+
+                int updatedRows = accountRepository.updateSyncedAccount(
+                                command.getAccountId(),
+                                command.getUserId(),
+                                command.getInstitutionName(),
+                                command.getAccountName(),
+                                command.getAccountType(),
+                                command.getAccountSubtype(),
+                                command.getAccountMask(),
+                                command.getCurrentBalance(),
+                                command.getAvailableBalance(),
+                                command.getIsoCurrencyCode(),
+                                command.isActive());
+
+                if (updatedRows == 0) {
+                        create(command);
+                        return;
+                }
+
+                eventPublisher.publishEvent(new AccountsPersistedDomainEvent(
+                                java.util.List.of(accountSyncMapper.toPersistedEvent(command))));
+        }
+
+        private void deactivate(AccountSyncCommand command) {
+                Account account = accountRepository.findByAccountIdAndUserId(
+                                command.getAccountId(),
+                                command.getUserId())
+                                .orElse(null);
+
+                if (account == null) {
+                        return;
+                }
+
+                if (!account.isActive()) {
+                        return;
+                }
+
+                int updatedRows = accountRepository.deactivateSyncedAccount(
+                                command.getAccountId(),
+                                command.getUserId());
+
+                if (updatedRows == 0) {
+                        return;
+                }
+
+                account.setActive(false);
+
+                eventPublisher.publishEvent(new AccountsPersistedDomainEvent(
+                                java.util.List.of(accountSyncMapper.toPersistedEvent(account))));
+        }
 }

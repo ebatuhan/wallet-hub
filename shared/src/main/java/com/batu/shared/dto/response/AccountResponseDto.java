@@ -11,8 +11,7 @@ import lombok.Getter;
 public class AccountResponseDto {
 
     private UUID accountId;
-    private UUID connectionId;
-    private String externalId;
+    private String institutionName;
     private String accountName;
     private String accountType;
     private String accountSubtype;

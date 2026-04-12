@@ -9,6 +9,7 @@ import com.batu.plaid_adapter_service.exception.PlaidClientException;
 import com.batu.plaid_adapter_service.exception.PlaidRetryableException;
 import com.batu.plaid_adapter_service.factory.PlaidErrorHandlerFactory;
 import com.google.gson.Gson;
+import com.plaid.client.model.AccountsBalanceGetRequest;
 import com.plaid.client.model.AccountsGetRequest;
 import com.plaid.client.model.AccountsGetResponse;
 import com.plaid.client.model.ItemPublicTokenExchangeRequest;
@@ -57,6 +58,10 @@ public class PlaidClientWrapper {
 
     public AccountsGetResponse accountsGet(AccountsGetRequest request) {
         return executeRequest(() -> plaidClient.accountsGet(request).execute());
+    }
+
+    public AccountsGetResponse accountsBalanceGet(AccountsBalanceGetRequest request) {
+        return executeRequest(() -> plaidClient.accountsBalanceGet(request).execute());
     }
 
     private <T> T executeRequest(PlaidRequestSupplier<T> supplier) {

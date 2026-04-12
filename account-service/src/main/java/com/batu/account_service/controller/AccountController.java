@@ -23,11 +23,9 @@ import jakarta.validation.constraints.Min;
 import com.batu.account_service.enums.AccountSortField;
 import com.batu.account_service.service.AccountService;
 import com.batu.shared.dto.request.AccountNameRequestDto;
-import com.batu.shared.dto.request.AccountsUpsertRequestDto;
 import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.shared.dto.response.AccountResponseDto;
 import com.batu.shared.dto.response.AccountViewDto;
-import com.batu.shared.dto.response.AccountsUpsertResponseDto;
 import com.batu.shared.dto.response.CursorResponse;
 
 @RestController
@@ -60,7 +58,7 @@ public class AccountController {
     public ResponseEntity<CursorResponse<AccountViewDto>> getAllAccounts(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) String accountName,
-            @RequestParam(required = false) String connectionId,
+            @RequestParam(required = false) String institutionName,
             @RequestParam(required = false) String accountType,
             @RequestParam(required = false) String accountSubtype,
             @RequestParam(required = false) String cursor,
@@ -73,7 +71,7 @@ public class AccountController {
         CursorResponse<AccountViewDto> response = accountService.getAccountsViewPaginated(
                 jwt,
                 accountName,
-                connectionId,
+                institutionName,
                 accountType,
                 accountSubtype,
                 cursor,
@@ -82,11 +80,5 @@ public class AccountController {
                 direction);
 
         return ResponseEntity.ok(response);
-    }
-
-
-    @PostMapping("/batch-upsert")
-    public ResponseEntity<AccountsUpsertResponseDto> upsertAccounts(@RequestBody AccountsUpsertRequestDto request){
-        return ResponseEntity.ok(accountService.upsertAccounts(request));
     }
 }

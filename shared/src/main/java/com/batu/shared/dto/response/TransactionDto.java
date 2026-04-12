@@ -13,7 +13,6 @@ public class TransactionDto {
 
     private UUID transactionId;
     private UUID userId;
-    private String externalId;
     private BigDecimal amount;
     private String isoCurrencyCode;
     private String transactionName;

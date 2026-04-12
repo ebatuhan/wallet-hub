@@ -22,7 +22,6 @@ public class TransactionPersistedEvent {
     private UUID transactionId;
     private UUID userId;
     private UUID accountId;
-    private String externalId;
     private BigDecimal amount;
     private String isoCurrencyCode;
     private String transactionName;

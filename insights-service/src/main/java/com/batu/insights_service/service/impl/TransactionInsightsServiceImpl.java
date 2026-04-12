@@ -9,7 +9,10 @@ import org.springframework.stereotype.Service;
 
 import com.batu.insights_service.dto.SpendingPerCategoryDTO;
 import com.batu.insights_service.dto.SpendingPerCategoryByAccountDTO;
+import com.batu.insights_service.dto.SpendingPerCategoryByAccountResponseDTO;
+import com.batu.insights_service.dto.SpendingPerCategoryResponseDTO;
 import com.batu.insights_service.entity.TransactionInsightRow;
+import com.batu.insights_service.exception.InvalidDateRangeException;
 import com.batu.insights_service.repository.TransactionInsightsRepository;
 import com.batu.insights_service.service.TransactionInsightsService;
 
@@ -23,23 +26,33 @@ public class TransactionInsightsServiceImpl implements TransactionInsightsServic
     }
 
     @Override
-    public List<SpendingPerCategoryDTO> getSpendingByCategory(Date from, Date to, Jwt principal) {
+    public SpendingPerCategoryResponseDTO getSpendingByCategory(Date from, Date to, Jwt principal) {
+        validateDateRange(from, to);
         UUID userId = UUID.fromString(principal.getSubject());
 
-        return transactionInsightsRepository.findByInterval(from, to, userId);
+        List<SpendingPerCategoryDTO> categories = transactionInsightsRepository.findByInterval(from, to, userId);
+        return new SpendingPerCategoryResponseDTO(userId, categories);
     }
 
     @Override
-    public List<SpendingPerCategoryByAccountDTO> getSpendingPerCategoryByAccount(Date from, Date to, UUID accountId,
+    public SpendingPerCategoryByAccountResponseDTO getSpendingPerCategoryByAccount(Date from, Date to, UUID accountId,
             Jwt principal) {
 
+        validateDateRange(from, to);
         UUID userId = UUID.fromString(principal.getSubject());
-        return transactionInsightsRepository.findByIntervalAndAccount(from, to, userId, accountId);
+        List<SpendingPerCategoryByAccountDTO> categories = transactionInsightsRepository.findByIntervalAndAccount(from, to, userId, accountId);
+        return new SpendingPerCategoryByAccountResponseDTO(userId, accountId, categories);
 
     }
 
     @Override
     public void save(TransactionInsightRow transactionInsightRow) {
         transactionInsightsRepository.save(transactionInsightRow);
+    }
+
+    private void validateDateRange(Date from, Date to) {
+        if (from.after(to)) {
+            throw new InvalidDateRangeException("'from' date must be before or equal to 'to' date");
+        }
     }
 }

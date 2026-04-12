@@ -1,0 +1,101 @@
+package com.batu.transaction_service.mapper;
+
+import java.time.Instant;
+import java.util.UUID;
+
+import org.springframework.stereotype.Component;
+
+import com.batu.shared.dto.response.TransactionDetailedCategoryDto;
+import com.batu.shared.dto.response.TransactionDto;
+import com.batu.shared.dto.response.TransactionPrimaryCategoryDto;
+import com.batu.shared.messaging.command.TransactionSyncCommand;
+import com.batu.shared.messaging.event.TransactionPersistedEvent;
+import com.batu.transaction_service.entity.Transaction;
+import com.batu.transaction_service.entity.TransactionDetailedCategory;
+
+@Component
+public class TransactionSyncMapper {
+
+    public Transaction toEntity(TransactionSyncCommand command, TransactionDetailedCategory detailedCategory) {
+        return new Transaction(
+                command.getTransactionId(),
+                command.getUserId(),
+                command.getAccountId(),
+                command.getAmount(),
+                command.getIsoCurrencyCode(),
+                command.getTransactionName(),
+                command.getTransactionType(),
+                command.getDate(),
+                command.getPending(),
+                command.getPaymentChannel(),
+                detailedCategory,
+                command.isActive());
+    }
+
+    public TransactionPersistedEvent toPersistedEvent(TransactionSyncCommand command,
+            TransactionDetailedCategory detailedCategory) {
+        return new TransactionPersistedEvent(
+                UUID.randomUUID(),
+                Instant.now(),
+                "transaction-service",
+                command.getTransactionId(),
+                command.getUserId(),
+                command.getAccountId(),
+                command.getAmount(),
+                command.getIsoCurrencyCode(),
+                command.getTransactionName(),
+                command.getTransactionType(),
+                command.getDate(),
+                command.getPending(),
+                command.getPaymentChannel(),
+                detailedCategory.getTransactionPrimaryCategory().getCategoryCode(),
+                command.isActive());
+    }
+
+    public TransactionPersistedEvent toPersistedEvent(Transaction transaction) {
+        return new TransactionPersistedEvent(
+                UUID.randomUUID(),
+                Instant.now(),
+                "transaction-service",
+                transaction.getTransactionId(),
+                transaction.getUserId(),
+                transaction.getAccountId(),
+                transaction.getAmount(),
+                transaction.getIsoCurrencyCode(),
+                transaction.getTransactionName(),
+                transaction.getTransactionType(),
+                transaction.getDate(),
+                transaction.getPending(),
+                transaction.getPaymentChannel(),
+                transaction.getDetailedCategory().getTransactionPrimaryCategory().getCategoryCode(),
+                transaction.isActive());
+    }
+
+    public TransactionDto toDto(Transaction transaction) {
+        TransactionPrimaryCategoryDto primaryCategoryDto = new TransactionPrimaryCategoryDto(
+                transaction.getDetailedCategory().getTransactionPrimaryCategory().getTransactionPrimaryCategoryId(),
+                transaction.getDetailedCategory().getTransactionPrimaryCategory().getCategoryCode(),
+                transaction.getDetailedCategory().getTransactionPrimaryCategory().getDisplayName(),
+                transaction.getDetailedCategory().getTransactionPrimaryCategory().getIconUrl());
+
+        TransactionDetailedCategoryDto detailedCategoryDto = new TransactionDetailedCategoryDto(
+                transaction.getDetailedCategory().getTransactionDetailedCategoryId(),
+                transaction.getDetailedCategory().getDisplayName(),
+                transaction.getDetailedCategory().getCategoryCode(),
+                primaryCategoryDto);
+
+        return new TransactionDto(
+                transaction.getTransactionId(),
+                transaction.getUserId(),
+                transaction.getAmount(),
+                transaction.getIsoCurrencyCode(),
+                transaction.getTransactionName(),
+                transaction.getTransactionType(),
+                transaction.getDate(),
+                transaction.getPending(),
+                transaction.getPaymentChannel(),
+                detailedCategoryDto,
+                transaction.getCreatedAt(),
+                transaction.getUpdatedAt());
+    }
+}

@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.batu.insights_service.dto.SpendingPerCategoryByAccountDTO;
+import com.batu.insights_service.dto.SpendingPerCategoryByAccountResponseDTO;
 import com.batu.insights_service.dto.SpendingPerCategoryDTO;
+import com.batu.insights_service.dto.SpendingPerCategoryResponseDTO;
 import com.batu.insights_service.service.TransactionInsightsService;
 
 @RestController
@@ -28,7 +30,7 @@ public class TransactionInsightsController {
     }
 
     @GetMapping("/spendings")
-    public ResponseEntity<List<SpendingPerCategoryDTO>> getSpendingByCategory(
+    public ResponseEntity<SpendingPerCategoryResponseDTO> getSpendingByCategory(
             @RequestParam Date from,
             @RequestParam Date to,
             @AuthenticationPrincipal Jwt principal) {
@@ -36,7 +38,7 @@ public class TransactionInsightsController {
     }
 
         @GetMapping("/spendings/{accountId}")
-    public ResponseEntity<List<SpendingPerCategoryByAccountDTO>> getSpendingByCategoryByAccount(
+    public ResponseEntity<SpendingPerCategoryByAccountResponseDTO> getSpendingByCategoryByAccount(
             @RequestParam Date from,
             @PathVariable UUID accountId,
             @RequestParam Date to,

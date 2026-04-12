@@ -5,6 +5,9 @@ import org.springframework.data.domain.KeysetScrollPosition;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.stereotype.Component;
 
+import com.batu.account_service.exception.CursorProcessingException;
+import com.batu.account_service.exception.InvalidCursorException;
+
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
@@ -41,8 +44,7 @@ public class CursorUtils {
 
             return ScrollPosition.forward(typedKeys);
         } catch (Exception e) {
-            // Log error here
-            throw new IllegalArgumentException("Invalid cursor format", e);
+            throw new InvalidCursorException("Invalid cursor format", e);
         }
     }
 
@@ -52,7 +54,7 @@ public class CursorUtils {
                 byte[] bytes = objectMapper.writeValueAsBytes(keyset.getKeys());
                 return Base64.getEncoder().encodeToString(bytes);
             } catch (Exception e) {
-                throw new RuntimeException("Failed to encode cursor", e);
+                throw new CursorProcessingException("Failed to encode cursor", e);
             }
         }
         return null;
@@ -75,5 +77,3 @@ public class CursorUtils {
         return value;
     }
 }
-
-

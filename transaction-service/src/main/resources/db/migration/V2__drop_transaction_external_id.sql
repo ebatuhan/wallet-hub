@@ -1,0 +1,1 @@
+ALTER TABLE IF EXISTS transactions DROP COLUMN IF EXISTS external_id;

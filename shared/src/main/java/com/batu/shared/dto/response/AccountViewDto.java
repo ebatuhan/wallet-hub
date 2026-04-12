@@ -11,7 +11,7 @@ import lombok.Getter;
 public class AccountViewDto {
 
     private UUID accountId;
-    private UUID connectionId;
+    private String institutionName;
     private String accountName;
     private BigDecimal currentBalance;
     private String accountType;

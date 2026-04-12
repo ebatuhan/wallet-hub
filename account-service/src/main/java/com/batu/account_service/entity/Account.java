@@ -28,14 +28,11 @@ public class Account {
     @Setter(AccessLevel.NONE)
     private UUID accountId;
 
-    @Column(name = "connection_id", nullable = false)
-    private UUID connectionId;
-
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
-    @Column(name = "external_id", unique = true, nullable = false)
-    private String externalId;
+    @Column(name = "institution_name", nullable = false)
+    private String institutionName;
 
     @Column(name = "account_name", nullable = false)
     private String accountName;
@@ -71,12 +68,11 @@ public class Account {
     @Setter(AccessLevel.NONE)
     private Instant updatedAt;
 
-    public Account(UUID connectionId, UUID userId, String externalId, String accountName, String accountType,
+    public Account(UUID userId, String institutionName, String accountName, String accountType,
             String accountSubtype, String accountMask, BigDecimal currentBalance, BigDecimal availableBalance,
             String isoCurrencyCode, boolean isActive) {
-        this.connectionId = connectionId;
         this.userId = userId;
-        this.externalId = externalId;
+        this.institutionName = institutionName;
         this.accountName = accountName;
         this.accountType = accountType;
         this.accountSubtype = accountSubtype;
@@ -85,5 +81,13 @@ public class Account {
         this.availableBalance = availableBalance;
         this.isoCurrencyCode = isoCurrencyCode;
         this.isActive = isActive;
+    }
+
+    public Account(UUID accountId, UUID userId, String institutionName, String accountName,
+            String accountType, String accountSubtype, String accountMask, BigDecimal currentBalance,
+            BigDecimal availableBalance, String isoCurrencyCode, boolean isActive) {
+        this(userId, institutionName, accountName, accountType, accountSubtype, accountMask, currentBalance,
+                availableBalance, isoCurrencyCode, isActive);
+        this.accountId = accountId;
     }
 }

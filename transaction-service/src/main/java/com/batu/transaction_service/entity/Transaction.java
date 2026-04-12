@@ -38,9 +38,6 @@ public class Transaction {
     @Column(name = "account_id", nullable = false)
     private UUID accountId;
 
-    @Column(name = "external_id", unique = true, nullable = false)
-    private String externalId;
-
     @Column(name = "amount", nullable = false)
     private BigDecimal amount;
 
@@ -79,12 +76,11 @@ public class Transaction {
     @Setter(AccessLevel.NONE)
     private Instant updatedAt;
 
-    public Transaction(UUID userId, UUID accountId, String externalId, BigDecimal amount, String isoCurrencyCode,
+    public Transaction(UUID userId, UUID accountId, BigDecimal amount, String isoCurrencyCode,
             String transactionName, String transactionType, LocalDate date, Boolean pending, String paymentChannel,
             TransactionDetailedCategory detailedCategory, boolean isActive) {
         this.userId = userId;
         this.accountId = accountId;
-        this.externalId = externalId;
         this.amount = amount;
         this.isoCurrencyCode = isoCurrencyCode;
         this.transactionName = transactionName;
@@ -94,5 +90,13 @@ public class Transaction {
         this.paymentChannel = paymentChannel;
         this.detailedCategory = detailedCategory;
         this.isActive = isActive;
+    }
+
+    public Transaction(UUID transactionId, UUID userId, UUID accountId, BigDecimal amount,
+            String isoCurrencyCode, String transactionName, String transactionType, LocalDate date, Boolean pending,
+            String paymentChannel, TransactionDetailedCategory detailedCategory, boolean isActive) {
+        this(userId, accountId, amount, isoCurrencyCode, transactionName, transactionType, date, pending,
+                paymentChannel, detailedCategory, isActive);
+        this.transactionId = transactionId;
     }
 }

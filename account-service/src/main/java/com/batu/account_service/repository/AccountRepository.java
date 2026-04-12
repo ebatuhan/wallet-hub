@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -18,14 +19,16 @@ import com.batu.shared.dto.response.AccountResponseDto;
 public interface AccountRepository extends JpaRepository<Account, UUID>, JpaSpecificationExecutor<Account> {
     Optional<AccountResponseDto> findByAccountIdAndUserIdAndIsActiveTrue(UUID accountId, UUID userId);
 
+    Optional<Account> findByAccountIdAndUserId(UUID accountId, UUID userId);
+
     List<AccountNameResponseDto> findByAccountIdIn(Set<UUID> accountIds);
 
+    @Modifying
     @Query(value = """
-            INSERT INTO accounts (
+            insert into accounts (
                 account_id,
-                connection_id,
                 user_id,
-                external_id,
+                institution_name,
                 account_name,
                 account_type,
                 account_subtype,
@@ -36,12 +39,10 @@ public interface AccountRepository extends JpaRepository<Account, UUID>, JpaSpec
                 is_active,
                 created_at,
                 updated_at
-            )
-            VALUES (
-                gen_random_uuid(),
-                :connectionId,
+            ) values (
+                :accountId,
                 :userId,
-                :externalId,
+                :institutionName,
                 :accountName,
                 :accountType,
                 :accountSubtype,
@@ -50,28 +51,14 @@ public interface AccountRepository extends JpaRepository<Account, UUID>, JpaSpec
                 :availableBalance,
                 :isoCurrencyCode,
                 :isActive,
-                CURRENT_TIMESTAMP,
-                CURRENT_TIMESTAMP
+                current_timestamp,
+                current_timestamp
             )
-            ON CONFLICT (external_id)
-            DO UPDATE SET
-                connection_id     = EXCLUDED.connection_id,
-                user_id           = EXCLUDED.user_id,
-                account_name      = EXCLUDED.account_name,
-                account_type      = EXCLUDED.account_type,
-                account_subtype   = EXCLUDED.account_subtype,
-                account_mask      = EXCLUDED.account_mask,
-                current_balance   = EXCLUDED.current_balance,
-                available_balance = EXCLUDED.available_balance,
-                iso_currency_code = EXCLUDED.iso_currency_code,
-                is_active         = EXCLUDED.is_active,
-                updated_at        = CURRENT_TIMESTAMP
-            RETURNING *
             """, nativeQuery = true)
-    Account upsertAccounts(
-            @Param("connectionId") UUID connectionId,
+    int insertSyncedAccount(
+            @Param("accountId") UUID accountId,
             @Param("userId") UUID userId,
-            @Param("externalId") String externalId,
+            @Param("institutionName") String institutionName,
             @Param("accountName") String accountName,
             @Param("accountType") String accountType,
             @Param("accountSubtype") String accountSubtype,
@@ -80,4 +67,43 @@ public interface AccountRepository extends JpaRepository<Account, UUID>, JpaSpec
             @Param("availableBalance") BigDecimal availableBalance,
             @Param("isoCurrencyCode") String isoCurrencyCode,
             @Param("isActive") boolean isActive);
+
+    @Modifying
+    @Query("""
+            update Account account
+            set account.userId = :userId,
+                account.institutionName = :institutionName,
+                account.accountName = :accountName,
+                account.accountType = :accountType,
+                account.accountSubtype = :accountSubtype,
+                account.accountMask = :accountMask,
+                account.currentBalance = :currentBalance,
+                account.availableBalance = :availableBalance,
+                account.isoCurrencyCode = :isoCurrencyCode,
+                account.isActive = :isActive
+            where account.accountId = :accountId
+            """)
+    int updateSyncedAccount(
+            @Param("accountId") UUID accountId,
+            @Param("userId") UUID userId,
+            @Param("institutionName") String institutionName,
+            @Param("accountName") String accountName,
+            @Param("accountType") String accountType,
+            @Param("accountSubtype") String accountSubtype,
+            @Param("accountMask") String accountMask,
+            @Param("currentBalance") BigDecimal currentBalance,
+            @Param("availableBalance") BigDecimal availableBalance,
+            @Param("isoCurrencyCode") String isoCurrencyCode,
+            @Param("isActive") boolean isActive);
+
+    @Modifying
+    @Query("""
+            update Account account
+            set account.isActive = false
+            where account.accountId = :accountId
+              and account.userId = :userId
+            """)
+    int deactivateSyncedAccount(
+            @Param("accountId") UUID accountId,
+            @Param("userId") UUID userId);
 }
