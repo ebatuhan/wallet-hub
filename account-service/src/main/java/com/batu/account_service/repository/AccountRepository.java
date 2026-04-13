@@ -21,7 +21,20 @@ public interface AccountRepository extends JpaRepository<Account, UUID>, JpaSpec
 
     Optional<Account> findByAccountIdAndUserId(UUID accountId, UUID userId);
 
+    long countByUserIdAndIsActiveTrue(UUID userId);
+
     List<AccountNameResponseDto> findByAccountIdIn(Set<UUID> accountIds);
+
+    @Query("""
+            select account.isoCurrencyCode as isoCurrencyCode,
+                   sum(account.currentBalance) as currentBalanceTotal,
+                   sum(account.availableBalance) as availableBalanceTotal
+            from Account account
+            where account.userId = :userId
+              and account.isActive = true
+            group by account.isoCurrencyCode
+            """)
+    List<AccountCurrencyTotalProjection> summarizeActiveBalancesByCurrency(@Param("userId") UUID userId);
 
     @Modifying
     @Query(value = """
@@ -106,4 +119,12 @@ public interface AccountRepository extends JpaRepository<Account, UUID>, JpaSpec
     int deactivateSyncedAccount(
             @Param("accountId") UUID accountId,
             @Param("userId") UUID userId);
+
+    interface AccountCurrencyTotalProjection {
+        String getIsoCurrencyCode();
+
+        BigDecimal getCurrentBalanceTotal();
+
+        BigDecimal getAvailableBalanceTotal();
+    }
 }

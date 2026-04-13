@@ -28,6 +28,20 @@ spring:
           predicates:
             - Path=/api/insights/**
 
+        - id: budgeting-service-route
+          uri: ${BUDGETING_SERVICE_URL:http://localhost:8089}
+          predicates:
+            - Path=/api/budgets/**
+          filters:
+            - StripPrefix=1
+
+        - id: dashboard-service-route
+          uri: ${DASHBOARD_SERVICE_URL:http://localhost:8090}
+          predicates:
+            - Path=/api/dashboard/**
+          filters:
+            - StripPrefix=1
+
   security:
     oauth2:
       resourceserver:

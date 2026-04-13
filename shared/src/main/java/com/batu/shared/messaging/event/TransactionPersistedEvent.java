@@ -29,6 +29,7 @@ public class TransactionPersistedEvent {
     private LocalDate date;
     private Boolean pending;
     private String paymentChannel;
+    private UUID primaryCategoryId;
     private String primaryCategoryCode;
     @JsonProperty("isActive")
     private boolean isActive;

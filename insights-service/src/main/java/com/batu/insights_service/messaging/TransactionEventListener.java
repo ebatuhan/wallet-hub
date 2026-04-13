@@ -24,7 +24,7 @@ public class TransactionEventListener {
 
         TransactionInsightRow txRow = new TransactionInsightRow(
              message.getDate(),
-             message.getPrimaryCategoryCode(),
+             message.getPrimaryCategoryId(),
              message.getPaymentChannel(),
              message.getAmount(),
              isOutflow,

@@ -58,6 +58,20 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres-budgeting:
+    image: postgres:15
+    container_name: postgres-budgeting
+    env_file: config/.postgres-budgeting
+    ports:
+      - "${POSTGRES_BUDGETING_PORT}:5432"
+    volumes:
+      - postgres-budgeting-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   keycloak:
     image: quay.io/keycloak/keycloak:23.0
     container_name: keycloak
@@ -140,6 +154,37 @@ services:
       - ./shared:/shared
       - ~/.m2:/root/.m2
 
+  budgeting-service:
+    build:
+      context: .
+      dockerfile: budgeting/Dockerfile
+    container_name: budgeting-service
+    env_file: config/.budgeting
+    ports:
+      - "${BUDGETING_SERVICE_PORT}:8089"
+    depends_on:
+      postgres-budgeting:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./budgeting:/app
+      - ./shared:/shared
+      - ~/.m2:/root/.m2
+
+  dashboard-service:
+    build:
+      context: .
+      dockerfile: dashboard-service/Dockerfile
+    container_name: dashboard-service
+    env_file: config/.dashboard
+    ports:
+      - "${DASHBOARD_SERVICE_PORT}:8090"
+    volumes:
+      - ./dashboard-service:/app
+      - ./shared:/shared
+      - ~/.m2:/root/.m2
+
   clickhouse-insights:
     image: clickhouse/clickhouse-server:26.2
     container_name: clickhouse-insights
@@ -189,6 +234,7 @@ volumes:
   postgres-plaid-data:
   postgres-keycloak-data:
   postgres-transaction-data:
+  postgres-budgeting-data:
   postgres-account-data:
   maven-repo:
   rabbitmq-data:

@@ -10,6 +10,7 @@ import com.batu.account_service.enums.AccountSortField;
 import com.batu.shared.dto.request.AccountNameRequestDto;
 import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.shared.dto.response.AccountResponseDto;
+import com.batu.shared.dto.response.AccountSummaryResponseDto;
 import com.batu.shared.dto.response.AccountViewDto;
 import com.batu.shared.dto.response.CursorResponse;
 import com.batu.shared.messaging.command.AccountSyncCommand;
@@ -27,6 +28,8 @@ public interface AccountService {
             Sort.Direction direction);
 
     AccountResponseDto getAccount(UUID accountId, Jwt principal);
+
+    AccountSummaryResponseDto getAccountSummary(Jwt principal);
 
     List<AccountNameResponseDto> getAccountsByGivenIds(AccountNameRequestDto request);
 

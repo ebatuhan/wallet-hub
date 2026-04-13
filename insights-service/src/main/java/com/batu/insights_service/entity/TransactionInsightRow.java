@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public record TransactionInsightRow(
     LocalDate date,
-    String primaryCategoryCode,
+    UUID primaryCategoryId,
     String paymentChannel,
     BigDecimal amount,
     boolean isOutflow,

@@ -25,6 +25,7 @@ import com.batu.account_service.service.AccountService;
 import com.batu.shared.dto.request.AccountNameRequestDto;
 import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.shared.dto.response.AccountResponseDto;
+import com.batu.shared.dto.response.AccountSummaryResponseDto;
 import com.batu.shared.dto.response.AccountViewDto;
 import com.batu.shared.dto.response.CursorResponse;
 
@@ -45,6 +46,11 @@ public class AccountController {
             @AuthenticationPrincipal Jwt jwt) {
         AccountResponseDto account = accountService.getAccount(accountId, jwt);
         return ResponseEntity.ok(account);
+    }
+
+    @GetMapping("/summary")
+    public ResponseEntity<AccountSummaryResponseDto> getAccountSummary(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(accountService.getAccountSummary(jwt));
     }
 
     @PostMapping("/batch")

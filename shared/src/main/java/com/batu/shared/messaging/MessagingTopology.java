@@ -7,6 +7,7 @@ public final class MessagingTopology {
 
     public static final String ACCOUNT_PERSISTED_QUEUE = "analytics.account.persisted.v1";
     public static final String TRANSACTION_PERSISTED_QUEUE = "analytics.transaction.persisted.v1";
+    public static final String BUDGETING_TRANSACTION_PERSISTED_QUEUE = "budgeting.transaction.persisted.v1";
     public static final String ACCOUNT_CREATE_QUEUE = "plaid.account.create.v1";
     public static final String ACCOUNT_UPDATE_QUEUE = "plaid.account.update.v1";
     public static final String TRANSACTION_CREATE_QUEUE = "plaid.transaction.create.v1";

@@ -18,7 +18,7 @@ public class TransactionInsightsRepository {
 
     private static final RowMapper<TransactionInsightRow> ROW_MAPPER = (rs, rowNum) -> new TransactionInsightRow(
             rs.getDate("date").toLocalDate(),
-            rs.getString("primary_category_code"),
+            UUID.fromString(rs.getString("primary_category_id")),
             rs.getString("payment_channel"),
             rs.getBigDecimal("amount"),
             rs.getBoolean("is_outflow"),
@@ -31,13 +31,13 @@ public class TransactionInsightsRepository {
 
     private static final RowMapper<SpendingPerCategoryDTO> SPENDING_PER_CATEGORY_MAPPER = (rs, rowNum) ->
             new SpendingPerCategoryDTO(
-                    rs.getString("primary_category_code"),
+                    UUID.fromString(rs.getString("primary_category_id")),
                     rs.getBigDecimal("percentage"),
                     rs.getBigDecimal("total_amount"));
 
     private static final RowMapper<SpendingPerCategoryByAccountDTO> SPENDING_PER_CATEGORY_BY_ACCOUNT_MAPPER = (rs, rowNum) ->
             new SpendingPerCategoryByAccountDTO(
-                    rs.getString("primary_category_code"),
+                    UUID.fromString(rs.getString("primary_category_id")),
                     rs.getBigDecimal("percentage"),
                     rs.getBigDecimal("total_amount"));
 
@@ -49,7 +49,7 @@ public class TransactionInsightsRepository {
         final String sql = """
                 INSERT INTO clickhouse.transactions (
                     date,
-                    primary_category_code,
+                    primary_category_id,
                     payment_channel,
                     amount,
                     is_outflow,
@@ -64,7 +64,7 @@ public class TransactionInsightsRepository {
 
         jdbcTemplate.update(sql,
                 java.sql.Date.valueOf(row.date()),
-                row.primaryCategoryCode(),
+                row.primaryCategoryId(),
                 row.paymentChannel(),
                 row.amount(),
                 row.isOutflow(),
@@ -82,7 +82,7 @@ public class TransactionInsightsRepository {
                     SELECT
                         transaction_id,
                         argMax(user_id, updated_at) AS latest_user_id,
-                        argMax(primary_category_code, updated_at) AS latest_primary_category_code,
+                        argMax(primary_category_id, updated_at) AS latest_primary_category_id,
                         argMax(amount, updated_at) AS latest_amount,
                         argMax(is_outflow, updated_at) AS latest_is_outflow,
                         argMax(is_active, updated_at) AS latest_is_active
@@ -93,13 +93,13 @@ public class TransactionInsightsRepository {
                 )
                 SELECT
                     latest_user_id AS user_id,
-                    latest_primary_category_code AS primary_category_code,
+                    latest_primary_category_id AS primary_category_id,
                     SUM(abs(latest_amount)) AS total_amount,
                     round((SUM(abs(latest_amount)) * 100.0) / SUM(SUM(abs(latest_amount))) OVER (), 2) AS percentage
                 FROM latest_transactions
                 WHERE latest_is_active = 1
                   AND latest_is_outflow = 1
-                GROUP BY latest_user_id, latest_primary_category_code
+                GROUP BY latest_user_id, latest_primary_category_id
                 ORDER BY percentage DESC
                 """;
         return jdbcTemplate.query(sql, SPENDING_PER_CATEGORY_MAPPER, userId, from, to);
@@ -112,7 +112,7 @@ public class TransactionInsightsRepository {
                         transaction_id,
                         argMax(account_id, updated_at) AS latest_account_id,
                         argMax(user_id, updated_at) AS latest_user_id,
-                        argMax(primary_category_code, updated_at) AS latest_primary_category_code,
+                        argMax(primary_category_id, updated_at) AS latest_primary_category_id,
                         argMax(amount, updated_at) AS latest_amount,
                         argMax(is_outflow, updated_at) AS latest_is_outflow,
                         argMax(is_active, updated_at) AS latest_is_active
@@ -125,13 +125,13 @@ public class TransactionInsightsRepository {
                 SELECT
                     latest_account_id AS account_id,
                     latest_user_id AS user_id,
-                    latest_primary_category_code AS primary_category_code,
+                    latest_primary_category_id AS primary_category_id,
                     SUM(abs(latest_amount)) AS total_amount,
                     round((SUM(abs(latest_amount)) * 100.0) / SUM(SUM(abs(latest_amount))) OVER (), 2) AS percentage
                 FROM latest_transactions
                 WHERE latest_is_active = 1
                   AND latest_is_outflow = 1
-                GROUP BY latest_account_id, latest_user_id, latest_primary_category_code
+                GROUP BY latest_account_id, latest_user_id, latest_primary_category_id
                 ORDER BY percentage DESC
                 """;
         return jdbcTemplate.query(sql, SPENDING_PER_CATEGORY_BY_ACCOUNT_MAPPER, userId, from, to, accountId);

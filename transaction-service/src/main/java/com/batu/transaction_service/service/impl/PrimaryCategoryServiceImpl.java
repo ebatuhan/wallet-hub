@@ -1,9 +1,12 @@
 package com.batu.transaction_service.service.impl;
 
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
+import com.batu.shared.dto.response.TransactionPrimaryCategoryDto;
 import com.batu.transaction_service.entity.TransactionPrimaryCategory;
 import com.batu.transaction_service.exception.ResourceNotFoundException;
 import com.batu.transaction_service.repository.PrimaryCategoryRepository;
@@ -29,5 +32,16 @@ public class PrimaryCategoryServiceImpl implements PrimaryCategoryService {
         return primaryCategoryRepository.findById(primaryCategoryId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Primary category with id " + primaryCategoryId + " not found"));
+    }
+
+    @Override
+    public List<TransactionPrimaryCategoryDto> getByIds(Set<UUID> primaryCategoryIds) {
+        return primaryCategoryRepository.findByTransactionPrimaryCategoryIdIn(primaryCategoryIds).stream()
+                .map(category -> new TransactionPrimaryCategoryDto(
+                        category.getTransactionPrimaryCategoryId(),
+                        category.getCategoryCode(),
+                        category.getDisplayName(),
+                        category.getIconUrl()))
+                .toList();
     }
 }

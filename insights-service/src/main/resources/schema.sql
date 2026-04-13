@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS clickhouse.transactions
 (
     date Date,
-    primary_category_code LowCardinality(String),
+    primary_category_id UUID,
     payment_channel LowCardinality(String),
     amount Decimal(18, 2),
     is_outflow UInt8,
@@ -15,6 +15,9 @@ CREATE TABLE IF NOT EXISTS clickhouse.transactions
 ENGINE = MergeTree
 PARTITION BY toYYYYMM(date)
 ORDER BY (account_id, date, transaction_id);
+
+ALTER TABLE clickhouse.transactions ADD COLUMN IF NOT EXISTS primary_category_id UUID;
+ALTER TABLE clickhouse.transactions DROP COLUMN IF EXISTS primary_category_code;
 
 ALTER TABLE clickhouse.transactions ADD COLUMN IF NOT EXISTS is_outflow UInt8;
 ALTER TABLE clickhouse.transactions ADD COLUMN IF NOT EXISTS is_active UInt8;

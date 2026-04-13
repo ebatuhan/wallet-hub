@@ -48,6 +48,7 @@ public class TransactionSyncMapper {
                 command.getDate(),
                 command.getPending(),
                 command.getPaymentChannel(),
+                detailedCategory.getTransactionPrimaryCategory().getTransactionPrimaryCategoryId(),
                 detailedCategory.getTransactionPrimaryCategory().getCategoryCode(),
                 command.isActive());
     }
@@ -67,6 +68,7 @@ public class TransactionSyncMapper {
                 transaction.getDate(),
                 transaction.getPending(),
                 transaction.getPaymentChannel(),
+                transaction.getDetailedCategory().getTransactionPrimaryCategory().getTransactionPrimaryCategoryId(),
                 transaction.getDetailedCategory().getTransactionPrimaryCategory().getCategoryCode(),
                 transaction.isActive());
     }

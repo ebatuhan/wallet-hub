@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: dashboard-service
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/certs
+
+server:
+  port: ${DASHBOARD_SERVICE_PORT:8090}
+
+accountclient:
+  url: ${ACCOUNT_SERVICE_URL:http://localhost:8083}/accounts
+
+transactionclient:
+  url: ${TRANSACTION_SERVICE_URL:http://localhost:8086}/transactions
+
+insightsclient:
+  url: ${INSIGHTS_SERVICE_URL:http://localhost:8084}/api/insights
+
+budgetingclient:
+  url: ${BUDGETING_SERVICE_URL:http://localhost:8089}/budgets

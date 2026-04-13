@@ -1,0 +1,22 @@
+package com.batu.budgeting.service;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.security.oauth2.jwt.Jwt;
+
+import com.batu.budgeting.dto.BudgetResponse;
+import com.batu.budgeting.dto.CreateBudgetRequest;
+import com.batu.shared.messaging.event.TransactionPersistedEvent;
+
+public interface BudgetService {
+    BudgetResponse createBudget(CreateBudgetRequest request, Jwt principal);
+
+    BudgetResponse updateBudget(UUID budgetId, CreateBudgetRequest request, Jwt principal);
+
+    List<BudgetResponse> getBudgets(Jwt principal);
+
+    void deactivateBudget(UUID budgetId, Jwt principal);
+
+    void applyTransactionEvent(TransactionPersistedEvent event);
+}

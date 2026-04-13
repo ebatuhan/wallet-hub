@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 import com.batu.account_service.entity.Account;
 import com.batu.account_service.enums.AccountSortField;
-import com.batu.account_service.exception.SyncStateException;
 import com.batu.account_service.exception.ResourceNotFoundException;
 import com.batu.account_service.mapper.AccountSyncMapper;
 import com.batu.account_service.messaging.AccountsPersistedDomainEvent;
@@ -23,6 +22,8 @@ import com.batu.account_service.util.CursorUtils;
 import com.batu.shared.dto.request.AccountNameRequestDto;
 import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.shared.dto.response.AccountResponseDto;
+import com.batu.shared.dto.response.AccountCurrencyTotalDto;
+import com.batu.shared.dto.response.AccountSummaryResponseDto;
 import com.batu.shared.dto.response.AccountViewDto;
 import com.batu.shared.dto.response.CursorResponse;
 import com.batu.shared.messaging.command.AccountSyncCommand;
@@ -95,6 +96,24 @@ public class AccountServiceImpl implements AccountService {
         }
 
         @Override
+        public AccountSummaryResponseDto getAccountSummary(Jwt principal) {
+                UUID userId = UUID.fromString(principal.getSubject());
+
+                List<AccountCurrencyTotalDto> totalsByCurrency = accountRepository.summarizeActiveBalancesByCurrency(userId)
+                                .stream()
+                                .map(total -> new AccountCurrencyTotalDto(
+                                                total.getIsoCurrencyCode(),
+                                                total.getCurrentBalanceTotal(),
+                                                total.getAvailableBalanceTotal()))
+                                .toList();
+
+                return new AccountSummaryResponseDto(
+                                userId,
+                                accountRepository.countByUserIdAndIsActiveTrue(userId),
+                                totalsByCurrency);
+        }
+
+        @Override
         public List<AccountNameResponseDto> getAccountsByGivenIds(AccountNameRequestDto request) {
                 return accountRepository.findByAccountIdIn(request.getAccountIds());
         }
@@ -124,7 +143,7 @@ public class AccountServiceImpl implements AccountService {
                                 return;
                         }
 
-                        throw ex;
+                        throw ex; //TODO very bad will fix later.
                 }
 
                 eventPublisher.publishEvent(new AccountsPersistedDomainEvent(
