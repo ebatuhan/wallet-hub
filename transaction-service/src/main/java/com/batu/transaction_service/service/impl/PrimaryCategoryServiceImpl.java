@@ -35,6 +35,17 @@ public class PrimaryCategoryServiceImpl implements PrimaryCategoryService {
     }
 
     @Override
+    public List<TransactionPrimaryCategoryDto> getAll() {
+        return primaryCategoryRepository.findAll().stream()
+                .map(category -> new TransactionPrimaryCategoryDto(
+                        category.getTransactionPrimaryCategoryId(),
+                        category.getCategoryCode(),
+                        category.getDisplayName(),
+                        category.getIconUrl()))
+                .toList();
+    }
+
+    @Override
     public List<TransactionPrimaryCategoryDto> getByIds(Set<UUID> primaryCategoryIds) {
         return primaryCategoryRepository.findByTransactionPrimaryCategoryIdIn(primaryCategoryIds).stream()
                 .map(category -> new TransactionPrimaryCategoryDto(

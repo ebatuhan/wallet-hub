@@ -20,6 +20,7 @@ import com.batu.dashboard_service.dto.AccountDashboardSummaryResponseDto;
 import com.batu.dashboard_service.dto.SpendingCategoryItemDto;
 import com.batu.dashboard_service.dto.UserDashboardSummaryResponseDto;
 import com.batu.dashboard_service.dto.client.BudgetResponseDto;
+import com.batu.dashboard_service.dto.client.IncomeSummaryResponseDto;
 import com.batu.dashboard_service.dto.client.SpendingPerCategoryByAccountDto;
 import com.batu.dashboard_service.dto.client.SpendingPerCategoryByAccountResponseDto;
 import com.batu.dashboard_service.dto.client.SpendingPerCategoryDto;
@@ -62,12 +63,16 @@ public class DashboardServiceImpl implements DashboardService {
         CursorResponse<TransactionViewResponseDto> recentTransactions = transactionClient
                 .getTransactions(authorization, null, limit, null)
                 .getBody();
+        IncomeSummaryResponseDto incomeResponse = insightsClient
+                .getIncome(authorization, fromParam, toParam)
+                .getBody();
         SpendingPerCategoryResponseDto spendingResponse = insightsClient
                 .getSpendingByCategory(authorization, fromParam, toParam)
                 .getBody();
         List<BudgetResponseDto> budgets = budgetingClient.getBudgets(authorization).getBody();
 
         var spendingSection = new UserDashboardSummaryResponseDto.SpendingSectionDto(
+                spendingResponse == null ? java.math.BigDecimal.ZERO : spendingResponse.totalSpent(),
                 enrichSpending(spendingResponse == null ? List.of() : spendingResponse.categories(), authorization));
 
         List<BudgetResponseDto> budgetItems = budgets == null ? List.of() : budgets.stream().limit(3).toList();
@@ -79,6 +84,8 @@ public class DashboardServiceImpl implements DashboardService {
                 UUID.fromString(principal.getSubject()),
                 new UserDashboardSummaryResponseDto.PeriodDto(range[0], range[1]),
                 accountSummary,
+                new UserDashboardSummaryResponseDto.IncomeSectionDto(
+                        incomeResponse == null ? List.of() : incomeResponse.totalsByCurrency()),
                 new UserDashboardSummaryResponseDto.RecentTransactionsDto(
                         recentTransactions == null ? List.of() : recentTransactions.getData(),
                         recentTransactions != null && recentTransactions.isHasMore(),
@@ -106,6 +113,7 @@ public class DashboardServiceImpl implements DashboardService {
                 .getBody();
 
         var spendingSection = new UserDashboardSummaryResponseDto.SpendingSectionDto(
+                spendingResponse == null ? java.math.BigDecimal.ZERO : spendingResponse.totalSpent(),
                 enrichAccountSpending(spendingResponse == null ? List.of() : spendingResponse.categories(), authorization));
 
         return new AccountDashboardSummaryResponseDto(

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.batu.dashboard_service.dto.client.AccountBalanceDataPointDto;
+import com.batu.dashboard_service.dto.client.IncomeSummaryResponseDto;
 import com.batu.dashboard_service.dto.client.SpendingPerCategoryByAccountResponseDto;
 import com.batu.dashboard_service.dto.client.SpendingPerCategoryResponseDto;
 
@@ -19,6 +20,12 @@ public interface InsightsClient {
 
     @GetMapping("/spendings")
     ResponseEntity<SpendingPerCategoryResponseDto> getSpendingByCategory(
+            @RequestHeader("Authorization") String authorization,
+            @RequestParam("from") String from,
+            @RequestParam("to") String to);
+
+    @GetMapping("/income")
+    ResponseEntity<IncomeSummaryResponseDto> getIncome(
             @RequestHeader("Authorization") String authorization,
             @RequestParam("from") String from,
             @RequestParam("to") String to);

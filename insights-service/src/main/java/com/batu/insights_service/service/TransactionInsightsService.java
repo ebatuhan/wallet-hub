@@ -10,11 +10,13 @@ import com.batu.insights_service.dto.SpendingPerCategoryByAccountDTO;
 import com.batu.insights_service.dto.SpendingPerCategoryByAccountResponseDTO;
 import com.batu.insights_service.dto.SpendingPerCategoryDTO;
 import com.batu.insights_service.dto.SpendingPerCategoryResponseDTO;
+import com.batu.insights_service.dto.IncomeSummaryResponseDTO;
 import com.batu.insights_service.entity.TransactionInsightRow;
 
 public interface TransactionInsightsService {
     SpendingPerCategoryByAccountResponseDTO getSpendingPerCategoryByAccount(Date from, Date to, UUID accountId, Jwt principal);
     SpendingPerCategoryResponseDTO getSpendingByCategory(Date from, Date to, Jwt principal);
+    IncomeSummaryResponseDTO getIncome(Date from, Date to, Jwt principal);
 
     void save(TransactionInsightRow transactionInsightRow);
 }

@@ -185,6 +185,19 @@ services:
       - ./shared:/shared
       - ~/.m2:/root/.m2
 
+  ai-assistant-service:
+    build:
+      context: .
+      dockerfile: ai-assistant/Dockerfile
+    container_name: ai-assistant-service
+    env_file: config/.ai-assistant
+    ports:
+      - "${AI_ASSISTANT_SERVICE_PORT}:8091"
+    volumes:
+      - ./ai-assistant:/app
+      - ./shared:/shared
+      - ~/.m2:/root/.m2
+
   clickhouse-insights:
     image: clickhouse/clickhouse-server:26.2
     container_name: clickhouse-insights

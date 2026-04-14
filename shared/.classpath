@@ -53,5 +53,10 @@
 			<attribute name="test" value="true"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="/tmp/klsBuildOutput12562254041048475767">
+		<attributes>
+			<attribute name="kls" value="true"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

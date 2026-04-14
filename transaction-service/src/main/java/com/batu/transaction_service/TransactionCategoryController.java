@@ -26,6 +26,12 @@ public class TransactionCategoryController {
         this.primaryCategoryService = primaryCategoryService;
     }
 
+    @GetMapping
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<TransactionPrimaryCategoryDto>> getAllPrimaryCategories() {
+        return ResponseEntity.ok(primaryCategoryService.getAll());
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<TransactionPrimaryCategoryDto> getPrimaryCategoryById(@PathVariable UUID id) {

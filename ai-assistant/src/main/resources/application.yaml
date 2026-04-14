@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: ai-assistant
+
+  ai:
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      init:
+        pull-model-strategy: never
+      chat:
+        options:
+          model: ${OLLAMA_MODEL:}
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/certs
+
+logging:
+    level:
+      org.springframework.ai: DEBUG
+      org.springframework.web.reactive.function.client: DEBUG
+      reactor.netty.http.client: DEBUG
+      reactor.netty.transport: DEBUG
+assistant:
+  ollama:
+    keep-alive: ${OLLAMA_KEEP_ALIVE:30m}
+    thinking-mode: ${OLLAMA_THINKING_MODE:ENABLED}
+
+server:
+  port: ${AI_ASSISTANT_SERVICE_PORT:8091}
+
+dashboardclient:
+  url: ${DASHBOARD_SERVICE_URL:http://localhost:8090}/dashboard
+
+budgetingclient:
+  url: ${BUDGETING_SERVICE_URL:http://localhost:8089}/budgets
+
+transactionclient:
+  url: ${TRANSACTION_SERVICE_URL:http://localhost:8086}/transactions/categories/primary

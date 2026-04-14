@@ -1,5 +1,6 @@
 package com.batu.insights_service.service.impl;
 
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.util.List;
 import java.util.UUID;
@@ -11,6 +12,7 @@ import com.batu.insights_service.dto.SpendingPerCategoryDTO;
 import com.batu.insights_service.dto.SpendingPerCategoryByAccountDTO;
 import com.batu.insights_service.dto.SpendingPerCategoryByAccountResponseDTO;
 import com.batu.insights_service.dto.SpendingPerCategoryResponseDTO;
+import com.batu.insights_service.dto.IncomeSummaryResponseDTO;
 import com.batu.insights_service.entity.TransactionInsightRow;
 import com.batu.insights_service.exception.InvalidDateRangeException;
 import com.batu.insights_service.repository.TransactionInsightsRepository;
@@ -31,7 +33,7 @@ public class TransactionInsightsServiceImpl implements TransactionInsightsServic
         UUID userId = UUID.fromString(principal.getSubject());
 
         List<SpendingPerCategoryDTO> categories = transactionInsightsRepository.findByInterval(from, to, userId);
-        return new SpendingPerCategoryResponseDTO(userId, categories);
+        return new SpendingPerCategoryResponseDTO(userId, totalSpent(categories), categories);
     }
 
     @Override
@@ -41,8 +43,15 @@ public class TransactionInsightsServiceImpl implements TransactionInsightsServic
         validateDateRange(from, to);
         UUID userId = UUID.fromString(principal.getSubject());
         List<SpendingPerCategoryByAccountDTO> categories = transactionInsightsRepository.findByIntervalAndAccount(from, to, userId, accountId);
-        return new SpendingPerCategoryByAccountResponseDTO(userId, accountId, categories);
+        return new SpendingPerCategoryByAccountResponseDTO(userId, accountId, totalSpentByAccount(categories), categories);
 
+    }
+
+    @Override
+    public IncomeSummaryResponseDTO getIncome(Date from, Date to, Jwt principal) {
+        validateDateRange(from, to);
+        UUID userId = UUID.fromString(principal.getSubject());
+        return new IncomeSummaryResponseDTO(userId, transactionInsightsRepository.findIncomeByInterval(from, to, userId));
     }
 
     @Override
@@ -54,5 +63,17 @@ public class TransactionInsightsServiceImpl implements TransactionInsightsServic
         if (from.after(to)) {
             throw new InvalidDateRangeException("'from' date must be before or equal to 'to' date");
         }
+    }
+
+    private BigDecimal totalSpent(List<SpendingPerCategoryDTO> categories) {
+        return categories.stream()
+                .map(SpendingPerCategoryDTO::totalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal totalSpentByAccount(List<SpendingPerCategoryByAccountDTO> categories) {
+        return categories.stream()
+                .map(SpendingPerCategoryByAccountDTO::totalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

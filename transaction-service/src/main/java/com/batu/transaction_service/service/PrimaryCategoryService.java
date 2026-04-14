@@ -13,5 +13,6 @@ import com.batu.transaction_service.entity.TransactionPrimaryCategory;
 public interface PrimaryCategoryService {    
     TransactionPrimaryCategory getByCategoryCode(String categoryCode);
     TransactionPrimaryCategory getById(UUID primaryCategoryId);
+    List<TransactionPrimaryCategoryDto> getAll();
     List<TransactionPrimaryCategoryDto> getByIds(Set<UUID> primaryCategoryIds);
 }

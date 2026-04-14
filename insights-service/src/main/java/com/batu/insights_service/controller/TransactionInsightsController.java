@@ -17,6 +17,7 @@ import com.batu.insights_service.dto.SpendingPerCategoryByAccountDTO;
 import com.batu.insights_service.dto.SpendingPerCategoryByAccountResponseDTO;
 import com.batu.insights_service.dto.SpendingPerCategoryDTO;
 import com.batu.insights_service.dto.SpendingPerCategoryResponseDTO;
+import com.batu.insights_service.dto.IncomeSummaryResponseDTO;
 import com.batu.insights_service.service.TransactionInsightsService;
 
 @RestController
@@ -35,6 +36,14 @@ public class TransactionInsightsController {
             @RequestParam Date to,
             @AuthenticationPrincipal Jwt principal) {
         return ResponseEntity.ok(transactionInsightsService.getSpendingByCategory(from, to, principal));
+    }
+
+    @GetMapping("/income")
+    public ResponseEntity<IncomeSummaryResponseDTO> getIncome(
+            @RequestParam Date from,
+            @RequestParam Date to,
+            @AuthenticationPrincipal Jwt principal) {
+        return ResponseEntity.ok(transactionInsightsService.getIncome(from, to, principal));
     }
 
         @GetMapping("/spendings/{accountId}")

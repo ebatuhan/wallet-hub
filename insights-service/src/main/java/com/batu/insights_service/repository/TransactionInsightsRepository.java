@@ -8,6 +8,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
+import com.batu.insights_service.dto.IncomeTotalByCurrencyDTO;
 import com.batu.insights_service.dto.SpendingPerCategoryByAccountDTO;
 import com.batu.insights_service.dto.SpendingPerCategoryDTO;
 import com.batu.insights_service.entity.TransactionInsightRow;
@@ -40,6 +41,11 @@ public class TransactionInsightsRepository {
                     UUID.fromString(rs.getString("primary_category_id")),
                     rs.getBigDecimal("percentage"),
                     rs.getBigDecimal("total_amount"));
+
+    private static final RowMapper<IncomeTotalByCurrencyDTO> INCOME_TOTAL_BY_CURRENCY_MAPPER = (rs, rowNum) ->
+            new IncomeTotalByCurrencyDTO(
+                    rs.getString("iso_currency_code"),
+                    rs.getBigDecimal("total_income"));
 
     public TransactionInsightsRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
@@ -135,5 +141,32 @@ public class TransactionInsightsRepository {
                 ORDER BY percentage DESC
                 """;
         return jdbcTemplate.query(sql, SPENDING_PER_CATEGORY_BY_ACCOUNT_MAPPER, userId, from, to, accountId);
+    }
+
+    public List<IncomeTotalByCurrencyDTO> findIncomeByInterval(Date from, Date to, UUID userId) {
+        String sql = """
+                WITH latest_transactions AS (
+                    SELECT
+                        transaction_id,
+                        argMax(user_id, updated_at) AS latest_user_id,
+                        argMax(iso_currency_code, updated_at) AS latest_iso_currency_code,
+                        argMax(amount, updated_at) AS latest_amount,
+                        argMax(is_outflow, updated_at) AS latest_is_outflow,
+                        argMax(is_active, updated_at) AS latest_is_active
+                    FROM clickhouse.transactions
+                    PREWHERE user_id = ?
+                      AND date BETWEEN ? AND ?
+                    GROUP BY transaction_id
+                )
+                SELECT
+                    latest_iso_currency_code AS iso_currency_code,
+                    SUM(latest_amount) AS total_income
+                FROM latest_transactions
+                WHERE latest_is_active = 1
+                  AND latest_is_outflow = 0
+                GROUP BY latest_iso_currency_code
+                ORDER BY latest_iso_currency_code ASC
+                """;
+        return jdbcTemplate.query(sql, INCOME_TOTAL_BY_CURRENCY_MAPPER, userId, from, to);
     }
 }

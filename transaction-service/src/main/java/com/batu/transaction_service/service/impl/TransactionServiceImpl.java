@@ -25,7 +25,6 @@ import com.batu.transaction_service.client.AccountServiceClient;
 import com.batu.transaction_service.entity.Transaction;
 import com.batu.transaction_service.entity.TransactionDetailedCategory;
 import com.batu.transaction_service.exception.ResourceNotFoundException;
-import com.batu.transaction_service.exception.SyncStateException;
 import com.batu.transaction_service.mapper.TransactionSyncMapper;
 import com.batu.transaction_service.messaging.TransactionsPersistedDomainEvent;
 import com.batu.transaction_service.repository.TransactionRepository;

@@ -42,6 +42,13 @@ spring:
           filters:
             - StripPrefix=1
 
+        - id: ai-assistant-service-route
+          uri: ${AI_ASSISTANT_SERVICE_URL:http://localhost:8091}
+          predicates:
+            - Path=/api/assistant/**
+          filters:
+            - StripPrefix=1
+
   security:
     oauth2:
       resourceserver:

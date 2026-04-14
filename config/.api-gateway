@@ -6,3 +6,4 @@ TRANSACTION_SERVICE_URL=http://transaction-service:8086
 INSIGHTS_SERVICE_URL=http://insights-service:8084
 BUDGETING_SERVICE_URL=http://budgeting-service:8089
 DASHBOARD_SERVICE_URL=http://dashboard-service:8090
+AI_ASSISTANT_SERVICE_URL=http://ai-assistant-service:8091
