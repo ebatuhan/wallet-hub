@@ -10,6 +10,8 @@
 *.userosscache
 *.sln.docstates
 *.env
+.env.local
+.env.*.local
 
 target/
 pom.xml.tag
@@ -322,6 +324,9 @@ FakesAssemblies/
 # Node.js Tools for Visual Studio
 .ntvs_analysis.dat
 node_modules/
+.next/
+frontend/.next/
+frontend/.vercel/
 
 # Visual Studio 6 build log
 *.plg
