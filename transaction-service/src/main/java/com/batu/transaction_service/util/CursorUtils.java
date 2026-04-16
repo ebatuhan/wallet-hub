@@ -11,6 +11,7 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Base64;
 import java.util.HashMap;
@@ -65,6 +66,11 @@ public class CursorUtils {
             try {
                 return UUID.fromString(str);
             } catch (IllegalArgumentException ignored) {}
+
+
+            try {
+                return Instant.parse(str);
+            } catch (DateTimeParseException ignored) {}
 
 
             try {

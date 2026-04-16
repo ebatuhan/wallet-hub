@@ -108,7 +108,7 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
 
                 SandboxPublicTokenCreateRequest request = new SandboxPublicTokenCreateRequest()
                                 .institutionId(institutionId)
-                                .initialProducts(List.of(Products.AUTH, Products.TRANSACTIONS))
+                                .initialProducts(List.of(Products.TRANSACTIONS))
                                 .options(new SandboxPublicTokenCreateRequestOptions()
                                                 .webhook(webhookUrl)
                                                 .overrideUsername("user_good") //user_transactions_dynamic
