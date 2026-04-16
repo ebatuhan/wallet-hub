@@ -14,21 +14,23 @@ import com.plaid.client.model.Transaction;
 @Component
 public class PlaidSyncCommandMapper {
 
-    public AccountSyncCommand toAccountCommand(Connection connection, UUID accountId, AccountBase account) {
-        return new AccountSyncCommand(
-                accountId,
-                connection.getUserId(),
-                connection.getInstitutionName(),
-                account.getName(),
-                account.getType().getValue(),
-                account.getSubtype().getValue(),
-                account.getMask(),
-                BigDecimal.valueOf(account.getBalances().getCurrent()),
-                BigDecimal.valueOf(account.getBalances().getAvailable()),
-                account.getBalances().getIsoCurrencyCode(),
-                true);
-    }
-
+public AccountSyncCommand toAccountCommand(Connection connection, UUID accountId, AccountBase account) {
+    return new AccountSyncCommand(
+            accountId,
+            connection.getUserId(),
+            connection.getInstitutionName(),
+            account.getName(),
+            account.getType().getValue(),
+            account.getSubtype().getValue(),
+            account.getMask(),
+            BigDecimal.valueOf(account.getBalances().getCurrent()),
+            account.getBalances().getAvailable() == null
+                    ? BigDecimal.ZERO
+                    : BigDecimal.valueOf(account.getBalances().getAvailable()),
+            account.getBalances().getIsoCurrencyCode(),
+            true
+    );
+}
     public AccountSyncCommand toDeactivateAccountCommand(Connection connection, UUID accountId) {
         return new AccountSyncCommand(
                 accountId,

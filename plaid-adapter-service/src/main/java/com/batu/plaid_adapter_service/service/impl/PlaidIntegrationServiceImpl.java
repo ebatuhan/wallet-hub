@@ -16,8 +16,8 @@ import com.batu.plaid_adapter_service.client.PlaidClientWrapper;
 import com.batu.plaid_adapter_service.entity.Connection;
 import com.batu.plaid_adapter_service.exception.PlaidRetryableException;
 import com.batu.plaid_adapter_service.service.ConnectionService;
-import com.batu.plaid_adapter_service.service.PlaidSyncStagingService;
 import com.batu.plaid_adapter_service.service.PlaidIntegrationService;
+import com.batu.plaid_adapter_service.service.PlaidSyncStagingService;
 import com.batu.shared.dto.request.ExchangeTokenRequestDto;
 import com.batu.shared.dto.request.LinkTokenRequestDto;
 import com.batu.shared.dto.response.ExchangeTokenResponseDto;
@@ -111,8 +111,8 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
                                 .initialProducts(List.of(Products.AUTH, Products.TRANSACTIONS))
                                 .options(new SandboxPublicTokenCreateRequestOptions()
                                                 .webhook(webhookUrl)
-                                                .overrideUsername("user_transactions_dynamic")
-                                                .overridePassword("user_good"));
+                                                .overrideUsername("user_good") //user_transactions_dynamic
+                                                .overridePassword("pass_good")); // user_good
 
                 SandboxPublicTokenCreateResponse response = plaidClient.createSandboxToken(request);
 
