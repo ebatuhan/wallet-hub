@@ -1,13 +1,15 @@
 package com.batu.transaction_service.service;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.security.oauth2.jwt.Jwt;
 
+import com.batu.shared.dto.request.AccountIdsRequestDto;
+import com.batu.shared.dto.request.TransactionsUpsertRequestDto;
 import com.batu.shared.dto.response.CursorResponse;
 import com.batu.shared.dto.response.TransactionDto;
 import com.batu.shared.dto.response.TransactionViewResponseDto;
-import com.batu.shared.messaging.command.TransactionSyncCommand;
 
 public interface TransactionService {
     CursorResponse<TransactionViewResponseDto> transatcions(Jwt principal,
@@ -18,7 +20,7 @@ public interface TransactionService {
 
     TransactionDto getTransactionById(Jwt principial, UUID transactionId);
 
-    void create(TransactionSyncCommand command);
+    void saveBatch(TransactionsUpsertRequestDto request);
 
-    void update(TransactionSyncCommand command);
+    void deactivateByAccountIds(AccountIdsRequestDto request);
 }

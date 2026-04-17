@@ -22,6 +22,7 @@ import jakarta.validation.constraints.Min;
 
 import com.batu.account_service.enums.AccountSortField;
 import com.batu.account_service.service.AccountService;
+import com.batu.shared.dto.request.AccountsUpsertRequestDto;
 import com.batu.shared.dto.request.AccountNameRequestDto;
 import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.shared.dto.response.AccountResponseDto;
@@ -58,6 +59,26 @@ public class AccountController {
     public ResponseEntity<List<AccountNameResponseDto>> getAccountsByGivenIds(@RequestBody AccountNameRequestDto request){
         return ResponseEntity.ok(accountService.getAccountsByGivenIds(request));
     } 
+
+    @PostMapping("/sync/batch-save")
+    @PreAuthorize("hasAuthority('ROLE_SERVICE')")
+    public ResponseEntity<Void> saveSyncedAccounts(@RequestBody AccountsUpsertRequestDto request) {
+        accountService.saveBatch(request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/sync/connections/{connectionId}/account-ids")
+    @PreAuthorize("hasAuthority('ROLE_SERVICE')")
+    public ResponseEntity<List<UUID>> getAccountIdsByConnection(@PathVariable UUID connectionId) {
+        return ResponseEntity.ok(accountService.getAccountIdsByConnection(connectionId));
+    }
+
+    @PostMapping("/sync/connections/{connectionId}/deactivate")
+    @PreAuthorize("hasAuthority('ROLE_SERVICE')")
+    public ResponseEntity<Void> deactivateAccountsByConnection(@PathVariable UUID connectionId) {
+        accountService.deactivateByConnection(connectionId);
+        return ResponseEntity.noContent().build();
+    }
 
 
     @GetMapping

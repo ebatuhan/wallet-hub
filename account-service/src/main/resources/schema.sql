@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS accounts (
     account_id UUID PRIMARY KEY,
     user_id UUID NOT NULL,
+    connection_id UUID,
     institution_name VARCHAR(255) NOT NULL,
     account_name VARCHAR(255) NOT NULL,
     account_type VARCHAR(255) NOT NULL,
@@ -15,7 +16,7 @@ CREATE TABLE IF NOT EXISTS accounts (
 );
 
 ALTER TABLE IF EXISTS accounts ADD COLUMN IF NOT EXISTS institution_name VARCHAR(255);
+ALTER TABLE IF EXISTS accounts ADD COLUMN IF NOT EXISTS connection_id UUID;
 ALTER TABLE IF EXISTS accounts DROP COLUMN IF EXISTS institution_logo_url;
 ALTER TABLE IF EXISTS accounts DROP COLUMN IF EXISTS institution_id;
-ALTER TABLE IF EXISTS accounts DROP COLUMN IF EXISTS connection_id;
 ALTER TABLE IF EXISTS accounts DROP COLUMN IF EXISTS external_id;

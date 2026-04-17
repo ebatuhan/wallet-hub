@@ -25,11 +25,6 @@ public class RabbitMQConfiguration {
     }
 
     @Bean
-    TopicExchange syncCommandExchange() {
-        return new TopicExchange(MessagingTopology.COMMAND_EXCHANGE_NAME, true, false);
-    }
-
-    @Bean
     Queue transactionPersistedQueue() {
         return new Queue(MessagingTopology.TRANSACTION_PERSISTED_QUEUE, true);
     }
@@ -40,29 +35,4 @@ public class RabbitMQConfiguration {
                 .to(analyticsExchange)
                 .with(MessagingTopology.TRANSACTION_PERSISTED_ROUTING_KEY);
     }
-
-    @Bean
-    Queue transactionCreateQueue() {
-        return new Queue(MessagingTopology.TRANSACTION_CREATE_QUEUE, true);
-    }
-
-    @Bean
-    Binding transactionCreateBinding(Queue transactionCreateQueue, TopicExchange syncCommandExchange) {
-        return BindingBuilder.bind(transactionCreateQueue)
-                .to(syncCommandExchange)
-                .with(MessagingTopology.TRANSACTION_CREATE_ROUTING_KEY);
-    }
-
-    @Bean
-    Queue transactionUpdateQueue() {
-        return new Queue(MessagingTopology.TRANSACTION_UPDATE_QUEUE, true);
-    }
-
-    @Bean
-    Binding transactionUpdateBinding(Queue transactionUpdateQueue, TopicExchange syncCommandExchange) {
-        return BindingBuilder.bind(transactionUpdateQueue)
-                .to(syncCommandExchange)
-                .with(MessagingTopology.TRANSACTION_UPDATE_ROUTING_KEY);
-    }
-
 }

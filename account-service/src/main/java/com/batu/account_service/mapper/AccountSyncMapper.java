@@ -6,43 +6,26 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 import com.batu.account_service.entity.Account;
-import com.batu.shared.messaging.command.AccountSyncCommand;
+import com.batu.shared.dto.request.AccountRequestDto;
 import com.batu.shared.messaging.event.AccountPersistedEvent;
 
 @Component
 public class AccountSyncMapper {
 
-    public Account toEntity(AccountSyncCommand command) {
+    public Account toEntity(AccountRequestDto request) {
         return new Account(
-                command.getAccountId(),
-                command.getUserId(),
-                command.getInstitutionName(),
-                command.getAccountName(),
-                command.getAccountType(),
-                command.getAccountSubtype(),
-                command.getAccountMask(),
-                command.getCurrentBalance(),
-                command.getAvailableBalance(),
-                command.getIsoCurrencyCode(),
-                command.isActive());
-    }
-
-    public AccountPersistedEvent toPersistedEvent(AccountSyncCommand command) {
-        return new AccountPersistedEvent(
-                UUID.randomUUID(),
-                Instant.now(),
-                "account-service",
-                command.getAccountId(),
-                command.getUserId(),
-                command.getInstitutionName(),
-                command.getAccountName(),
-                command.getAccountType(),
-                command.getAccountSubtype(),
-                command.getAccountMask(),
-                command.getCurrentBalance(),
-                command.getAvailableBalance(),
-                command.getIsoCurrencyCode(),
-                command.isActive());
+                request.getAccountId(),
+                request.getUserId(),
+                request.getConnectionId(),
+                request.getInstitutionName(),
+                request.getAccountName(),
+                request.getAccountType(),
+                request.getAccountSubtype(),
+                request.getAccountMask(),
+                request.getCurrentBalance(),
+                request.getAvailableBalance(),
+                request.getIsoCurrencyCode(),
+                request.isActive());
     }
 
     public AccountPersistedEvent toPersistedEvent(Account account) {

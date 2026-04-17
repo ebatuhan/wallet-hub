@@ -17,4 +17,6 @@ public interface PlaidIntegrationService {
 
     void syncAccountsAndTransactions(Connection connection);
 
+    void deactivateConnectionData(Connection connection);
+
 }

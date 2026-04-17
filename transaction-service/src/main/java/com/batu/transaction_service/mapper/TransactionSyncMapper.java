@@ -5,10 +5,10 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
+import com.batu.shared.dto.request.TransactionRequestDto;
 import com.batu.shared.dto.response.TransactionDetailedCategoryDto;
 import com.batu.shared.dto.response.TransactionDto;
 import com.batu.shared.dto.response.TransactionPrimaryCategoryDto;
-import com.batu.shared.messaging.command.TransactionSyncCommand;
 import com.batu.shared.messaging.event.TransactionPersistedEvent;
 import com.batu.transaction_service.entity.Transaction;
 import com.batu.transaction_service.entity.TransactionDetailedCategory;
@@ -16,41 +16,20 @@ import com.batu.transaction_service.entity.TransactionDetailedCategory;
 @Component
 public class TransactionSyncMapper {
 
-    public Transaction toEntity(TransactionSyncCommand command, TransactionDetailedCategory detailedCategory) {
+    public Transaction toEntity(TransactionRequestDto request, TransactionDetailedCategory detailedCategory) {
         return new Transaction(
-                command.getTransactionId(),
-                command.getUserId(),
-                command.getAccountId(),
-                command.getAmount(),
-                command.getIsoCurrencyCode(),
-                command.getTransactionName(),
-                command.getTransactionType(),
-                command.getDate(),
-                command.getPending(),
-                command.getPaymentChannel(),
+                request.getTransactionId(),
+                request.getUserId(),
+                request.getAccountId(),
+                request.getAmount(),
+                request.getIsoCurrencyCode(),
+                request.getTransactionName(),
+                request.getTransactionType(),
+                request.getDate(),
+                request.getPending(),
+                request.getPaymentChannel(),
                 detailedCategory,
-                command.isActive());
-    }
-
-    public TransactionPersistedEvent toPersistedEvent(TransactionSyncCommand command,
-            TransactionDetailedCategory detailedCategory) {
-        return new TransactionPersistedEvent(
-                UUID.randomUUID(),
-                Instant.now(),
-                "transaction-service",
-                command.getTransactionId(),
-                command.getUserId(),
-                command.getAccountId(),
-                command.getAmount(),
-                command.getIsoCurrencyCode(),
-                command.getTransactionName(),
-                command.getTransactionType(),
-                command.getDate(),
-                command.getPending(),
-                command.getPaymentChannel(),
-                detailedCategory.getTransactionPrimaryCategory().getTransactionPrimaryCategoryId(),
-                detailedCategory.getTransactionPrimaryCategory().getCategoryCode(),
-                command.isActive());
+                request.isActive());
     }
 
     public TransactionPersistedEvent toPersistedEvent(Transaction transaction) {

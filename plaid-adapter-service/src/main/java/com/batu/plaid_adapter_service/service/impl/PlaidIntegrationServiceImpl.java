@@ -1,6 +1,5 @@
 package com.batu.plaid_adapter_service.service.impl;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -11,17 +10,27 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.batu.plaid_adapter_service.client.AccountServiceClient;
 import com.batu.plaid_adapter_service.client.PlaidClientWrapper;
+import com.batu.plaid_adapter_service.client.TransactionServiceClient;
 import com.batu.plaid_adapter_service.entity.Connection;
+import com.batu.plaid_adapter_service.entity.enums.ConnectionStatus;
 import com.batu.plaid_adapter_service.exception.PlaidRetryableException;
+import com.batu.plaid_adapter_service.mapper.PlaidSyncCommandMapper;
 import com.batu.plaid_adapter_service.service.ConnectionService;
 import com.batu.plaid_adapter_service.service.PlaidIntegrationService;
-import com.batu.plaid_adapter_service.service.PlaidSyncStagingService;
+import com.batu.shared.dto.request.AccountIdsRequestDto;
+import com.batu.shared.dto.request.AccountRequestDto;
+import com.batu.shared.dto.request.AccountsUpsertRequestDto;
 import com.batu.shared.dto.request.ExchangeTokenRequestDto;
 import com.batu.shared.dto.request.LinkTokenRequestDto;
+import com.batu.shared.dto.request.TransactionRequestDto;
+import com.batu.shared.dto.request.TransactionsUpsertRequestDto;
 import com.batu.shared.dto.response.ExchangeTokenResponseDto;
 import com.batu.shared.dto.response.LinkTokenResponseDto;
+import com.plaid.client.model.AccountBase;
 import com.plaid.client.model.AccountsBalanceGetRequest;
 import com.plaid.client.model.AccountsGetResponse;
 import com.plaid.client.model.ItemPublicTokenExchangeRequest;
@@ -41,20 +50,25 @@ import com.plaid.client.model.TransactionsSyncResponse;
 @Service
 public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
 
-        private static final Duration SYNC_LOCK_STALE_AFTER = Duration.ofMinutes(5);
-
         @Value("${plaid.webhook.url:}")
         private String webhookUrl;
 
         private final PlaidClientWrapper plaidClient;
         private final ConnectionService connectionService;
-        private final PlaidSyncStagingService plaidSyncStagingService;
+        private final AccountServiceClient accountServiceClient;
+        private final TransactionServiceClient transactionServiceClient;
+        private final PlaidSyncCommandMapper plaidSyncCommandMapper;
 
-        public PlaidIntegrationServiceImpl(PlaidClientWrapper plaidClient, ConnectionService connectionService,
-                        PlaidSyncStagingService plaidSyncStagingService) {
+        public PlaidIntegrationServiceImpl(PlaidClientWrapper plaidClient,
+                        ConnectionService connectionService,
+                        AccountServiceClient accountServiceClient,
+                        TransactionServiceClient transactionServiceClient,
+                        PlaidSyncCommandMapper plaidSyncCommandMapper) {
                 this.plaidClient = plaidClient;
                 this.connectionService = connectionService;
-                this.plaidSyncStagingService = plaidSyncStagingService;
+                this.accountServiceClient = accountServiceClient;
+                this.transactionServiceClient = transactionServiceClient;
+                this.plaidSyncCommandMapper = plaidSyncCommandMapper;
         }
 
         @Override
@@ -129,17 +143,21 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
         @Retryable(retryFor = {
                         PlaidRetryableException.class }, maxAttempts = 5, backoff = @Backoff(delay = 2000, multiplier = 2, maxDelay = 60000))
         public void syncAccountsAndTransactions(Connection connection) {
-                if (!connectionService.claimSync(connection.getConnectionId(), SYNC_LOCK_STALE_AFTER)) {
+                Connection currentConnection = connectionService.readById(connection.getConnectionId());
+                if (ConnectionStatus.DISABLED.name().equals(currentConnection.getConnectionStatus())
+                                || ConnectionStatus.REMOVED.name().equals(currentConnection.getConnectionStatus())) {
                         return;
                 }
 
-                Connection currentConnection = connectionService.readById(connection.getConnectionId());
+                currentConnection.setConnectionStatus(ConnectionStatus.SYNCING.name());
+                connectionService.updateById(currentConnection.getConnectionId(), currentConnection);
 
                 try {
                         syncAccounts(currentConnection);
                         syncTransactions(currentConnection);
                 } catch (RuntimeException ex) {
-                        connectionService.releaseSync(currentConnection.getConnectionId());
+                        currentConnection.setConnectionStatus(ConnectionStatus.ACTIVE.name());
+                        connectionService.updateById(currentConnection.getConnectionId(), currentConnection);
                         throw ex;
                 }
         }
@@ -149,7 +167,7 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
                                 .accessToken(connection.getAccessToken());
 
                 AccountsGetResponse response = plaidClient.accountsBalanceGet(request);
-                plaidSyncStagingService.stageAccounts(connection, response.getAccounts());
+                saveAccounts(connection, response.getAccounts());
         }
 
         private void syncTransactions(Connection connection) {
@@ -174,11 +192,58 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
                         hasMore = response.getHasMore();
                 }
 
-                plaidSyncStagingService.stageTransactions(
-                                connection,
-                                addedTransactions,
-                                modifiedTransactions,
-                                removedTransactions,
-                                cursor);
+                saveTransactions(connection, addedTransactions, modifiedTransactions, removedTransactions, cursor);
+        }
+
+        @Override
+        @Transactional
+        public void deactivateConnectionData(Connection connection) {
+                List<UUID> accountIds = accountServiceClient.getAccountIdsByConnection(connection.getConnectionId())
+                                .getBody();
+
+                if (accountIds != null && !accountIds.isEmpty()) {
+                        transactionServiceClient.deactivateByAccountIds(new AccountIdsRequestDto(accountIds));
+                }
+
+                accountServiceClient.deactivateAccountsByConnection(connection.getConnectionId());
+        }
+
+        private void saveAccounts(Connection connection, List<AccountBase> accounts) {
+                List<AccountRequestDto> accountRequests = accounts.stream()
+                                .map(account -> plaidSyncCommandMapper.toAccountRequest(connection, account))
+                                .toList();
+
+                accountServiceClient.saveAccountsBatch(new AccountsUpsertRequestDto(accountRequests));
+        }
+
+        private void saveTransactions(Connection connection,
+                        List<Transaction> addedTransactions,
+                        List<Transaction> modifiedTransactions,
+                        List<RemovedTransaction> removedTransactions,
+                        String cursor) {
+                List<TransactionRequestDto> transactionRequests = new ArrayList<>(
+                                addedTransactions.size() + modifiedTransactions.size() + removedTransactions.size());
+
+                for (Transaction transaction : addedTransactions) {
+                        transactionRequests.add(plaidSyncCommandMapper.toTransactionRequest(connection, transaction));
+                }
+
+                for (Transaction transaction : modifiedTransactions) {
+                        transactionRequests.add(plaidSyncCommandMapper.toTransactionRequest(connection, transaction));
+                }
+
+                for (RemovedTransaction removedTransaction : removedTransactions) {
+                        transactionRequests.add(plaidSyncCommandMapper.toDeactivateTransactionRequest(
+                                        connection,
+                                        removedTransaction.getTransactionId()));
+                }
+
+                if (!transactionRequests.isEmpty()) {
+                        transactionServiceClient.saveTransactionsBatch(new TransactionsUpsertRequestDto(transactionRequests));
+                }
+
+                connection.setLastCursor(cursor);
+                connection.setConnectionStatus(ConnectionStatus.ACTIVE.name());
+                connectionService.updateById(connection.getConnectionId(), connection);
         }
 }

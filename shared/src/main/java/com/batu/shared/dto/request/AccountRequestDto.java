@@ -16,9 +16,10 @@ import lombok.Setter;
 @AllArgsConstructor
 public class AccountRequestDto {
 
+    private UUID accountId;
     private UUID connectionId;
     private UUID userId;
-    private String externalId;
+    private String institutionName;
     private String accountName;
     private String accountType;
     private String accountSubtype;

@@ -1,9 +1,14 @@
 package com.batu.transaction_service.service.impl;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -15,12 +20,14 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.batu.shared.dto.request.AccountIdsRequestDto;
 import com.batu.shared.dto.request.AccountNameRequestDto;
+import com.batu.shared.dto.request.TransactionRequestDto;
+import com.batu.shared.dto.request.TransactionsUpsertRequestDto;
 import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.shared.dto.response.CursorResponse;
 import com.batu.shared.dto.response.TransactionDto;
 import com.batu.shared.dto.response.TransactionViewResponseDto;
-import com.batu.shared.messaging.command.TransactionSyncCommand;
 import com.batu.transaction_service.client.AccountServiceClient;
 import com.batu.transaction_service.entity.Transaction;
 import com.batu.transaction_service.entity.TransactionDetailedCategory;
@@ -131,103 +138,180 @@ public class TransactionServiceImpl implements TransactionService {
 
         @Override
         @Transactional
-        public void create(TransactionSyncCommand command) {
-                if (transactionRepository.findByTransactionIdAndUserIdWithCategory(
-                                command.getTransactionId(),
-                                command.getUserId()).isPresent()) {
-                        return;
-                }
-
-                TransactionDetailedCategory detailedCategory = detailedCategoryService
-                                .getByCategoryCode(command.getDetailedCategoryCode());
-
-                try {
-                        transactionRepository.insertSyncedTransaction(
-                                        command.getTransactionId(),
-                                        command.getUserId(),
-                                        command.getAccountId(),
-                                        command.getAmount(),
-                                        command.getIsoCurrencyCode(),
-                                        command.getTransactionName(),
-                                        command.getTransactionType(),
-                                        command.getDate(),
-                                        command.getPending(),
-                                        command.getPaymentChannel(),
-                                        detailedCategory.getTransactionDetailedCategoryId(),
-                                        command.isActive());
-                } catch (RuntimeException ex) {
-                        if (transactionRepository.findByTransactionIdAndUserIdWithCategory(
-                                        command.getTransactionId(),
-                                        command.getUserId()).isPresent()) {
-                                return;
-                        }
-
-                        throw ex;
-                }
-
-                eventPublisher.publishEvent(new TransactionsPersistedDomainEvent(
-                                java.util.List.of(transactionSyncMapper.toPersistedEvent(command, detailedCategory))));
+        public void saveBatch(TransactionsUpsertRequestDto request) {
+                syncTransactions(request.getTransactions());
         }
 
         @Override
         @Transactional
-        public void update(TransactionSyncCommand command) {
-                if (!command.isActive()) {
-                        deactivate(command);
+        public void deactivateByAccountIds(AccountIdsRequestDto request) {
+                if (request.getAccountIds().isEmpty()) {
                         return;
                 }
 
-                TransactionDetailedCategory detailedCategory = detailedCategoryService
-                                .getByCategoryCode(command.getDetailedCategoryCode());
+                List<Transaction> transactions = transactionRepository.findByAccountIdInAndIsActiveTrue(request.getAccountIds());
 
-                int updatedRows = transactionRepository.updateSyncedTransaction(
-                                command.getTransactionId(),
-                                command.getUserId(),
-                                command.getAccountId(),
-                                command.getAmount(),
-                                command.getIsoCurrencyCode(),
-                                command.getTransactionName(),
-                                command.getTransactionType(),
-                                command.getDate(),
-                                command.getPending(),
-                                command.getPaymentChannel(),
-                                detailedCategory,
-                                command.isActive());
-
-                if (updatedRows == 0) {
-                        create(command);
+                if (transactions.isEmpty()) {
                         return;
                 }
 
-                eventPublisher.publishEvent(new TransactionsPersistedDomainEvent(
-                                java.util.List.of(transactionSyncMapper.toPersistedEvent(command, detailedCategory))));
+                for (Transaction transaction : transactions) {
+                        transaction.setActive(false);
+                }
+
+                transactionRepository.saveAll(transactions);
+                publishPersistedEvents(transactions);
         }
 
-        private void deactivate(TransactionSyncCommand command) {
-                Transaction transaction = transactionRepository.findByTransactionIdAndUserIdWithCategory(
-                                command.getTransactionId(),
-                                command.getUserId())
-                                .orElse(null);
-
-                if (transaction == null) {
+        private void syncTransactions(List<TransactionRequestDto> requests) {
+                if (requests.isEmpty()) {
                         return;
                 }
 
-                if (!transaction.isActive()) {
+                Map<UUID, Transaction> existingTransactionsById = transactionRepository
+                                .findAllByTransactionIdInWithCategory(requests.stream()
+                                                .map(TransactionRequestDto::getTransactionId)
+                                                .toList())
+                                .stream()
+                                .collect(Collectors.toMap(Transaction::getTransactionId, transaction -> transaction));
+
+                List<Transaction> transactionsToPersist = new ArrayList<>();
+                List<Transaction> changedTransactions = new ArrayList<>();
+
+                for (TransactionRequestDto request : requests) {
+                        if (!request.isActive()) {
+                                Transaction existingTransaction = existingTransactionsById.get(request.getTransactionId());
+                                if (existingTransaction == null || !existingTransaction.isActive()) {
+                                        continue;
+                                }
+
+                                validateUserOwnership(existingTransaction, request.getUserId());
+                                existingTransaction.setActive(false);
+                                transactionsToPersist.add(existingTransaction);
+                                changedTransactions.add(existingTransaction);
+                                continue;
+                        }
+
+                        TransactionDetailedCategory detailedCategory = detailedCategoryService
+                                        .getByCategoryCode(request.getDetailedCategoryCode());
+
+                        Transaction existingTransaction = existingTransactionsById.get(request.getTransactionId());
+                        if (existingTransaction == null) {
+                                Transaction transaction = transactionSyncMapper.toEntity(request, detailedCategory);
+                                transactionsToPersist.add(transaction);
+                                changedTransactions.add(transaction);
+                                continue;
+                        }
+
+                        validateUserOwnership(existingTransaction, request.getUserId());
+
+                        if (!applyTransactionState(existingTransaction, request, detailedCategory)) {
+                                continue;
+                        }
+
+                        transactionsToPersist.add(existingTransaction);
+                        changedTransactions.add(existingTransaction);
+                }
+
+                if (transactionsToPersist.isEmpty()) {
                         return;
                 }
 
-                int updatedRows = transactionRepository.deactivateSyncedTransaction(
-                                command.getTransactionId(),
-                                command.getUserId());
+                transactionRepository.saveAll(transactionsToPersist);
+                publishPersistedEvents(changedTransactions);
+        }
 
-                if (updatedRows == 0) {
-                        return;
-                }
+        private boolean applyTransactionState(Transaction target, TransactionRequestDto request,
+                        TransactionDetailedCategory detailedCategory) {
+                boolean changed = false;
 
-                transaction.setActive(false);
+                changed |= updateIfChanged(target.getAccountId(), request.getAccountId(), target::setAccountId);
+                changed |= updateIfChanged(target.getAmount(), request.getAmount(), target::setAmount);
+                changed |= updateIfChanged(target.getIsoCurrencyCode(), request.getIsoCurrencyCode(), target::setIsoCurrencyCode);
+                changed |= updateIfChanged(target.getTransactionName(), request.getTransactionName(), target::setTransactionName);
+                changed |= updateIfChanged(target.getTransactionType(), request.getTransactionType(), target::setTransactionType);
+                changed |= updateIfChanged(target.getDate(), request.getDate(), target::setDate);
+                changed |= updateIfChanged(target.getPending(), request.getPending(), target::setPending);
+                changed |= updateIfChanged(target.getPaymentChannel(), request.getPaymentChannel(), target::setPaymentChannel);
+                String currentCategoryCode = target.getDetailedCategory() == null
+                                ? null
+                                : target.getDetailedCategory().getCategoryCode();
+                changed |= updateIfChanged(currentCategoryCode, detailedCategory.getCategoryCode(),
+                                value -> target.setDetailedCategory(detailedCategory));
+                changed |= updateIfChanged(target.isActive(), request.isActive(), target::setActive);
 
+                return changed;
+        }
+
+        private void publishPersistedEvents(List<Transaction> transactions) {
                 eventPublisher.publishEvent(new TransactionsPersistedDomainEvent(
-                                java.util.List.of(transactionSyncMapper.toPersistedEvent(transaction))));
+                                transactions.stream()
+                                                .map(transactionSyncMapper::toPersistedEvent)
+                                                .toList()));
+        }
+
+        private void validateUserOwnership(Transaction existingTransaction, UUID requestedUserId) {
+                if (!existingTransaction.getUserId().equals(requestedUserId)) {
+                        throw new IllegalStateException(
+                                        "Transaction ownership mismatch for transaction " + existingTransaction.getTransactionId());
+                }
+        }
+
+        private boolean updateIfChanged(String currentValue, String nextValue, Consumer<String> consumer) {
+                if (Objects.equals(currentValue, nextValue)) {
+                        return false;
+                }
+
+                consumer.accept(nextValue);
+                return true;
+        }
+
+        private boolean updateIfChanged(UUID currentValue, UUID nextValue, Consumer<UUID> consumer) {
+                if (Objects.equals(currentValue, nextValue)) {
+                        return false;
+                }
+
+                consumer.accept(nextValue);
+                return true;
+        }
+
+        private boolean updateIfChanged(LocalDate currentValue, LocalDate nextValue, Consumer<LocalDate> consumer) {
+                if (Objects.equals(currentValue, nextValue)) {
+                        return false;
+                }
+
+                consumer.accept(nextValue);
+                return true;
+        }
+
+        private boolean updateIfChanged(Boolean currentValue, Boolean nextValue, Consumer<Boolean> consumer) {
+                if (Objects.equals(currentValue, nextValue)) {
+                        return false;
+                }
+
+                consumer.accept(nextValue);
+                return true;
+        }
+
+        private boolean updateIfChanged(BigDecimal currentValue, BigDecimal nextValue, Consumer<BigDecimal> consumer) {
+                if (currentValue == null && nextValue == null) {
+                        return false;
+                }
+
+                if (currentValue != null && nextValue != null && currentValue.compareTo(nextValue) == 0) {
+                        return false;
+                }
+
+                consumer.accept(nextValue);
+                return true;
+        }
+
+        private boolean updateIfChanged(boolean currentValue, boolean nextValue, Consumer<Boolean> consumer) {
+                if (currentValue == nextValue) {
+                        return false;
+                }
+
+                consumer.accept(nextValue);
+                return true;
         }
 }

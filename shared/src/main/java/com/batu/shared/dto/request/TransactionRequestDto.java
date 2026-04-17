@@ -17,9 +17,9 @@ import lombok.Setter;
 @AllArgsConstructor
 public class TransactionRequestDto {
 
+    private UUID transactionId;
     private UUID userId;
     private UUID accountId;
-    private String externalId;
     private BigDecimal amount;
     private String isoCurrencyCode;
     private String transactionName;

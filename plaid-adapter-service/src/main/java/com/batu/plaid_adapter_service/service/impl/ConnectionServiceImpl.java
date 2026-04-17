@@ -1,14 +1,11 @@
 package com.batu.plaid_adapter_service.service.impl;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
 import com.batu.plaid_adapter_service.entity.Connection;
-import com.batu.plaid_adapter_service.entity.enums.ConnectionStatus;
 import com.batu.plaid_adapter_service.exception.ResourceNotFoundException;
 import com.batu.plaid_adapter_service.mapper.ConnectionMapper;
 import com.batu.plaid_adapter_service.repository.ConnectionRepository;
@@ -66,30 +63,9 @@ public class ConnectionServiceImpl implements ConnectionService {
 
     @Override
     @Transactional
-    public boolean claimSync(UUID connectionId, Duration staleAfter) {
-        return connectionRepository.claimSync(
-                connectionId,
-                ConnectionStatus.SYNCING.name(),
-                Instant.now().minus(staleAfter)) == 1;
-    }
-
-    @Override
-    @Transactional
-    public void completeSync(UUID connectionId, String cursor) {
-        connectionRepository.completeSync(connectionId, ConnectionStatus.ACTIVE.name(), cursor);
-    }
-
-    @Override
-    @Transactional
-    public void releaseSync(UUID connectionId) {
-        connectionRepository.releaseSync(connectionId, ConnectionStatus.ACTIVE.name());
-    }
-
-    @Override
-    @Transactional
     public Connection markDisabled(UUID connectionId, String errorCode) {
         Connection connection = readById(connectionId);
-        connection.setConnectionStatus(ConnectionStatus.DISABLED.name());
+        connection.setConnectionStatus(com.batu.plaid_adapter_service.entity.enums.ConnectionStatus.DISABLED.name());
         connection.setErrorCode(errorCode);
         return connectionRepository.save(connection);
     }
@@ -98,7 +74,7 @@ public class ConnectionServiceImpl implements ConnectionService {
     @Transactional
     public Connection markRemoved(UUID connectionId, String errorCode) {
         Connection connection = readById(connectionId);
-        connection.setConnectionStatus(ConnectionStatus.REMOVED.name());
+        connection.setConnectionStatus(com.batu.plaid_adapter_service.entity.enums.ConnectionStatus.REMOVED.name());
         connection.setErrorCode(errorCode);
         return connectionRepository.save(connection);
     }
