@@ -21,15 +21,14 @@ import com.batu.budgeting.service.BudgetService;
 
 import jakarta.validation.Valid;
 
+import lombok.RequiredArgsConstructor;
+
 @RestController
 @RequestMapping("/budgets")
+@RequiredArgsConstructor
 public class BudgetController {
 
     private final BudgetService budgetService;
-
-    public BudgetController(BudgetService budgetService) {
-        this.budgetService = budgetService;
-    }
 
     @PostMapping
     public ResponseEntity<BudgetResponse> createBudget(

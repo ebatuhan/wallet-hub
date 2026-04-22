@@ -1,14 +1,9 @@
 package com.batu.transaction_service.service.impl;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -20,14 +15,13 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.batu.shared.dto.request.AccountIdsRequestDto;
 import com.batu.shared.dto.request.AccountNameRequestDto;
 import com.batu.shared.dto.request.TransactionRequestDto;
-import com.batu.shared.dto.request.TransactionsUpsertRequestDto;
 import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.shared.dto.response.CursorResponse;
 import com.batu.shared.dto.response.TransactionDto;
 import com.batu.shared.dto.response.TransactionViewResponseDto;
+import com.batu.shared.util.CursorUtils;
 import com.batu.transaction_service.client.AccountServiceClient;
 import com.batu.transaction_service.entity.Transaction;
 import com.batu.transaction_service.entity.TransactionDetailedCategory;
@@ -38,7 +32,6 @@ import com.batu.transaction_service.repository.TransactionRepository;
 import com.batu.transaction_service.repository.spec.TransactionSpecs;
 import com.batu.transaction_service.service.DetailedCategoryService;
 import com.batu.transaction_service.service.TransactionService;
-import com.batu.transaction_service.util.CursorUtils;
 
 @Service
 public class TransactionServiceImpl implements TransactionService {
@@ -64,7 +57,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         @Override
         @Transactional(readOnly = true)
-        public CursorResponse<TransactionViewResponseDto> transatcions(Jwt principal, String category, UUID accountId,
+        public CursorResponse<TransactionViewResponseDto> transactions(Jwt principal, String category, UUID accountId,
                         String cursor,
                         int limit) {
 
@@ -125,8 +118,8 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         @Override
-        public TransactionDto getTransactionById(Jwt principial, UUID transactionId) {
-                UUID userId = UUID.fromString(principial.getSubject());
+        public TransactionDto getTransactionById(Jwt principal, UUID transactionId) {
+                UUID userId = UUID.fromString(principal.getSubject());
                 Transaction transaction = transactionRepository
                                 .findByTransactionIdAndUserIdWithCategory(transactionId, userId)
                                 .filter(Transaction::isActive)
@@ -138,18 +131,52 @@ public class TransactionServiceImpl implements TransactionService {
 
         @Override
         @Transactional
-        public void saveBatch(TransactionsUpsertRequestDto request) {
-                syncTransactions(request.getTransactions());
+        public void create(TransactionRequestDto request) {
+                TransactionDetailedCategory detailedCategory = detailedCategoryService
+                                .getByCategoryCode(request.getDetailedCategoryCode());
+                Transaction transaction = transactionSyncMapper.toEntity(request, detailedCategory);
+                transactionRepository.save(transaction);
+                publishPersistedEvents(List.of(transaction));
         }
 
         @Override
         @Transactional
-        public void deactivateByAccountIds(AccountIdsRequestDto request) {
-                if (request.getAccountIds().isEmpty()) {
+        public void update(TransactionRequestDto request) {
+                Transaction transaction = transactionRepository.findByTransactionIdAndUserIdWithCategory(
+                                request.getTransactionId(),
+                                request.getUserId())
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Transaction with id " + request.getTransactionId() + " not found"));
+
+                if (!request.isActive()) {
+                        transaction.setActive(false);
+                        transactionRepository.save(transaction);
+                        publishPersistedEvents(List.of(transaction));
                         return;
                 }
 
-                List<Transaction> transactions = transactionRepository.findByAccountIdInAndIsActiveTrue(request.getAccountIds());
+                TransactionDetailedCategory detailedCategory = detailedCategoryService
+                                .getByCategoryCode(request.getDetailedCategoryCode());
+
+                transaction.setAccountId(request.getAccountId());
+                transaction.setAmount(request.getAmount());
+                transaction.setIsoCurrencyCode(request.getIsoCurrencyCode());
+                transaction.setTransactionName(request.getTransactionName());
+                transaction.setTransactionType(request.getTransactionType());
+                transaction.setDate(request.getDate());
+                transaction.setPending(request.getPending());
+                transaction.setPaymentChannel(request.getPaymentChannel());
+                transaction.setDetailedCategory(detailedCategory);
+                transaction.setActive(true);
+
+                transactionRepository.save(transaction);
+                publishPersistedEvents(List.of(transaction));
+        }
+
+        @Override
+        @Transactional
+        public void deactivateByAccountId(UUID accountId) {
+                List<Transaction> transactions = transactionRepository.findByAccountIdAndIsActiveTrue(accountId);
 
                 if (transactions.isEmpty()) {
                         return;
@@ -163,86 +190,6 @@ public class TransactionServiceImpl implements TransactionService {
                 publishPersistedEvents(transactions);
         }
 
-        private void syncTransactions(List<TransactionRequestDto> requests) {
-                if (requests.isEmpty()) {
-                        return;
-                }
-
-                Map<UUID, Transaction> existingTransactionsById = transactionRepository
-                                .findAllByTransactionIdInWithCategory(requests.stream()
-                                                .map(TransactionRequestDto::getTransactionId)
-                                                .toList())
-                                .stream()
-                                .collect(Collectors.toMap(Transaction::getTransactionId, transaction -> transaction));
-
-                List<Transaction> transactionsToPersist = new ArrayList<>();
-                List<Transaction> changedTransactions = new ArrayList<>();
-
-                for (TransactionRequestDto request : requests) {
-                        if (!request.isActive()) {
-                                Transaction existingTransaction = existingTransactionsById.get(request.getTransactionId());
-                                if (existingTransaction == null || !existingTransaction.isActive()) {
-                                        continue;
-                                }
-
-                                validateUserOwnership(existingTransaction, request.getUserId());
-                                existingTransaction.setActive(false);
-                                transactionsToPersist.add(existingTransaction);
-                                changedTransactions.add(existingTransaction);
-                                continue;
-                        }
-
-                        TransactionDetailedCategory detailedCategory = detailedCategoryService
-                                        .getByCategoryCode(request.getDetailedCategoryCode());
-
-                        Transaction existingTransaction = existingTransactionsById.get(request.getTransactionId());
-                        if (existingTransaction == null) {
-                                Transaction transaction = transactionSyncMapper.toEntity(request, detailedCategory);
-                                transactionsToPersist.add(transaction);
-                                changedTransactions.add(transaction);
-                                continue;
-                        }
-
-                        validateUserOwnership(existingTransaction, request.getUserId());
-
-                        if (!applyTransactionState(existingTransaction, request, detailedCategory)) {
-                                continue;
-                        }
-
-                        transactionsToPersist.add(existingTransaction);
-                        changedTransactions.add(existingTransaction);
-                }
-
-                if (transactionsToPersist.isEmpty()) {
-                        return;
-                }
-
-                transactionRepository.saveAll(transactionsToPersist);
-                publishPersistedEvents(changedTransactions);
-        }
-
-        private boolean applyTransactionState(Transaction target, TransactionRequestDto request,
-                        TransactionDetailedCategory detailedCategory) {
-                boolean changed = false;
-
-                changed |= updateIfChanged(target.getAccountId(), request.getAccountId(), target::setAccountId);
-                changed |= updateIfChanged(target.getAmount(), request.getAmount(), target::setAmount);
-                changed |= updateIfChanged(target.getIsoCurrencyCode(), request.getIsoCurrencyCode(), target::setIsoCurrencyCode);
-                changed |= updateIfChanged(target.getTransactionName(), request.getTransactionName(), target::setTransactionName);
-                changed |= updateIfChanged(target.getTransactionType(), request.getTransactionType(), target::setTransactionType);
-                changed |= updateIfChanged(target.getDate(), request.getDate(), target::setDate);
-                changed |= updateIfChanged(target.getPending(), request.getPending(), target::setPending);
-                changed |= updateIfChanged(target.getPaymentChannel(), request.getPaymentChannel(), target::setPaymentChannel);
-                String currentCategoryCode = target.getDetailedCategory() == null
-                                ? null
-                                : target.getDetailedCategory().getCategoryCode();
-                changed |= updateIfChanged(currentCategoryCode, detailedCategory.getCategoryCode(),
-                                value -> target.setDetailedCategory(detailedCategory));
-                changed |= updateIfChanged(target.isActive(), request.isActive(), target::setActive);
-
-                return changed;
-        }
-
         private void publishPersistedEvents(List<Transaction> transactions) {
                 eventPublisher.publishEvent(new TransactionsPersistedDomainEvent(
                                 transactions.stream()
@@ -250,68 +197,4 @@ public class TransactionServiceImpl implements TransactionService {
                                                 .toList()));
         }
 
-        private void validateUserOwnership(Transaction existingTransaction, UUID requestedUserId) {
-                if (!existingTransaction.getUserId().equals(requestedUserId)) {
-                        throw new IllegalStateException(
-                                        "Transaction ownership mismatch for transaction " + existingTransaction.getTransactionId());
-                }
-        }
-
-        private boolean updateIfChanged(String currentValue, String nextValue, Consumer<String> consumer) {
-                if (Objects.equals(currentValue, nextValue)) {
-                        return false;
-                }
-
-                consumer.accept(nextValue);
-                return true;
-        }
-
-        private boolean updateIfChanged(UUID currentValue, UUID nextValue, Consumer<UUID> consumer) {
-                if (Objects.equals(currentValue, nextValue)) {
-                        return false;
-                }
-
-                consumer.accept(nextValue);
-                return true;
-        }
-
-        private boolean updateIfChanged(LocalDate currentValue, LocalDate nextValue, Consumer<LocalDate> consumer) {
-                if (Objects.equals(currentValue, nextValue)) {
-                        return false;
-                }
-
-                consumer.accept(nextValue);
-                return true;
-        }
-
-        private boolean updateIfChanged(Boolean currentValue, Boolean nextValue, Consumer<Boolean> consumer) {
-                if (Objects.equals(currentValue, nextValue)) {
-                        return false;
-                }
-
-                consumer.accept(nextValue);
-                return true;
-        }
-
-        private boolean updateIfChanged(BigDecimal currentValue, BigDecimal nextValue, Consumer<BigDecimal> consumer) {
-                if (currentValue == null && nextValue == null) {
-                        return false;
-                }
-
-                if (currentValue != null && nextValue != null && currentValue.compareTo(nextValue) == 0) {
-                        return false;
-                }
-
-                consumer.accept(nextValue);
-                return true;
-        }
-
-        private boolean updateIfChanged(boolean currentValue, boolean nextValue, Consumer<Boolean> consumer) {
-                if (currentValue == nextValue) {
-                        return false;
-                }
-
-                consumer.accept(nextValue);
-                return true;
-        }
 }

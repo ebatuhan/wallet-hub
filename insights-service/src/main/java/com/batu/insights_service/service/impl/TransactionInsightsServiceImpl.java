@@ -8,50 +8,49 @@ import java.util.UUID;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
-import com.batu.insights_service.dto.SpendingPerCategoryDTO;
-import com.batu.insights_service.dto.SpendingPerCategoryByAccountDTO;
-import com.batu.insights_service.dto.SpendingPerCategoryByAccountResponseDTO;
-import com.batu.insights_service.dto.SpendingPerCategoryResponseDTO;
-import com.batu.insights_service.dto.IncomeSummaryResponseDTO;
 import com.batu.insights_service.entity.TransactionInsightRow;
 import com.batu.insights_service.exception.InvalidDateRangeException;
 import com.batu.insights_service.repository.TransactionInsightsRepository;
 import com.batu.insights_service.service.TransactionInsightsService;
+import com.batu.shared.dto.response.IncomeSummaryResponseDto;
+import com.batu.shared.dto.response.SpendingPerCategoryByAccountDto;
+import com.batu.shared.dto.response.SpendingPerCategoryByAccountResponseDto;
+import com.batu.shared.dto.response.SpendingPerCategoryDto;
+import com.batu.shared.dto.response.SpendingPerCategoryResponseDto;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class TransactionInsightsServiceImpl implements TransactionInsightsService {
 
     private final TransactionInsightsRepository transactionInsightsRepository;
 
-    public TransactionInsightsServiceImpl(TransactionInsightsRepository transactionInsightsRepository) {
-        this.transactionInsightsRepository = transactionInsightsRepository;
-    }
-
     @Override
-    public SpendingPerCategoryResponseDTO getSpendingByCategory(Date from, Date to, Jwt principal) {
+    public SpendingPerCategoryResponseDto getSpendingByCategory(Date from, Date to, Jwt principal) {
         validateDateRange(from, to);
         UUID userId = UUID.fromString(principal.getSubject());
 
-        List<SpendingPerCategoryDTO> categories = transactionInsightsRepository.findByInterval(from, to, userId);
-        return new SpendingPerCategoryResponseDTO(userId, totalSpent(categories), categories);
+        List<SpendingPerCategoryDto> categories = transactionInsightsRepository.findByInterval(from, to, userId);
+        return new SpendingPerCategoryResponseDto(userId, totalSpent(categories), categories);
     }
 
     @Override
-    public SpendingPerCategoryByAccountResponseDTO getSpendingPerCategoryByAccount(Date from, Date to, UUID accountId,
+    public SpendingPerCategoryByAccountResponseDto getSpendingPerCategoryByAccount(Date from, Date to, UUID accountId,
             Jwt principal) {
 
         validateDateRange(from, to);
         UUID userId = UUID.fromString(principal.getSubject());
-        List<SpendingPerCategoryByAccountDTO> categories = transactionInsightsRepository.findByIntervalAndAccount(from, to, userId, accountId);
-        return new SpendingPerCategoryByAccountResponseDTO(userId, accountId, totalSpentByAccount(categories), categories);
+        List<SpendingPerCategoryByAccountDto> categories = transactionInsightsRepository.findByIntervalAndAccount(from, to, userId, accountId);
+        return new SpendingPerCategoryByAccountResponseDto(userId, accountId, totalSpentByAccount(categories), categories);
 
     }
 
     @Override
-    public IncomeSummaryResponseDTO getIncome(Date from, Date to, Jwt principal) {
+    public IncomeSummaryResponseDto getIncome(Date from, Date to, Jwt principal) {
         validateDateRange(from, to);
         UUID userId = UUID.fromString(principal.getSubject());
-        return new IncomeSummaryResponseDTO(userId, transactionInsightsRepository.findIncomeByInterval(from, to, userId));
+        return new IncomeSummaryResponseDto(userId, transactionInsightsRepository.findIncomeByInterval(from, to, userId));
     }
 
     @Override
@@ -65,15 +64,15 @@ public class TransactionInsightsServiceImpl implements TransactionInsightsServic
         }
     }
 
-    private BigDecimal totalSpent(List<SpendingPerCategoryDTO> categories) {
+    private BigDecimal totalSpent(List<SpendingPerCategoryDto> categories) {
         return categories.stream()
-                .map(SpendingPerCategoryDTO::totalAmount)
+                .map(SpendingPerCategoryDto::totalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    private BigDecimal totalSpentByAccount(List<SpendingPerCategoryByAccountDTO> categories) {
+    private BigDecimal totalSpentByAccount(List<SpendingPerCategoryByAccountDto> categories) {
         return categories.stream()
-                .map(SpendingPerCategoryByAccountDTO::totalAmount)
+                .map(SpendingPerCategoryByAccountDto::totalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

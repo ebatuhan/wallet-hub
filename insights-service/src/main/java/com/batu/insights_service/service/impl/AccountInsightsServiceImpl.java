@@ -1,12 +1,14 @@
 package com.batu.insights_service.service.impl;
 
-import com.batu.insights_service.dto.AccountBalanceDataPointDTO;
 import com.batu.insights_service.entity.AccountBalanceDataPointRow;
 import com.batu.insights_service.repository.AccountInsightRepository;
 import com.batu.insights_service.service.AccountInsightsService;
+import com.batu.shared.dto.response.AccountBalanceDataPointDto;
 
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
+
+import lombok.RequiredArgsConstructor;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -14,13 +16,10 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class AccountInsightsServiceImpl implements AccountInsightsService {
 
     private final AccountInsightRepository accountInsightRepository;
-
-    public AccountInsightsServiceImpl(AccountInsightRepository accountInsightRepository) {
-        this.accountInsightRepository = accountInsightRepository;
-    }
 
     @Override
     public void save(AccountBalanceDataPointRow row) {
@@ -28,12 +27,12 @@ public class AccountInsightsServiceImpl implements AccountInsightsService {
     }
 
     @Override
-    public List<AccountBalanceDataPointDTO> getAccountBalanceHistory(UUID accountId, LocalDate from, LocalDate to, Jwt principal) {
+    public List<AccountBalanceDataPointDto> getAccountBalanceHistory(UUID accountId, LocalDate from, LocalDate to, Jwt principal) {
         UUID userId = UUID.fromString(principal.getSubject());
 
         return accountInsightRepository.getAccountBalanceHistory(accountId, userId, from, to)
                 .stream()
-                .map(row -> new AccountBalanceDataPointDTO(
+                .map(row -> new AccountBalanceDataPointDto(
                         row.accountId(),
                         row.userId(),
                         row.balance(),

@@ -13,25 +13,22 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.batu.insights_service.dto.SpendingPerCategoryByAccountDTO;
-import com.batu.insights_service.dto.SpendingPerCategoryByAccountResponseDTO;
-import com.batu.insights_service.dto.SpendingPerCategoryDTO;
-import com.batu.insights_service.dto.SpendingPerCategoryResponseDTO;
-import com.batu.insights_service.dto.IncomeSummaryResponseDTO;
 import com.batu.insights_service.service.TransactionInsightsService;
+import com.batu.shared.dto.response.IncomeSummaryResponseDto;
+import com.batu.shared.dto.response.SpendingPerCategoryByAccountResponseDto;
+import com.batu.shared.dto.response.SpendingPerCategoryResponseDto;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/insights")
+@RequiredArgsConstructor
 public class TransactionInsightsController {
 
     private final TransactionInsightsService transactionInsightsService;
 
-    public TransactionInsightsController(TransactionInsightsService transactionInsightsService) {
-        this.transactionInsightsService = transactionInsightsService;
-    }
-
     @GetMapping("/spendings")
-    public ResponseEntity<SpendingPerCategoryResponseDTO> getSpendingByCategory(
+    public ResponseEntity<SpendingPerCategoryResponseDto> getSpendingByCategory(
             @RequestParam Date from,
             @RequestParam Date to,
             @AuthenticationPrincipal Jwt principal) {
@@ -39,7 +36,7 @@ public class TransactionInsightsController {
     }
 
     @GetMapping("/income")
-    public ResponseEntity<IncomeSummaryResponseDTO> getIncome(
+    public ResponseEntity<IncomeSummaryResponseDto> getIncome(
             @RequestParam Date from,
             @RequestParam Date to,
             @AuthenticationPrincipal Jwt principal) {
@@ -47,7 +44,7 @@ public class TransactionInsightsController {
     }
 
         @GetMapping("/spendings/{accountId}")
-    public ResponseEntity<SpendingPerCategoryByAccountResponseDTO> getSpendingByCategoryByAccount(
+    public ResponseEntity<SpendingPerCategoryByAccountResponseDto> getSpendingByCategoryByAccount(
             @RequestParam Date from,
             @PathVariable UUID accountId,
             @RequestParam Date to,

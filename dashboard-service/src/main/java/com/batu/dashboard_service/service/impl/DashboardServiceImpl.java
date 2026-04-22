@@ -19,19 +19,22 @@ import com.batu.dashboard_service.client.TransactionClient;
 import com.batu.dashboard_service.dto.AccountDashboardSummaryResponseDto;
 import com.batu.dashboard_service.dto.SpendingCategoryItemDto;
 import com.batu.dashboard_service.dto.UserDashboardSummaryResponseDto;
-import com.batu.dashboard_service.dto.client.BudgetResponseDto;
-import com.batu.dashboard_service.dto.client.IncomeSummaryResponseDto;
-import com.batu.dashboard_service.dto.client.SpendingPerCategoryByAccountDto;
-import com.batu.dashboard_service.dto.client.SpendingPerCategoryByAccountResponseDto;
-import com.batu.dashboard_service.dto.client.SpendingPerCategoryDto;
-import com.batu.dashboard_service.dto.client.SpendingPerCategoryResponseDto;
 import com.batu.dashboard_service.service.DashboardService;
 import com.batu.shared.dto.request.PrimaryCategoryIdsRequestDto;
+import com.batu.shared.dto.response.BudgetResponseDto;
 import com.batu.shared.dto.response.CursorResponse;
+import com.batu.shared.dto.response.IncomeSummaryResponseDto;
+import com.batu.shared.dto.response.SpendingPerCategoryByAccountDto;
+import com.batu.shared.dto.response.SpendingPerCategoryByAccountResponseDto;
+import com.batu.shared.dto.response.SpendingPerCategoryDto;
+import com.batu.shared.dto.response.SpendingPerCategoryResponseDto;
 import com.batu.shared.dto.response.TransactionPrimaryCategoryDto;
 import com.batu.shared.dto.response.TransactionViewResponseDto;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class DashboardServiceImpl implements DashboardService {
 
     private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ISO_DATE;
@@ -40,16 +43,6 @@ public class DashboardServiceImpl implements DashboardService {
     private final TransactionClient transactionClient;
     private final InsightsClient insightsClient;
     private final BudgetingClient budgetingClient;
-
-    public DashboardServiceImpl(AccountClient accountClient,
-            TransactionClient transactionClient,
-            InsightsClient insightsClient,
-            BudgetingClient budgetingClient) {
-        this.accountClient = accountClient;
-        this.transactionClient = transactionClient;
-        this.insightsClient = insightsClient;
-        this.budgetingClient = budgetingClient;
-    }
 
     @Override
     public UserDashboardSummaryResponseDto getUserSummary(LocalDate from, LocalDate to, Integer recentLimit, Jwt principal) {

@@ -1,7 +1,7 @@
 package com.batu.insights_service.service;
 
-import com.batu.insights_service.dto.AccountBalanceDataPointDTO;
 import com.batu.insights_service.entity.AccountBalanceDataPointRow;
+import com.batu.shared.dto.response.AccountBalanceDataPointDto;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -14,5 +14,5 @@ public interface AccountInsightsService {
 
     void save(AccountBalanceDataPointRow row);
 
-    List<AccountBalanceDataPointDTO> getAccountBalanceHistory(UUID accountId, LocalDate from, LocalDate to, Jwt principal);
+    List<AccountBalanceDataPointDto> getAccountBalanceHistory(UUID accountId, LocalDate from, LocalDate to, Jwt principal);
 }

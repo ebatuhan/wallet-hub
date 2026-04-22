@@ -4,28 +4,35 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
+import com.batu.plaid_adapter_service.dto.PlaidWebhookDto;
 import com.batu.plaid_adapter_service.strategy.WebhookStrategy;
-import com.batu.shared.dto.request.PlaidWebhookDto;
+
+import lombok.RequiredArgsConstructor;
 
 @Component
+@RequiredArgsConstructor
 public class WebhookFactory {
 
     private final Map<String, WebhookStrategy> strategies;
-
-    public WebhookFactory(Map<String, WebhookStrategy> strategies) {
-        this.strategies = strategies;
-    }
 
     private WebhookStrategy getStrategy(String name) {
         return strategies.getOrDefault(name, strategies.get("DEFAULT"));
     }
 
     public void execute(PlaidWebhookDto dto) {
-        String webhookCode = dto.getWebhookCode();
+        if (dto == null || dto.webhookCode() == null || dto.webhookCode().isBlank()) {
+            getStrategy("DEFAULT").handle(dto);
+            return;
+        }
 
-        var strategy = webhookCode.equals("ERROR")
-                ? getStrategy(dto.getError().getErrorCode())
-                : getStrategy(dto.getWebhookCode());
+        String strategyName = dto.webhookCode();
+        if ("ERROR".equals(dto.webhookCode())) {
+            strategyName = dto.error() == null || dto.error().errorCode() == null
+                    ? "DEFAULT"
+                    : dto.error().errorCode();
+        }
+
+        var strategy = getStrategy(strategyName);
 
         strategy.handle(dto);
     }

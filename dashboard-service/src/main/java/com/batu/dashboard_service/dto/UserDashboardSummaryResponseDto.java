@@ -5,9 +5,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-import com.batu.dashboard_service.dto.client.BudgetResponseDto;
-import com.batu.dashboard_service.dto.client.IncomeTotalByCurrencyDto;
 import com.batu.shared.dto.response.AccountSummaryResponseDto;
+import com.batu.shared.dto.response.BudgetResponseDto;
+import com.batu.shared.dto.response.IncomeTotalByCurrencyDto;
 import com.batu.shared.dto.response.TransactionViewResponseDto;
 
 public record UserDashboardSummaryResponseDto(

@@ -7,7 +7,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import com.batu.account_service.enums.AccountSortField;
-import com.batu.shared.dto.request.AccountsUpsertRequestDto;
+import com.batu.shared.dto.request.AccountRequestDto;
 import com.batu.shared.dto.request.AccountNameRequestDto;
 import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.shared.dto.response.AccountResponseDto;
@@ -33,9 +33,9 @@ public interface AccountService {
 
     List<AccountNameResponseDto> getAccountsByGivenIds(AccountNameRequestDto request);
 
-    void saveBatch(AccountsUpsertRequestDto request);
+    void create(AccountRequestDto request);
 
-    List<UUID> getAccountIdsByConnection(UUID connectionId);
+    void update(AccountRequestDto request);
 
-    void deactivateByConnection(UUID connectionId);
+    void deactivate(UUID accountId);
 }

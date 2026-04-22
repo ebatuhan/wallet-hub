@@ -58,6 +58,20 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres-consent:
+    image: postgres:15
+    container_name: postgres-consent
+    env_file: config/.postgres-consent
+    ports:
+      - "${POSTGRES_CONSENT_PORT}:5432"
+    volumes:
+      - postgres-consent-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   postgres-budgeting:
     image: postgres:15
     container_name: postgres-budgeting
@@ -97,6 +111,22 @@ services:
         condition: service_healthy
     volumes:
       - ./plaid-adapter-service:/app
+      - ./shared:/shared
+      - ~/.m2:/root/.m2
+
+  consent-service:
+    build:
+      context: .
+      dockerfile: consent-service/Dockerfile
+    container_name: consent-service
+    env_file: config/.consent-service
+    ports:
+      - "${CONSENT_SERVICE_PORT}:8092"
+    depends_on:
+      postgres-consent:
+        condition: service_healthy
+    volumes:
+      - ./consent-service:/app
       - ./shared:/shared
       - ~/.m2:/root/.m2
 
@@ -247,6 +277,7 @@ volumes:
   postgres-plaid-data:
   postgres-keycloak-data:
   postgres-transaction-data:
+  postgres-consent-data:
   postgres-budgeting-data:
   postgres-account-data:
   maven-repo:

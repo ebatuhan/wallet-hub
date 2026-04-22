@@ -17,15 +17,14 @@ import com.batu.dashboard_service.dto.AccountDashboardSummaryResponseDto;
 import com.batu.dashboard_service.dto.UserDashboardSummaryResponseDto;
 import com.batu.dashboard_service.service.DashboardService;
 
+import lombok.RequiredArgsConstructor;
+
 @RestController
 @RequestMapping("/dashboard")
+@RequiredArgsConstructor
 public class DashboardController {
 
     private final DashboardService dashboardService;
-
-    public DashboardController(DashboardService dashboardService) {
-        this.dashboardService = dashboardService;
-    }
 
     @GetMapping("/summary")
     public ResponseEntity<UserDashboardSummaryResponseDto> getSummary(

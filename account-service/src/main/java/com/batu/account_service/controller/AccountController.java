@@ -12,6 +12,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -22,7 +23,7 @@ import jakarta.validation.constraints.Min;
 
 import com.batu.account_service.enums.AccountSortField;
 import com.batu.account_service.service.AccountService;
-import com.batu.shared.dto.request.AccountsUpsertRequestDto;
+import com.batu.shared.dto.request.AccountRequestDto;
 import com.batu.shared.dto.request.AccountNameRequestDto;
 import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.shared.dto.response.AccountResponseDto;
@@ -30,16 +31,15 @@ import com.batu.shared.dto.response.AccountSummaryResponseDto;
 import com.batu.shared.dto.response.AccountViewDto;
 import com.batu.shared.dto.response.CursorResponse;
 
+import lombok.RequiredArgsConstructor;
+
 @RestController
 @RequestMapping("/accounts")
 @Validated
+@RequiredArgsConstructor
 public class AccountController {
 
     private final AccountService accountService;
-
-    public AccountController(AccountService accountService) {
-        this.accountService = accountService;
-    }
 
     @GetMapping("/{accountId}")
     public ResponseEntity<AccountResponseDto> getAccount(
@@ -60,23 +60,28 @@ public class AccountController {
         return ResponseEntity.ok(accountService.getAccountsByGivenIds(request));
     } 
 
-    @PostMapping("/sync/batch-save")
+    @PostMapping("/internal")
     @PreAuthorize("hasAuthority('ROLE_SERVICE')")
-    public ResponseEntity<Void> saveSyncedAccounts(@RequestBody AccountsUpsertRequestDto request) {
-        accountService.saveBatch(request);
+    public ResponseEntity<Void> create(@RequestBody AccountRequestDto request) {
+        accountService.create(request);
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/sync/connections/{connectionId}/account-ids")
+    @PutMapping("/internal/{accountId}")
     @PreAuthorize("hasAuthority('ROLE_SERVICE')")
-    public ResponseEntity<List<UUID>> getAccountIdsByConnection(@PathVariable UUID connectionId) {
-        return ResponseEntity.ok(accountService.getAccountIdsByConnection(connectionId));
+    public ResponseEntity<Void> update(@PathVariable UUID accountId, @RequestBody AccountRequestDto request) {
+        if (!accountId.equals(request.getAccountId())) {
+            throw new IllegalArgumentException("Account id mismatch");
+        }
+
+        accountService.update(request);
+        return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/sync/connections/{connectionId}/deactivate")
+    @PostMapping("/internal/{accountId}/deactivate")
     @PreAuthorize("hasAuthority('ROLE_SERVICE')")
-    public ResponseEntity<Void> deactivateAccountsByConnection(@PathVariable UUID connectionId) {
-        accountService.deactivateByConnection(connectionId);
+    public ResponseEntity<Void> deactivate(@PathVariable UUID accountId) {
+        accountService.deactivate(accountId);
         return ResponseEntity.noContent().build();
     }
 

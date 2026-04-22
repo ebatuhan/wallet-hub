@@ -1,13 +1,7 @@
 package com.batu.account_service.service.impl;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.ScrollPosition;
@@ -24,8 +18,7 @@ import com.batu.account_service.messaging.AccountsPersistedDomainEvent;
 import com.batu.account_service.repository.AccountRepository;
 import com.batu.account_service.repository.specs.AccountSpecification;
 import com.batu.account_service.service.AccountService;
-import com.batu.account_service.util.CursorUtils;
-import com.batu.shared.dto.request.AccountsUpsertRequestDto;
+import com.batu.shared.dto.request.AccountRequestDto;
 import com.batu.shared.dto.request.AccountNameRequestDto;
 import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.shared.dto.response.AccountResponseDto;
@@ -33,6 +26,7 @@ import com.batu.shared.dto.response.AccountCurrencyTotalDto;
 import com.batu.shared.dto.response.AccountSummaryResponseDto;
 import com.batu.shared.dto.response.AccountViewDto;
 import com.batu.shared.dto.response.CursorResponse;
+import com.batu.shared.util.CursorUtils;
 
 import jakarta.transaction.Transactional;
 
@@ -126,95 +120,45 @@ public class AccountServiceImpl implements AccountService {
 
         @Override
         @Transactional
-        public void saveBatch(AccountsUpsertRequestDto request) {
-                syncAccounts(request.getAccounts().stream()
-                                .map(accountSyncMapper::toEntity)
-                                .toList());
-        }
-
-        @Override
-        public List<UUID> getAccountIdsByConnection(UUID connectionId) {
-                return accountRepository.findByConnectionId(connectionId).stream()
-                                .map(Account::getAccountId)
-                                .toList();
+        public void create(AccountRequestDto request) {
+                Account account = accountSyncMapper.toEntity(request);
+                accountRepository.save(account);
+                publishPersistedEvents(List.of(account));
         }
 
         @Override
         @Transactional
-        public void deactivateByConnection(UUID connectionId) {
-                List<Account> accounts = accountRepository.findByConnectionId(connectionId).stream()
-                                .filter(Account::isActive)
-                                .toList();
+        public void update(AccountRequestDto request) {
+                Account account = accountRepository.findByAccountIdAndUserId(
+                                request.getAccountId(),
+                                request.getUserId())
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Account with id " + request.getAccountId() + " not found"));
 
-                if (accounts.isEmpty()) {
-                        return;
-                }
+                account.setInstitutionName(request.getInstitutionName());
+                account.setAccountName(request.getAccountName());
+                account.setAccountType(request.getAccountType());
+                account.setAccountSubtype(request.getAccountSubtype());
+                account.setAccountMask(request.getAccountMask());
+                account.setCurrentBalance(request.getCurrentBalance());
+                account.setAvailableBalance(request.getAvailableBalance());
+                account.setIsoCurrencyCode(request.getIsoCurrencyCode());
+                account.setActive(request.isActive());
 
-                for (Account account : accounts) {
-                        account.setActive(false);
-                }
-
-                accountRepository.saveAll(accounts);
-                publishPersistedEvents(accounts);
+                accountRepository.save(account);
+                publishPersistedEvents(List.of(account));
         }
 
-        private void syncAccounts(List<Account> requestedAccounts) {
-                if (requestedAccounts.isEmpty()) {
-                        return;
-                }
+        @Override
+        @Transactional
+        public void deactivate(UUID accountId) {
+                Account account = accountRepository.findById(accountId)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Account with id " + accountId + " not found"));
 
-                Map<UUID, Account> existingAccountsById = accountRepository.findAllByAccountIdIn(
-                                requestedAccounts.stream()
-                                                .map(Account::getAccountId)
-                                                .toList())
-                                .stream()
-                                .collect(Collectors.toMap(Account::getAccountId, account -> account));
-
-                List<Account> accountsToPersist = new ArrayList<>();
-                List<Account> changedAccounts = new ArrayList<>();
-
-                for (Account requestedAccount : requestedAccounts) {
-                        Account existingAccount = existingAccountsById.get(requestedAccount.getAccountId());
-
-                        if (existingAccount == null) {
-                                accountsToPersist.add(requestedAccount);
-                                changedAccounts.add(requestedAccount);
-                                continue;
-                        }
-
-                        validateUserOwnership(existingAccount, requestedAccount.getUserId());
-
-                        if (!applyAccountState(existingAccount, requestedAccount)) {
-                                continue;
-                        }
-
-                        accountsToPersist.add(existingAccount);
-                        changedAccounts.add(existingAccount);
-                }
-
-                if (accountsToPersist.isEmpty()) {
-                        return;
-                }
-
-                accountRepository.saveAll(accountsToPersist);
-                publishPersistedEvents(changedAccounts);
-        }
-
-        private boolean applyAccountState(Account target, Account source) {
-                boolean changed = false;
-
-                changed |= updateIfChanged(target.getConnectionId(), source.getConnectionId(), target::setConnectionId);
-                changed |= updateIfChanged(target.getInstitutionName(), source.getInstitutionName(), target::setInstitutionName);
-                changed |= updateIfChanged(target.getAccountName(), source.getAccountName(), target::setAccountName);
-                changed |= updateIfChanged(target.getAccountType(), source.getAccountType(), target::setAccountType);
-                changed |= updateIfChanged(target.getAccountSubtype(), source.getAccountSubtype(), target::setAccountSubtype);
-                changed |= updateIfChanged(target.getAccountMask(), source.getAccountMask(), target::setAccountMask);
-                changed |= updateIfChanged(target.getCurrentBalance(), source.getCurrentBalance(), target::setCurrentBalance);
-                changed |= updateIfChanged(target.getAvailableBalance(), source.getAvailableBalance(), target::setAvailableBalance);
-                changed |= updateIfChanged(target.getIsoCurrencyCode(), source.getIsoCurrencyCode(), target::setIsoCurrencyCode);
-                changed |= updateIfChanged(target.isActive(), source.isActive(), target::setActive);
-
-                return changed;
+                account.setActive(false);
+                accountRepository.save(account);
+                publishPersistedEvents(List.of(account));
         }
 
         private void publishPersistedEvents(List<Account> accounts) {
@@ -224,49 +168,4 @@ public class AccountServiceImpl implements AccountService {
                                                 .toList()));
         }
 
-        private void validateUserOwnership(Account existingAccount, UUID requestedUserId) {
-                if (!existingAccount.getUserId().equals(requestedUserId)) {
-                        throw new IllegalStateException("Account ownership mismatch for account " + existingAccount.getAccountId());
-                }
-        }
-
-        private boolean updateIfChanged(String currentValue, String nextValue, Consumer<String> consumer) {
-                if (Objects.equals(currentValue, nextValue)) {
-                        return false;
-                }
-
-                consumer.accept(nextValue);
-                return true;
-        }
-
-        private boolean updateIfChanged(UUID currentValue, UUID nextValue, Consumer<UUID> consumer) {
-                if (Objects.equals(currentValue, nextValue)) {
-                        return false;
-                }
-
-                consumer.accept(nextValue);
-                return true;
-        }
-
-        private boolean updateIfChanged(BigDecimal currentValue, BigDecimal nextValue, Consumer<BigDecimal> consumer) {
-                if (currentValue == null && nextValue == null) {
-                        return false;
-                }
-
-                if (currentValue != null && nextValue != null && currentValue.compareTo(nextValue) == 0) {
-                        return false;
-                }
-
-                consumer.accept(nextValue);
-                return true;
-        }
-
-        private boolean updateIfChanged(boolean currentValue, boolean nextValue, Consumer<Boolean> consumer) {
-                if (currentValue == nextValue) {
-                        return false;
-                }
-
-                consumer.accept(nextValue);
-                return true;
-        }
 }

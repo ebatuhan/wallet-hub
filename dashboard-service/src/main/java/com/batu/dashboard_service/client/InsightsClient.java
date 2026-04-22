@@ -10,10 +10,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.batu.dashboard_service.dto.client.AccountBalanceDataPointDto;
-import com.batu.dashboard_service.dto.client.IncomeSummaryResponseDto;
-import com.batu.dashboard_service.dto.client.SpendingPerCategoryByAccountResponseDto;
-import com.batu.dashboard_service.dto.client.SpendingPerCategoryResponseDto;
+import com.batu.shared.dto.response.AccountBalanceDataPointDto;
+import com.batu.shared.dto.response.IncomeSummaryResponseDto;
+import com.batu.shared.dto.response.SpendingPerCategoryByAccountResponseDto;
+import com.batu.shared.dto.response.SpendingPerCategoryResponseDto;
 
 @FeignClient(name = "dashboardInsights", url = "${insightsclient.url}")
 public interface InsightsClient {

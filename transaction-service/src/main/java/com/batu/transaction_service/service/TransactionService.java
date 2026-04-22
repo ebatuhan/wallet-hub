@@ -5,22 +5,23 @@ import java.util.UUID;
 
 import org.springframework.security.oauth2.jwt.Jwt;
 
-import com.batu.shared.dto.request.AccountIdsRequestDto;
-import com.batu.shared.dto.request.TransactionsUpsertRequestDto;
+import com.batu.shared.dto.request.TransactionRequestDto;
 import com.batu.shared.dto.response.CursorResponse;
 import com.batu.shared.dto.response.TransactionDto;
 import com.batu.shared.dto.response.TransactionViewResponseDto;
 
 public interface TransactionService {
-    CursorResponse<TransactionViewResponseDto> transatcions(Jwt principal,
+    CursorResponse<TransactionViewResponseDto> transactions(Jwt principal,
             String category,
             UUID accountId,
             String cursor,
             int limit);
 
-    TransactionDto getTransactionById(Jwt principial, UUID transactionId);
+    TransactionDto getTransactionById(Jwt principal, UUID transactionId);
 
-    void saveBatch(TransactionsUpsertRequestDto request);
+    void create(TransactionRequestDto request);
 
-    void deactivateByAccountIds(AccountIdsRequestDto request);
+    void update(TransactionRequestDto request);
+
+    void deactivateByAccountId(UUID accountId);
 }

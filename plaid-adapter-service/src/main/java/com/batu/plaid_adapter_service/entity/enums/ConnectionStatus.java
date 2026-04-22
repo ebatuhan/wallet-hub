@@ -4,6 +4,7 @@ public enum ConnectionStatus {
     PENDING,
     INITIALIZING,
     SYNCING,
+    REMOVING,
     ACTIVE,
     DISABLED,
     REMOVED,

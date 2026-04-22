@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 
-import com.batu.ai_assistant.dto.client.BudgetResponseDto;
 import com.batu.ai_assistant.dto.client.CreateBudgetRequestDto;
+import com.batu.shared.dto.response.BudgetResponseDto;
 
 @FeignClient(name = "assistantBudgeting", url = "${budgetingclient.url}")
 public interface BudgetingClient {

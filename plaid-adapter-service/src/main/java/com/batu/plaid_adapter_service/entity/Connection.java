@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -13,6 +14,8 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.UuidGenerator;
+
+import com.batu.plaid_adapter_service.entity.enums.ProviderType;
 
 @Entity
 @Table(name = "connection")
@@ -30,6 +33,9 @@ public class Connection {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
+    @Column(name = "provider", nullable = false)
+    private String provider = ProviderType.PLAID.name();
+
     @Column(name = "external_id", nullable = false, unique = true)
     private String externalId;
 
@@ -42,6 +48,9 @@ public class Connection {
     @Column(name = "institution_name", nullable = false)
     private String institutionName;
 
+    @Column(name = "display_name")
+    private String displayName;
+
     @Column(name = "connection_status", nullable = false)
     private String connectionStatus = "ACTIVE";
 
@@ -50,6 +59,13 @@ public class Connection {
 
     @Column(name = "last_cursor")
     private String lastCursor;
+
+    @Column(name = "last_synced_at")
+    private Instant lastSyncedAt;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private long version;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -67,6 +83,7 @@ public class Connection {
         this.accessToken = accessToken;
         this.institutionId = institutionId;
         this.institutionName = institutionName;
+        this.displayName = institutionName;
     }
 
     public Connection(UUID userId, String externalId, String accessToken, String institutionId, String institutionName,

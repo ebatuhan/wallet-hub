@@ -6,9 +6,9 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
+import com.batu.shared.exception.SyncStateException;
 import com.batu.transaction_service.entity.TransactionDetailedCategory;
 import com.batu.transaction_service.exception.ResourceNotFoundException;
-import com.batu.transaction_service.exception.SyncStateException;
 import com.batu.transaction_service.repository.DetailedCategoryRepository;
 import com.batu.transaction_service.service.DetailedCategoryService;
 

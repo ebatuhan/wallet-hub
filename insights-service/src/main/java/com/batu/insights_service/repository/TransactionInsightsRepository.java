@@ -8,10 +8,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
-import com.batu.insights_service.dto.IncomeTotalByCurrencyDTO;
-import com.batu.insights_service.dto.SpendingPerCategoryByAccountDTO;
-import com.batu.insights_service.dto.SpendingPerCategoryDTO;
 import com.batu.insights_service.entity.TransactionInsightRow;
+import com.batu.shared.dto.response.IncomeTotalByCurrencyDto;
+import com.batu.shared.dto.response.SpendingPerCategoryByAccountDto;
+import com.batu.shared.dto.response.SpendingPerCategoryDto;
 
 @Repository
 public class TransactionInsightsRepository {
@@ -30,20 +30,20 @@ public class TransactionInsightsRepository {
             UUID.fromString(rs.getString("transaction_id")),
             rs.getTimestamp("updated_at").toInstant());
 
-    private static final RowMapper<SpendingPerCategoryDTO> SPENDING_PER_CATEGORY_MAPPER = (rs, rowNum) ->
-            new SpendingPerCategoryDTO(
+    private static final RowMapper<SpendingPerCategoryDto> SPENDING_PER_CATEGORY_MAPPER = (rs, rowNum) ->
+            new SpendingPerCategoryDto(
                     UUID.fromString(rs.getString("primary_category_id")),
                     rs.getBigDecimal("percentage"),
                     rs.getBigDecimal("total_amount"));
 
-    private static final RowMapper<SpendingPerCategoryByAccountDTO> SPENDING_PER_CATEGORY_BY_ACCOUNT_MAPPER = (rs, rowNum) ->
-            new SpendingPerCategoryByAccountDTO(
+    private static final RowMapper<SpendingPerCategoryByAccountDto> SPENDING_PER_CATEGORY_BY_ACCOUNT_MAPPER = (rs, rowNum) ->
+            new SpendingPerCategoryByAccountDto(
                     UUID.fromString(rs.getString("primary_category_id")),
                     rs.getBigDecimal("percentage"),
                     rs.getBigDecimal("total_amount"));
 
-    private static final RowMapper<IncomeTotalByCurrencyDTO> INCOME_TOTAL_BY_CURRENCY_MAPPER = (rs, rowNum) ->
-            new IncomeTotalByCurrencyDTO(
+    private static final RowMapper<IncomeTotalByCurrencyDto> INCOME_TOTAL_BY_CURRENCY_MAPPER = (rs, rowNum) ->
+            new IncomeTotalByCurrencyDto(
                     rs.getString("iso_currency_code"),
                     rs.getBigDecimal("total_income"));
 
@@ -82,7 +82,7 @@ public class TransactionInsightsRepository {
                 java.sql.Timestamp.from(row.updatedAt()));
     }
 
-    public List<SpendingPerCategoryDTO> findByInterval(Date from, Date to, UUID userId) {
+    public List<SpendingPerCategoryDto> findByInterval(Date from, Date to, UUID userId) {
         String sql = """
                 WITH latest_transactions AS (
                     SELECT
@@ -111,7 +111,7 @@ public class TransactionInsightsRepository {
         return jdbcTemplate.query(sql, SPENDING_PER_CATEGORY_MAPPER, userId, from, to);
     }
 
-    public List<SpendingPerCategoryByAccountDTO> findByIntervalAndAccount(Date from, Date to, UUID userId, UUID accountId) {
+    public List<SpendingPerCategoryByAccountDto> findByIntervalAndAccount(Date from, Date to, UUID userId, UUID accountId) {
         String sql = """
                 WITH latest_transactions AS (
                     SELECT
@@ -143,7 +143,7 @@ public class TransactionInsightsRepository {
         return jdbcTemplate.query(sql, SPENDING_PER_CATEGORY_BY_ACCOUNT_MAPPER, userId, from, to, accountId);
     }
 
-    public List<IncomeTotalByCurrencyDTO> findIncomeByInterval(Date from, Date to, UUID userId) {
+    public List<IncomeTotalByCurrencyDto> findIncomeByInterval(Date from, Date to, UUID userId) {
         String sql = """
                 WITH latest_transactions AS (
                     SELECT

@@ -5,16 +5,15 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Component;
 
 import com.batu.ai_assistant.client.TransactionCategoryClient;
-import com.batu.ai_assistant.dto.client.TransactionPrimaryCategoryDto;
+import com.batu.shared.dto.response.TransactionPrimaryCategoryDto;
+
+import lombok.RequiredArgsConstructor;
 
 @Component
+@RequiredArgsConstructor
 public class LookupTools {
 
     private final TransactionCategoryClient transactionCategoryClient;
-
-    public LookupTools(TransactionCategoryClient transactionCategoryClient) {
-        this.transactionCategoryClient = transactionCategoryClient;
-    }
 
     @Tool(name = "get_all_primary_categories", description = """
             Returns the authoritative list of primary transaction categories with their IDs. \

@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-import com.batu.ai_assistant.exception.AbstractApplicationException;
+import com.batu.shared.exception.AbstractApplicationException;
 
 @RestControllerAdvice
 public class ApplicationErrorAdvice extends ResponseEntityExceptionHandler {

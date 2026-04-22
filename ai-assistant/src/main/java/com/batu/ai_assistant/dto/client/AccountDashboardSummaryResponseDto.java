@@ -5,6 +5,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import com.batu.shared.dto.response.AccountBalanceDataPointDto;
+import com.batu.shared.dto.response.TransactionViewResponseDto;
+
 public record AccountDashboardSummaryResponseDto(
         UUID userId,
         PeriodDto period,

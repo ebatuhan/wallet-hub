@@ -1,7 +1,7 @@
 package com.batu.insights_service.controller;
 
-import com.batu.insights_service.dto.AccountBalanceDataPointDTO;
 import com.batu.insights_service.service.AccountInsightsService;
+import com.batu.shared.dto.response.AccountBalanceDataPointDto;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,18 +13,17 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import lombok.RequiredArgsConstructor;
+
 @RestController
 @RequestMapping("/api/insights")
+@RequiredArgsConstructor
 public class AccountInsightController {
 
     private final AccountInsightsService accountInsightService;
 
-    public AccountInsightController(AccountInsightsService accountInsightService) {
-        this.accountInsightService = accountInsightService;
-    }
-
     @GetMapping("/accounts/{accountId}/balance-history")
-    public ResponseEntity<List<AccountBalanceDataPointDTO>> getAccountBalanceHistory(
+    public ResponseEntity<List<AccountBalanceDataPointDto>> getAccountBalanceHistory(
             @PathVariable UUID accountId,
             @RequestParam LocalDate from,
             @RequestParam LocalDate to,

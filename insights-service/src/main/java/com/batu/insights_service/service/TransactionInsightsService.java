@@ -6,17 +6,15 @@ import java.util.UUID;
 
 import org.springframework.security.oauth2.jwt.Jwt;
 
-import com.batu.insights_service.dto.SpendingPerCategoryByAccountDTO;
-import com.batu.insights_service.dto.SpendingPerCategoryByAccountResponseDTO;
-import com.batu.insights_service.dto.SpendingPerCategoryDTO;
-import com.batu.insights_service.dto.SpendingPerCategoryResponseDTO;
-import com.batu.insights_service.dto.IncomeSummaryResponseDTO;
 import com.batu.insights_service.entity.TransactionInsightRow;
+import com.batu.shared.dto.response.IncomeSummaryResponseDto;
+import com.batu.shared.dto.response.SpendingPerCategoryByAccountResponseDto;
+import com.batu.shared.dto.response.SpendingPerCategoryResponseDto;
 
 public interface TransactionInsightsService {
-    SpendingPerCategoryByAccountResponseDTO getSpendingPerCategoryByAccount(Date from, Date to, UUID accountId, Jwt principal);
-    SpendingPerCategoryResponseDTO getSpendingByCategory(Date from, Date to, Jwt principal);
-    IncomeSummaryResponseDTO getIncome(Date from, Date to, Jwt principal);
+    SpendingPerCategoryByAccountResponseDto getSpendingPerCategoryByAccount(Date from, Date to, UUID accountId, Jwt principal);
+    SpendingPerCategoryResponseDto getSpendingByCategory(Date from, Date to, Jwt principal);
+    IncomeSummaryResponseDto getIncome(Date from, Date to, Jwt principal);
 
     void save(TransactionInsightRow transactionInsightRow);
 }

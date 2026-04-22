@@ -15,16 +15,7 @@ import java.util.UUID;
 public interface TransactionRepository extends JpaRepository<Transaction, UUID>, JpaSpecificationExecutor<Transaction> {
     Optional<Transaction> findByTransactionIdAndUserIdAndIsActiveTrue(UUID transactionId, UUID userId);
 
-    List<Transaction> findByAccountIdInAndIsActiveTrue(Collection<UUID> accountIds);
-
-    @Query("""
-            select transaction
-            from Transaction transaction
-            left join fetch transaction.detailedCategory detailedCategory
-            left join fetch detailedCategory.transactionPrimaryCategory primaryCategory
-            where transaction.transactionId in :transactionIds
-            """)
-    List<Transaction> findAllByTransactionIdInWithCategory(@Param("transactionIds") Collection<UUID> transactionIds);
+    List<Transaction> findByAccountIdAndIsActiveTrue(UUID accountId);
 
     @Query("""
             select transaction

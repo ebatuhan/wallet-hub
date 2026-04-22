@@ -10,17 +10,16 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
 import com.batu.ai_assistant.client.BudgetingClient;
-import com.batu.ai_assistant.dto.client.BudgetResponseDto;
 import com.batu.ai_assistant.dto.client.CreateBudgetRequestDto;
+import com.batu.shared.dto.response.BudgetResponseDto;
+
+import lombok.RequiredArgsConstructor;
 
 @Component
+@RequiredArgsConstructor
 public class BudgetTools {
 
     private final BudgetingClient budgetingClient;
-
-    public BudgetTools(BudgetingClient budgetingClient) {
-        this.budgetingClient = budgetingClient;
-    }
 
     @Tool(
         name = "get_budgets",

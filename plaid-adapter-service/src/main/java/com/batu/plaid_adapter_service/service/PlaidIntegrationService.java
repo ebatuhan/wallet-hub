@@ -1,22 +1,21 @@
 package com.batu.plaid_adapter_service.service;
 
-import org.springframework.security.oauth2.jwt.Jwt;
+import java.util.UUID;
 
-import com.batu.plaid_adapter_service.entity.Connection;
 import com.batu.shared.dto.request.ExchangeTokenRequestDto;
 import com.batu.shared.dto.request.LinkTokenRequestDto;
 import com.batu.shared.dto.response.ExchangeTokenResponseDto;
 import com.batu.shared.dto.response.LinkTokenResponseDto;
 
 public interface PlaidIntegrationService {
-    LinkTokenResponseDto createLinkToken(LinkTokenRequestDto linkTokenRequestDto, Jwt principal);
+    LinkTokenResponseDto createLinkToken(LinkTokenRequestDto linkTokenRequestDto, UUID userId);
 
-    ExchangeTokenResponseDto exchangeToken(ExchangeTokenRequestDto exchangeTokenRequestDto, Jwt principal);
+    ExchangeTokenResponseDto exchangeLinkToken(ExchangeTokenRequestDto exchangeTokenRequestDto, UUID userId);
 
-    ExchangeTokenResponseDto mockToken(Jwt principal);
+    ExchangeTokenResponseDto mockToken(UUID userId);
 
-    void syncAccountsAndTransactions(Connection connection);
+    void syncConnection(UUID connectionId);
 
-    void deactivateConnectionData(Connection connection);
+    void removeConnection(UUID connectionId, String reason);
 
 }

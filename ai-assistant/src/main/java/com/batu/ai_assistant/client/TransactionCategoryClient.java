@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 
-import com.batu.ai_assistant.dto.client.TransactionPrimaryCategoryDto;
+import com.batu.shared.dto.response.TransactionPrimaryCategoryDto;
 
 @FeignClient(name = "assistantTransactionCategories", url = "${transactionclient.url}")
 public interface TransactionCategoryClient {

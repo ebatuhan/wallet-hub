@@ -17,7 +17,6 @@ import lombok.Setter;
 public class AccountRequestDto {
 
     private UUID accountId;
-    private UUID connectionId;
     private UUID userId;
     private String institutionName;
     private String accountName;

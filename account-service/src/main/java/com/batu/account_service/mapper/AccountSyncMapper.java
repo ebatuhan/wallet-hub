@@ -16,7 +16,6 @@ public class AccountSyncMapper {
         return new Account(
                 request.getAccountId(),
                 request.getUserId(),
-                request.getConnectionId(),
                 request.getInstitutionName(),
                 request.getAccountName(),
                 request.getAccountType(),

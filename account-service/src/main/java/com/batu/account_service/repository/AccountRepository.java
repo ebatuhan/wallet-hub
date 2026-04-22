@@ -23,8 +23,6 @@ public interface AccountRepository extends JpaRepository<Account, UUID>, JpaSpec
 
     List<Account> findAllByAccountIdIn(Collection<UUID> accountIds);
 
-    List<Account> findByConnectionId(UUID connectionId);
-
     long countByUserIdAndIsActiveTrue(UUID userId);
 
     List<AccountNameResponseDto> findByAccountIdIn(Set<UUID> accountIds);

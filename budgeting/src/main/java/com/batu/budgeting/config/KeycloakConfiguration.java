@@ -19,8 +19,8 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
-import com.batu.budgeting.util.KeycloakRoleConverter;
-import com.batu.budgeting.util.KeycloakScopeConverter;
+import com.batu.shared.security.KeycloakRoleConverter;
+import com.batu.shared.security.KeycloakScopeConverter;
 
 @Configuration
 @EnableMethodSecurity
