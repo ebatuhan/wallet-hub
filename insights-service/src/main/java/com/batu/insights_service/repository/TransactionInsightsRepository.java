@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import com.batu.insights_service.entity.TransactionInsightRow;
 import com.batu.shared.dto.response.IncomeTotalByCurrencyDto;
+import com.batu.shared.dto.response.SpendingGraphPointDto;
 import com.batu.shared.dto.response.SpendingPerCategoryByAccountDto;
 import com.batu.shared.dto.response.SpendingPerCategoryDto;
 
@@ -46,6 +47,11 @@ public class TransactionInsightsRepository {
             new IncomeTotalByCurrencyDto(
                     rs.getString("iso_currency_code"),
                     rs.getBigDecimal("total_income"));
+
+    private static final RowMapper<SpendingGraphPointDto> SPENDING_GRAPH_POINT_MAPPER = (rs, rowNum) ->
+            new SpendingGraphPointDto(
+                    rs.getDate("bucket").toLocalDate(),
+                    rs.getBigDecimal("total_amount"));
 
     public TransactionInsightsRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
@@ -168,5 +174,46 @@ public class TransactionInsightsRepository {
                 ORDER BY latest_iso_currency_code ASC
                 """;
         return jdbcTemplate.query(sql, INCOME_TOTAL_BY_CURRENCY_MAPPER, userId, from, to);
+    }
+
+    public List<SpendingGraphPointDto> findSpendingGraphByInterval(Date from, Date to, UUID userId, String bucketExpression) {
+        String sql = spendingGraphQuery(bucketExpression, false);
+        return jdbcTemplate.query(sql, SPENDING_GRAPH_POINT_MAPPER, userId, from, to);
+    }
+
+    public List<SpendingGraphPointDto> findSpendingGraphByIntervalAndAccount(Date from, Date to, UUID userId, UUID accountId,
+            String bucketExpression) {
+        String sql = spendingGraphQuery(bucketExpression, true);
+        return jdbcTemplate.query(sql, SPENDING_GRAPH_POINT_MAPPER, userId, from, to, accountId);
+    }
+
+    private String spendingGraphQuery(String bucketExpression, boolean byAccount) {
+        String accountFilter = byAccount ? "AND account_id = ?" : "";
+
+        return String.format("""
+                WITH latest_transactions AS (
+                    SELECT
+                        transaction_id,
+                        argMax(account_id, updated_at) AS latest_account_id,
+                        argMax(user_id, updated_at) AS latest_user_id,
+                        argMax(date, updated_at) AS latest_date,
+                        argMax(amount, updated_at) AS latest_amount,
+                        argMax(is_outflow, updated_at) AS latest_is_outflow,
+                        argMax(is_active, updated_at) AS latest_is_active
+                    FROM clickhouse.transactions
+                    PREWHERE user_id = ?
+                      AND date BETWEEN ? AND ?
+                    %s
+                    GROUP BY transaction_id
+                )
+                SELECT
+                    %s AS bucket,
+                    SUM(abs(latest_amount)) AS total_amount
+                FROM latest_transactions
+                WHERE latest_is_active = 1
+                  AND latest_is_outflow = 1
+                GROUP BY bucket
+                ORDER BY bucket ASC
+                """, accountFilter, bucketExpression);
     }
 }

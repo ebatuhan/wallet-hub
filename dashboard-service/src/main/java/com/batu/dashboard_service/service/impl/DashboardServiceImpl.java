@@ -24,6 +24,7 @@ import com.batu.shared.dto.request.PrimaryCategoryIdsRequestDto;
 import com.batu.shared.dto.response.BudgetResponseDto;
 import com.batu.shared.dto.response.CursorResponse;
 import com.batu.shared.dto.response.IncomeSummaryResponseDto;
+import com.batu.shared.dto.response.SpendingGraphResponseDto;
 import com.batu.shared.dto.response.SpendingPerCategoryByAccountDto;
 import com.batu.shared.dto.response.SpendingPerCategoryByAccountResponseDto;
 import com.batu.shared.dto.response.SpendingPerCategoryDto;
@@ -62,11 +63,15 @@ public class DashboardServiceImpl implements DashboardService {
         SpendingPerCategoryResponseDto spendingResponse = insightsClient
                 .getSpendingByCategory(authorization, fromParam, toParam)
                 .getBody();
+        SpendingGraphResponseDto spendingGraph = insightsClient
+                .getSpendingGraph(authorization, fromParam, toParam)
+                .getBody();
         List<BudgetResponseDto> budgets = budgetingClient.getBudgets(authorization).getBody();
 
         var spendingSection = new UserDashboardSummaryResponseDto.SpendingSectionDto(
                 spendingResponse == null ? java.math.BigDecimal.ZERO : spendingResponse.totalSpent(),
-                enrichSpending(spendingResponse == null ? List.of() : spendingResponse.categories(), authorization));
+                enrichSpending(spendingResponse == null ? List.of() : spendingResponse.categories(), authorization),
+                spendingGraph);
 
         List<BudgetResponseDto> budgetItems = budgets == null ? List.of() : budgets.stream().limit(3).toList();
         long activeBudgetCount = budgets == null ? 0 : budgets.size();
@@ -101,13 +106,17 @@ public class DashboardServiceImpl implements DashboardService {
         SpendingPerCategoryByAccountResponseDto spendingResponse = insightsClient
                 .getSpendingByCategoryByAccount(authorization, accountId, fromParam, toParam)
                 .getBody();
+        SpendingGraphResponseDto spendingGraph = insightsClient
+                .getSpendingGraphByAccount(authorization, accountId, fromParam, toParam)
+                .getBody();
         CursorResponse<TransactionViewResponseDto> recentTransactions = transactionClient
                 .getTransactions(authorization, accountId, limit, null)
                 .getBody();
 
         var spendingSection = new UserDashboardSummaryResponseDto.SpendingSectionDto(
                 spendingResponse == null ? java.math.BigDecimal.ZERO : spendingResponse.totalSpent(),
-                enrichAccountSpending(spendingResponse == null ? List.of() : spendingResponse.categories(), authorization));
+                enrichAccountSpending(spendingResponse == null ? List.of() : spendingResponse.categories(), authorization),
+                spendingGraph);
 
         return new AccountDashboardSummaryResponseDto(
                 UUID.fromString(principal.getSubject()),

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.batu.shared.dto.response.AccountBalanceDataPointDto;
 import com.batu.shared.dto.response.IncomeSummaryResponseDto;
+import com.batu.shared.dto.response.SpendingGraphResponseDto;
 import com.batu.shared.dto.response.SpendingPerCategoryByAccountResponseDto;
 import com.batu.shared.dto.response.SpendingPerCategoryResponseDto;
 
@@ -24,6 +25,12 @@ public interface InsightsClient {
             @RequestParam("from") String from,
             @RequestParam("to") String to);
 
+    @GetMapping("/spendings/graph")
+    ResponseEntity<SpendingGraphResponseDto> getSpendingGraph(
+            @RequestHeader("Authorization") String authorization,
+            @RequestParam("from") String from,
+            @RequestParam("to") String to);
+
     @GetMapping("/income")
     ResponseEntity<IncomeSummaryResponseDto> getIncome(
             @RequestHeader("Authorization") String authorization,
@@ -32,6 +39,13 @@ public interface InsightsClient {
 
     @GetMapping("/spendings/{accountId}")
     ResponseEntity<SpendingPerCategoryByAccountResponseDto> getSpendingByCategoryByAccount(
+            @RequestHeader("Authorization") String authorization,
+            @PathVariable("accountId") UUID accountId,
+            @RequestParam("from") String from,
+            @RequestParam("to") String to);
+
+    @GetMapping("/spendings/graph/{accountId}")
+    ResponseEntity<SpendingGraphResponseDto> getSpendingGraphByAccount(
             @RequestHeader("Authorization") String authorization,
             @PathVariable("accountId") UUID accountId,
             @RequestParam("from") String from,

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.batu.insights_service.service.TransactionInsightsService;
 import com.batu.shared.dto.response.IncomeSummaryResponseDto;
+import com.batu.shared.dto.response.SpendingGraphResponseDto;
 import com.batu.shared.dto.response.SpendingPerCategoryByAccountResponseDto;
 import com.batu.shared.dto.response.SpendingPerCategoryResponseDto;
 
@@ -35,6 +36,14 @@ public class TransactionInsightsController {
         return ResponseEntity.ok(transactionInsightsService.getSpendingByCategory(from, to, principal));
     }
 
+    @GetMapping("/spendings/graph")
+    public ResponseEntity<SpendingGraphResponseDto> getSpendingGraph(
+            @RequestParam Date from,
+            @RequestParam Date to,
+            @AuthenticationPrincipal Jwt principal) {
+        return ResponseEntity.ok(transactionInsightsService.getSpendingGraph(from, to, principal));
+    }
+
     @GetMapping("/income")
     public ResponseEntity<IncomeSummaryResponseDto> getIncome(
             @RequestParam Date from,
@@ -43,13 +52,22 @@ public class TransactionInsightsController {
         return ResponseEntity.ok(transactionInsightsService.getIncome(from, to, principal));
     }
 
-        @GetMapping("/spendings/{accountId}")
+    @GetMapping("/spendings/{accountId}")
     public ResponseEntity<SpendingPerCategoryByAccountResponseDto> getSpendingByCategoryByAccount(
             @RequestParam Date from,
             @PathVariable UUID accountId,
             @RequestParam Date to,
             @AuthenticationPrincipal Jwt principal) {
         return ResponseEntity.ok(transactionInsightsService.getSpendingPerCategoryByAccount(from, to, accountId, principal));
+    }
+
+    @GetMapping("/spendings/graph/{accountId}")
+    public ResponseEntity<SpendingGraphResponseDto> getSpendingGraphByAccount(
+            @RequestParam Date from,
+            @PathVariable UUID accountId,
+            @RequestParam Date to,
+            @AuthenticationPrincipal Jwt principal) {
+        return ResponseEntity.ok(transactionInsightsService.getSpendingGraphByAccount(from, to, accountId, principal));
     }
 
 }
