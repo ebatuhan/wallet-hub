@@ -1,21 +1,21 @@
 package com.batu.account_service.repository.specs;
 
-import org.springframework.data.jpa.domain.Specification;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
+import org.springframework.data.jpa.domain.Specification;
 
 import com.batu.account_service.entity.Account;
 
 import jakarta.persistence.criteria.Predicate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
 
 public class AccountSpecification {
 
     public static Specification<Account> filter(
             UUID userId,
             String accountName,
-            String institutionId,
+            String institutionName,
             String accountType,
             String accountSubtype) {
 
@@ -29,16 +29,8 @@ public class AccountSpecification {
                 predicates.add(cb.like(cb.lower(root.get("accountName")), "%" + accountName.toLowerCase() + "%"));
             }
 
-            if (institutionId != null && !institutionId.isBlank()) {
-                try {
-
-                    UUID connectionUuid = UUID.fromString(institutionId);
-
-                    predicates.add(cb.equal(root.get("connectionId"), connectionUuid));
-                } catch (IllegalArgumentException e) {
-
-                    predicates.add(cb.disjunction());
-                }
+            if (institutionName != null && !institutionName.isBlank()) {
+                predicates.add(cb.like(cb.lower(root.get("institutionName")), "%" + institutionName.toLowerCase() + "%"));
             }
 
             if (accountType != null && !accountType.isBlank()) {

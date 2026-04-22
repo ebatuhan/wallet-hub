@@ -3,41 +3,56 @@ package com.batu.account_service.service.impl;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Window;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
-import com.batu.account_service.CursorResponse;
-
-import com.batu.account_service.dto.AccountResponseDto;
-import com.batu.account_service.dto.AccountViewDto;
+import com.batu.account_service.entity.Account;
 import com.batu.account_service.enums.AccountSortField;
 import com.batu.account_service.exception.ResourceNotFoundException;
+import com.batu.account_service.mapper.AccountSyncMapper;
+import com.batu.account_service.messaging.AccountsPersistedDomainEvent;
 import com.batu.account_service.repository.AccountRepository;
 import com.batu.account_service.repository.specs.AccountSpecification;
 import com.batu.account_service.service.AccountService;
-import com.batu.account_service.util.CursorUtils;
-import com.batu.shared.dto.AccountNameRequestDto;
-import com.batu.shared.dto.AccountNameResponseDto;
+import com.batu.shared.dto.request.AccountRequestDto;
+import com.batu.shared.dto.request.AccountNameRequestDto;
+import com.batu.shared.dto.response.AccountNameResponseDto;
+import com.batu.shared.dto.response.AccountResponseDto;
+import com.batu.shared.dto.response.AccountCurrencyTotalDto;
+import com.batu.shared.dto.response.AccountSummaryResponseDto;
+import com.batu.shared.dto.response.AccountViewDto;
+import com.batu.shared.dto.response.CursorResponse;
+import com.batu.shared.util.CursorUtils;
+
+import jakarta.transaction.Transactional;
 
 @Service
 public class AccountServiceImpl implements AccountService {
 
         private final AccountRepository accountRepository;
         private final CursorUtils cursorUtils;
+        private final ApplicationEventPublisher eventPublisher;
+        private final AccountSyncMapper accountSyncMapper;
 
-        public AccountServiceImpl(AccountRepository accountRepository, CursorUtils cursorUtils) {
+        public AccountServiceImpl(AccountRepository accountRepository,
+                        CursorUtils cursorUtils,
+                        ApplicationEventPublisher eventPublisher,
+                        AccountSyncMapper accountSyncMapper) {
                 this.accountRepository = accountRepository;
                 this.cursorUtils = cursorUtils;
+                this.eventPublisher = eventPublisher;
+                this.accountSyncMapper = accountSyncMapper;
         }
 
         @Override
         public CursorResponse<AccountViewDto> getAccountsViewPaginated(
                         Jwt principal,
                         String accountName,
-                        String institutionId,
+                        String institutionName,
                         String accountType,
                         String accountSubtype,
                         String cursor,
@@ -55,7 +70,7 @@ public class AccountServiceImpl implements AccountService {
                                 ? cursorUtils.decode(cursor)
                                 : ScrollPosition.keyset();
 
-                var spec = AccountSpecification.filter(userId, accountName, institutionId, accountType, accountSubtype);
+                var spec = AccountSpecification.filter(userId, accountName, institutionName, accountType, accountSubtype);
 
                 Window<AccountViewDto> accounts = accountRepository.findBy(spec, query -> query
                                 .as(AccountViewDto.class)
@@ -81,8 +96,76 @@ public class AccountServiceImpl implements AccountService {
         }
 
         @Override
+        public AccountSummaryResponseDto getAccountSummary(Jwt principal) {
+                UUID userId = UUID.fromString(principal.getSubject());
+
+                List<AccountCurrencyTotalDto> totalsByCurrency = accountRepository.summarizeActiveBalancesByCurrency(userId)
+                                .stream()
+                                .map(total -> new AccountCurrencyTotalDto(
+                                                total.getIsoCurrencyCode(),
+                                                total.getCurrentBalanceTotal(),
+                                                total.getAvailableBalanceTotal()))
+                                .toList();
+
+                return new AccountSummaryResponseDto(
+                                userId,
+                                accountRepository.countByUserIdAndIsActiveTrue(userId),
+                                totalsByCurrency);
+        }
+
+        @Override
         public List<AccountNameResponseDto> getAccountsByGivenIds(AccountNameRequestDto request) {
                 return accountRepository.findByAccountIdIn(request.getAccountIds());
+        }
+
+        @Override
+        @Transactional
+        public void create(AccountRequestDto request) {
+                Account account = accountSyncMapper.toEntity(request);
+                accountRepository.save(account);
+                publishPersistedEvents(List.of(account));
+        }
+
+        @Override
+        @Transactional
+        public void update(AccountRequestDto request) {
+                Account account = accountRepository.findByAccountIdAndUserId(
+                                request.getAccountId(),
+                                request.getUserId())
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Account with id " + request.getAccountId() + " not found"));
+
+                account.setInstitutionName(request.getInstitutionName());
+                account.setAccountName(request.getAccountName());
+                account.setAccountType(request.getAccountType());
+                account.setAccountSubtype(request.getAccountSubtype());
+                account.setAccountMask(request.getAccountMask());
+                account.setCurrentBalance(request.getCurrentBalance());
+                account.setAvailableBalance(request.getAvailableBalance());
+                account.setIsoCurrencyCode(request.getIsoCurrencyCode());
+                account.setActive(request.isActive());
+
+                accountRepository.save(account);
+                publishPersistedEvents(List.of(account));
+        }
+
+        @Override
+        @Transactional
+        public void deactivate(UUID accountId) {
+                Account account = accountRepository.findById(accountId)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Account with id " + accountId + " not found"));
+
+                account.setActive(false);
+                accountRepository.save(account);
+                publishPersistedEvents(List.of(account));
+        }
+
+        private void publishPersistedEvents(List<Account> accounts) {
+                eventPublisher.publishEvent(new AccountsPersistedDomainEvent(
+                                accounts.stream()
+                                                .map(accountSyncMapper::toPersistedEvent)
+                                                .toList()));
         }
 
 }

@@ -58,6 +58,34 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres-consent:
+    image: postgres:15
+    container_name: postgres-consent
+    env_file: config/.postgres-consent
+    ports:
+      - "${POSTGRES_CONSENT_PORT}:5432"
+    volumes:
+      - postgres-consent-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-budgeting:
+    image: postgres:15
+    container_name: postgres-budgeting
+    env_file: config/.postgres-budgeting
+    ports:
+      - "${POSTGRES_BUDGETING_PORT}:5432"
+    volumes:
+      - postgres-budgeting-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   keycloak:
     image: quay.io/keycloak/keycloak:23.0
     container_name: keycloak
@@ -84,7 +112,23 @@ services:
     volumes:
       - ./plaid-adapter-service:/app
       - ./shared:/shared
-      - maven-repo:/root/.m2
+      - ~/.m2:/root/.m2
+
+  consent-service:
+    build:
+      context: .
+      dockerfile: consent-service/Dockerfile
+    container_name: consent-service
+    env_file: config/.consent-service
+    ports:
+      - "${CONSENT_SERVICE_PORT}:8092"
+    depends_on:
+      postgres-consent:
+        condition: service_healthy
+    volumes:
+      - ./consent-service:/app
+      - ./shared:/shared
+      - ~/.m2:/root/.m2
 
   account-service:
     build:
@@ -97,10 +141,12 @@ services:
     depends_on:
       postgres-account:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     volumes:
       - ./account-service:/app
       - ./shared:/shared
-      - maven-repo:/root/.m2
+      - ~/.m2:/root/.m2
 
   transaction-service:
     build:
@@ -113,10 +159,90 @@ services:
     depends_on:
       postgres-transaction:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     volumes:
       - ./transaction-service:/app
       - ./shared:/shared
-      - maven-repo:/root/.m2
+      - ~/.m2:/root/.m2
+
+  insights-service:
+    build:
+      context: .
+      dockerfile: insights-service/Dockerfile
+    container_name: insights-service
+    env_file: config/.insights-service
+    ports:
+      - "${INSIGHTS_SERVICE_PORT}:8088"
+    depends_on:
+      clickhouse-insights:
+        condition: service_healthy
+    #  rabbitmq:
+  #      condition: service_healthy
+    volumes:
+      - ./insights-service:/app
+      - ./shared:/shared
+      - ~/.m2:/root/.m2
+
+  budgeting-service:
+    build:
+      context: .
+      dockerfile: budgeting/Dockerfile
+    container_name: budgeting-service
+    env_file: config/.budgeting
+    ports:
+      - "${BUDGETING_SERVICE_PORT}:8089"
+    depends_on:
+      postgres-budgeting:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./budgeting:/app
+      - ./shared:/shared
+      - ~/.m2:/root/.m2
+
+  dashboard-service:
+    build:
+      context: .
+      dockerfile: dashboard-service/Dockerfile
+    container_name: dashboard-service
+    env_file: config/.dashboard
+    ports:
+      - "${DASHBOARD_SERVICE_PORT}:8090"
+    volumes:
+      - ./dashboard-service:/app
+      - ./shared:/shared
+      - ~/.m2:/root/.m2
+
+  ai-assistant-service:
+    build:
+      context: .
+      dockerfile: ai-assistant/Dockerfile
+    container_name: ai-assistant-service
+    env_file: config/.ai-assistant
+    ports:
+      - "${AI_ASSISTANT_SERVICE_PORT}:8091"
+    volumes:
+      - ./ai-assistant:/app
+      - ./shared:/shared
+      - ~/.m2:/root/.m2
+
+  clickhouse-insights:
+    image: clickhouse/clickhouse-server:26.2
+    container_name: clickhouse-insights
+    ports:
+      - "${CLICKHOUSE_HTTP_PORT}:8123"
+      - "${CLICKHOUSE_NATIVE_PORT}:9000"
+    env_file: config/.clickhouse-insights
+    volumes:
+      - clickhouse-insights-data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   api-gateway:
     build:
@@ -129,11 +255,31 @@ services:
     volumes:
       - ./api-gateway:/app
       - ./shared:/shared
-      - maven-repo:/root/.m2
+      - ~/.m2:/root/.m2
+    
+
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
 
 volumes:
   postgres-plaid-data:
   postgres-keycloak-data:
   postgres-transaction-data:
+  postgres-consent-data:
+  postgres-budgeting-data:
   postgres-account-data:
   maven-repo:
+  rabbitmq-data:
+  clickhouse-insights-data:

@@ -7,8 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-import com.batu.shared.dto.AccountNameRequestDto;
-import com.batu.shared.dto.AccountNameResponseDto;
+import com.batu.shared.dto.request.AccountNameRequestDto;
+import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.transaction_service.config.ClientCredentialsFeignConfiguration;
 
 @FeignClient(name = "accounts", url = "${accountclient.url}", fallback = AccountServiceClientFallback.class, configuration = ClientCredentialsFeignConfiguration.class)

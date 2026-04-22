@@ -18,11 +18,15 @@ import java.util.UUID;
 
 public class TransactionSpecs {
 
- public static Specification<Transaction> withDynamicFilters(UUID userId, String primaryCategoryCode) {
+ public static Specification<Transaction> withDynamicFilters(UUID userId,UUID accountId, String primaryCategoryCode) {
     return (root, query, cb) -> {
         List<Predicate> predicates = new ArrayList<>();
         predicates.add(cb.equal(root.get("userId"), userId));
         predicates.add(cb.equal(root.get("isActive"), true));
+        
+        if(accountId != null){
+            predicates.add(cb.equal(root.get("accountId"), accountId));
+        }
 
         if (Transaction.class.equals(query.getResultType())) {
             

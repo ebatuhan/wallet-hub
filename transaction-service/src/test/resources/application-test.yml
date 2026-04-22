@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:transaction-test-db;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  rabbitmq:
+    dynamic: false
+    listener:
+      simple:
+        auto-startup: false
+      direct:
+        auto-startup: false
+  flyway:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+server:
+  port: 0

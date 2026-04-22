@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: consent-service
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5435/consent_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/certs
+      client:
+        registration:
+          keycloak:
+            provider: keycloak
+            client-id: consent-service
+            client-secret: ${CONSENT_SERVICE_CLIENT_SECRET:consent-service-secret}
+            authorization-grant-type: client_credentials
+            scope: openid
+        provider:
+          keycloak:
+            token-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/token
+
+server:
+  port: ${CONSENT_SERVICE_PORT:8092}
+
+plaidadapterclient:
+  url: ${PLAID_ADAPTER_SERVICE_URL:http://localhost:8082}

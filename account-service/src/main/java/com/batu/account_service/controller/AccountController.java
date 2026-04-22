@@ -12,6 +12,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -20,25 +21,25 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
-import com.batu.account_service.CursorResponse;
-
-import com.batu.account_service.dto.AccountResponseDto;
-import com.batu.account_service.dto.AccountViewDto;
 import com.batu.account_service.enums.AccountSortField;
 import com.batu.account_service.service.AccountService;
-import com.batu.shared.dto.AccountNameRequestDto;
-import com.batu.shared.dto.AccountNameResponseDto;
+import com.batu.shared.dto.request.AccountRequestDto;
+import com.batu.shared.dto.request.AccountNameRequestDto;
+import com.batu.shared.dto.response.AccountNameResponseDto;
+import com.batu.shared.dto.response.AccountResponseDto;
+import com.batu.shared.dto.response.AccountSummaryResponseDto;
+import com.batu.shared.dto.response.AccountViewDto;
+import com.batu.shared.dto.response.CursorResponse;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/accounts")
 @Validated
+@RequiredArgsConstructor
 public class AccountController {
 
     private final AccountService accountService;
-
-    public AccountController(AccountService accountService) {
-        this.accountService = accountService;
-    }
 
     @GetMapping("/{accountId}")
     public ResponseEntity<AccountResponseDto> getAccount(
@@ -48,18 +49,48 @@ public class AccountController {
         return ResponseEntity.ok(account);
     }
 
+    @GetMapping("/summary")
+    public ResponseEntity<AccountSummaryResponseDto> getAccountSummary(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(accountService.getAccountSummary(jwt));
+    }
+
     @PostMapping("/batch")
     @PreAuthorize("hasAuthority('ROLE_SERVICE')")
     public ResponseEntity<List<AccountNameResponseDto>> getAccountsByGivenIds(@RequestBody AccountNameRequestDto request){
         return ResponseEntity.ok(accountService.getAccountsByGivenIds(request));
     } 
 
+    @PostMapping("/internal")
+    @PreAuthorize("hasAuthority('ROLE_SERVICE')")
+    public ResponseEntity<Void> create(@RequestBody AccountRequestDto request) {
+        accountService.create(request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/internal/{accountId}")
+    @PreAuthorize("hasAuthority('ROLE_SERVICE')")
+    public ResponseEntity<Void> update(@PathVariable UUID accountId, @RequestBody AccountRequestDto request) {
+        if (!accountId.equals(request.getAccountId())) {
+            throw new IllegalArgumentException("Account id mismatch");
+        }
+
+        accountService.update(request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/internal/{accountId}/deactivate")
+    @PreAuthorize("hasAuthority('ROLE_SERVICE')")
+    public ResponseEntity<Void> deactivate(@PathVariable UUID accountId) {
+        accountService.deactivate(accountId);
+        return ResponseEntity.noContent().build();
+    }
+
 
     @GetMapping
     public ResponseEntity<CursorResponse<AccountViewDto>> getAllAccounts(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) String accountName,
-            @RequestParam(required = false) String connectionId,
+            @RequestParam(required = false) String institutionName,
             @RequestParam(required = false) String accountType,
             @RequestParam(required = false) String accountSubtype,
             @RequestParam(required = false) String cursor,
@@ -72,7 +103,7 @@ public class AccountController {
         CursorResponse<AccountViewDto> response = accountService.getAccountsViewPaginated(
                 jwt,
                 accountName,
-                connectionId,
+                institutionName,
                 accountType,
                 accountSubtype,
                 cursor,

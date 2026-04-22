@@ -6,8 +6,8 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
-import com.batu.shared.dto.AccountNameRequestDto;
-import com.batu.shared.dto.AccountNameResponseDto;
+import com.batu.shared.dto.request.AccountNameRequestDto;
+import com.batu.shared.dto.response.AccountNameResponseDto;
 
 @Component
 public class AccountServiceClientFallback implements AccountServiceClient {

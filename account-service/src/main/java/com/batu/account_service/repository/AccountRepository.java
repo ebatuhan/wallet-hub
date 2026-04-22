@@ -1,5 +1,7 @@
 package com.batu.account_service.repository;
 
+import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -8,14 +10,39 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
-import com.batu.account_service.dto.AccountResponseDto;
 import com.batu.account_service.entity.Account;
-import com.batu.shared.dto.AccountNameResponseDto;
+import com.batu.shared.dto.response.AccountNameResponseDto;
+import com.batu.shared.dto.response.AccountResponseDto;
 
-public interface AccountRepository extends JpaRepository<Account, UUID>, JpaSpecificationExecutor<Account>{
+public interface AccountRepository extends JpaRepository<Account, UUID>, JpaSpecificationExecutor<Account> {
     Optional<AccountResponseDto> findByAccountIdAndUserIdAndIsActiveTrue(UUID accountId, UUID userId);
+
+    Optional<Account> findByAccountIdAndUserId(UUID accountId, UUID userId);
+
+    List<Account> findAllByAccountIdIn(Collection<UUID> accountIds);
+
+    long countByUserIdAndIsActiveTrue(UUID userId);
 
     List<AccountNameResponseDto> findByAccountIdIn(Set<UUID> accountIds);
 
+    @Query("""
+            select account.isoCurrencyCode as isoCurrencyCode,
+                   sum(account.currentBalance) as currentBalanceTotal,
+                   sum(account.availableBalance) as availableBalanceTotal
+            from Account account
+            where account.userId = :userId
+              and account.isActive = true
+            group by account.isoCurrencyCode
+            """)
+    List<AccountCurrencyTotalProjection> summarizeActiveBalancesByCurrency(@Param("userId") UUID userId);
+
+    interface AccountCurrencyTotalProjection {
+        String getIsoCurrencyCode();
+
+        BigDecimal getCurrentBalanceTotal();
+
+        BigDecimal getAvailableBalanceTotal();
+    }
 }
