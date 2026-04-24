@@ -15,18 +15,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URL:http://localhost:8080}/realms/keycloak-realm
           jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/certs
-      client:
-        registration:
-          keycloak:
-            provider: keycloak
-            client-id: consent-service
-            client-secret: ${CONSENT_SERVICE_CLIENT_SECRET:consent-service-secret}
-            authorization-grant-type: client_credentials
-            scope: openid
-        provider:
-          keycloak:
-            token-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/token
 
 server:
   port: ${CONSENT_SERVICE_PORT:8092}

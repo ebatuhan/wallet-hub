@@ -2,7 +2,7 @@ package com.batu.budgeting.exception;
 
 import org.springframework.http.HttpStatus;
 
-import com.batu.shared.exception.AbstractApplicationException;
+import com.batu.budgeting.exception.AbstractApplicationException;
 
 public class ResourceNotFoundException extends AbstractApplicationException {
     public ResourceNotFoundException(String message) {

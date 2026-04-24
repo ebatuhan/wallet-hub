@@ -55,4 +55,4 @@ echo "Webhook URL: $PLAID_WEBHOOK_URL"
 echo "------------------------------------------------"
 
 echo "Starting Spring Boot Application..."
-exec mvn spring-boot:run -Dspring-boot.run.profiles=dev
+exec mvn clean spring-boot:run -Dspring-boot.run.profiles=dev

@@ -1,4 +1,4 @@
-package com.batu.shared.security;
+package com.batu.consent_service.util;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -13,10 +13,8 @@ import org.springframework.security.oauth2.jwt.Jwt;
 public class KeycloakScopeConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
 
     @Override
-    @SuppressWarnings("unchecked")
     public Collection<GrantedAuthority> convert(Jwt jwt) {
         Set<GrantedAuthority> authorities = new HashSet<>();
-
         String scopeAsString = jwt.getClaimAsString("scope");
         if (scopeAsString != null) {
             Arrays.stream(scopeAsString.split(" "))

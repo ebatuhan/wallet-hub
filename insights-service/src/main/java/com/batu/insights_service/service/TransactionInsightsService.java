@@ -14,10 +14,15 @@ import com.batu.shared.dto.response.SpendingPerCategoryResponseDto;
 
 public interface TransactionInsightsService {
     SpendingPerCategoryByAccountResponseDto getSpendingPerCategoryByAccount(Date from, Date to, UUID accountId, Jwt principal);
+    SpendingPerCategoryByAccountResponseDto getSpendingPerCategoryByAccount(Date from, Date to, UUID accountId, UUID userId);
     SpendingPerCategoryResponseDto getSpendingByCategory(Date from, Date to, Jwt principal);
+    SpendingPerCategoryResponseDto getSpendingByCategory(Date from, Date to, UUID userId);
     SpendingGraphResponseDto getSpendingGraph(Date from, Date to, Jwt principal);
+    SpendingGraphResponseDto getSpendingGraph(Date from, Date to, UUID userId);
     SpendingGraphResponseDto getSpendingGraphByAccount(Date from, Date to, UUID accountId, Jwt principal);
+    SpendingGraphResponseDto getSpendingGraphByAccount(Date from, Date to, UUID accountId, UUID userId);
     IncomeSummaryResponseDto getIncome(Date from, Date to, Jwt principal);
+    IncomeSummaryResponseDto getIncome(Date from, Date to, UUID userId);
 
     void save(TransactionInsightRow transactionInsightRow);
 }

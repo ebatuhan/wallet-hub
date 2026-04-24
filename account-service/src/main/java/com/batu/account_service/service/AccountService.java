@@ -29,7 +29,11 @@ public interface AccountService {
 
     AccountResponseDto getAccount(UUID accountId, Jwt principal);
 
+    AccountResponseDto getAccount(UUID accountId, UUID userId);
+
     AccountSummaryResponseDto getAccountSummary(Jwt principal);
+
+    AccountSummaryResponseDto getAccountSummary(UUID userId);
 
     List<AccountNameResponseDto> getAccountsByGivenIds(AccountNameRequestDto request);
 

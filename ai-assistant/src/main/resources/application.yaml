@@ -15,6 +15,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URL:http://localhost:8080}/realms/keycloak-realm
           jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/certs
 
 logging:
@@ -24,6 +25,8 @@ logging:
       reactor.netty.http.client: DEBUG
       reactor.netty.transport: DEBUG
 assistant:
+  guard:
+    model: ${OLLAMA_GUARD_MODEL:${OLLAMA_MODEL}}
   ollama:
     keep-alive: ${OLLAMA_KEEP_ALIVE:30m}
     thinking-mode: ${OLLAMA_THINKING_MODE:ENABLED}

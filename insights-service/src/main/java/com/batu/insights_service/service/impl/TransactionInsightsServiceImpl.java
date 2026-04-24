@@ -35,17 +35,24 @@ public class TransactionInsightsServiceImpl implements TransactionInsightsServic
 
     @Override
     public SpendingPerCategoryResponseDto getSpendingByCategory(Date from, Date to, Jwt principal) {
-        validateDateRange(from, to);
-        UUID userId = UUID.fromString(principal.getSubject());
+        return getSpendingByCategory(from, to, UUID.fromString(principal.getSubject()));
+    }
 
+    @Override
+    public SpendingPerCategoryResponseDto getSpendingByCategory(Date from, Date to, UUID userId) {
+        validateDateRange(from, to);
         List<SpendingPerCategoryDto> categories = transactionInsightsRepository.findByInterval(from, to, userId);
         return new SpendingPerCategoryResponseDto(userId, totalSpent(categories), categories);
     }
 
     @Override
     public SpendingGraphResponseDto getSpendingGraph(Date from, Date to, Jwt principal) {
+        return getSpendingGraph(from, to, UUID.fromString(principal.getSubject()));
+    }
+
+    @Override
+    public SpendingGraphResponseDto getSpendingGraph(Date from, Date to, UUID userId) {
         validateDateRange(from, to);
-        UUID userId = UUID.fromString(principal.getSubject());
         LocalDate fromDate = from.toLocalDate();
         LocalDate toDate = to.toLocalDate();
         GraphGranularity granularity = determineGranularity(fromDate, toDate);
@@ -61,8 +68,12 @@ public class TransactionInsightsServiceImpl implements TransactionInsightsServic
 
     @Override
     public SpendingGraphResponseDto getSpendingGraphByAccount(Date from, Date to, UUID accountId, Jwt principal) {
+        return getSpendingGraphByAccount(from, to, accountId, UUID.fromString(principal.getSubject()));
+    }
+
+    @Override
+    public SpendingGraphResponseDto getSpendingGraphByAccount(Date from, Date to, UUID accountId, UUID userId) {
         validateDateRange(from, to);
-        UUID userId = UUID.fromString(principal.getSubject());
         LocalDate fromDate = from.toLocalDate();
         LocalDate toDate = to.toLocalDate();
         GraphGranularity granularity = determineGranularity(fromDate, toDate);
@@ -84,18 +95,33 @@ public class TransactionInsightsServiceImpl implements TransactionInsightsServic
     @Override
     public SpendingPerCategoryByAccountResponseDto getSpendingPerCategoryByAccount(Date from, Date to, UUID accountId,
             Jwt principal) {
+        return getSpendingPerCategoryByAccount(from, to, accountId, UUID.fromString(principal.getSubject()));
+    }
 
+    @Override
+    public SpendingPerCategoryByAccountResponseDto getSpendingPerCategoryByAccount(Date from, Date to, UUID accountId,
+            UUID userId) {
         validateDateRange(from, to);
-        UUID userId = UUID.fromString(principal.getSubject());
-        List<SpendingPerCategoryByAccountDto> categories = transactionInsightsRepository.findByIntervalAndAccount(from, to, userId, accountId);
-        return new SpendingPerCategoryByAccountResponseDto(userId, accountId, totalSpentByAccount(categories), categories);
-
+        List<SpendingPerCategoryByAccountDto> categories = transactionInsightsRepository.findByIntervalAndAccount(
+                from,
+                to,
+                userId,
+                accountId);
+        return new SpendingPerCategoryByAccountResponseDto(
+                userId,
+                accountId,
+                totalSpentByAccount(categories),
+                categories);
     }
 
     @Override
     public IncomeSummaryResponseDto getIncome(Date from, Date to, Jwt principal) {
+        return getIncome(from, to, UUID.fromString(principal.getSubject()));
+    }
+
+    @Override
+    public IncomeSummaryResponseDto getIncome(Date from, Date to, UUID userId) {
         validateDateRange(from, to);
-        UUID userId = UUID.fromString(principal.getSubject());
         return new IncomeSummaryResponseDto(userId, transactionInsightsRepository.findIncomeByInterval(from, to, userId));
     }
 

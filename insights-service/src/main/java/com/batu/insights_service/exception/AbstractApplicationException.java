@@ -1,10 +1,7 @@
-package com.batu.shared.exception;
+package com.batu.insights_service.exception;
 
 import org.springframework.http.HttpStatus;
 
-import lombok.Getter;
-
-@Getter
 public abstract class AbstractApplicationException extends RuntimeException {
 
     private final String code;
@@ -14,5 +11,13 @@ public abstract class AbstractApplicationException extends RuntimeException {
         super(message);
         this.code = code;
         this.httpStatus = httpStatus;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public HttpStatus getHttpStatus() {
+        return httpStatus;
     }
 }

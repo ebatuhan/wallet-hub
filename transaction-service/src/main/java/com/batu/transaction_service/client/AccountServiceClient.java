@@ -9,9 +9,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import com.batu.shared.dto.request.AccountNameRequestDto;
 import com.batu.shared.dto.response.AccountNameResponseDto;
-import com.batu.transaction_service.config.ClientCredentialsFeignConfiguration;
 
-@FeignClient(name = "accounts", url = "${accountclient.url}", fallback = AccountServiceClientFallback.class, configuration = ClientCredentialsFeignConfiguration.class)
+@FeignClient(name = "accounts", url = "${accountclient.url}", fallback = AccountServiceClientFallback.class)
 public interface AccountServiceClient {
     @PostMapping("/batch")
     ResponseEntity<List<AccountNameResponseDto>> getAccountNames(

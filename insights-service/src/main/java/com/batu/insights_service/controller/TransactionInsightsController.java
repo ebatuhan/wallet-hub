@@ -1,7 +1,6 @@
 package com.batu.insights_service.controller;
 
 import java.sql.Date;
-import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
@@ -69,5 +68,4 @@ public class TransactionInsightsController {
             @AuthenticationPrincipal Jwt principal) {
         return ResponseEntity.ok(transactionInsightsService.getSpendingGraphByAccount(from, to, accountId, principal));
     }
-
 }

@@ -21,7 +21,6 @@ import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.shared.dto.response.CursorResponse;
 import com.batu.shared.dto.response.TransactionDto;
 import com.batu.shared.dto.response.TransactionViewResponseDto;
-import com.batu.shared.util.CursorUtils;
 import com.batu.transaction_service.client.AccountServiceClient;
 import com.batu.transaction_service.entity.Transaction;
 import com.batu.transaction_service.entity.TransactionDetailedCategory;
@@ -32,6 +31,7 @@ import com.batu.transaction_service.repository.TransactionRepository;
 import com.batu.transaction_service.repository.spec.TransactionSpecs;
 import com.batu.transaction_service.service.DetailedCategoryService;
 import com.batu.transaction_service.service.TransactionService;
+import com.batu.transaction_service.util.CursorUtils;
 
 @Service
 public class TransactionServiceImpl implements TransactionService {
@@ -60,9 +60,14 @@ public class TransactionServiceImpl implements TransactionService {
         public CursorResponse<TransactionViewResponseDto> transactions(Jwt principal, String category, UUID accountId,
                         String cursor,
                         int limit) {
+                return transactions(UUID.fromString(principal.getSubject()), category, accountId, cursor, limit);
+        }
 
-                UUID userId = UUID.fromString(principal.getSubject());
-
+        @Override
+        @Transactional(readOnly = true)
+        public CursorResponse<TransactionViewResponseDto> transactions(UUID userId, String category, UUID accountId,
+                        String cursor,
+                        int limit) {
                 Specification<Transaction> spec = TransactionSpecs.withDynamicFilters(userId, accountId, category);
 
                 Sort sort = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("transactionId"));
@@ -119,7 +124,11 @@ public class TransactionServiceImpl implements TransactionService {
 
         @Override
         public TransactionDto getTransactionById(Jwt principal, UUID transactionId) {
-                UUID userId = UUID.fromString(principal.getSubject());
+                return getTransactionById(UUID.fromString(principal.getSubject()), transactionId);
+        }
+
+        @Override
+        public TransactionDto getTransactionById(UUID userId, UUID transactionId) {
                 Transaction transaction = transactionRepository
                                 .findByTransactionIdAndUserIdWithCategory(transactionId, userId)
                                 .filter(Transaction::isActive)

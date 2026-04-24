@@ -1,4 +1,4 @@
-package com.batu.shared.exception;
+package com.batu.transaction_service.exception;
 
 import org.springframework.http.HttpStatus;
 

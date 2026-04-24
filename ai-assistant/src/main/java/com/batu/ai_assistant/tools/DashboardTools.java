@@ -1,7 +1,5 @@
 package com.batu.ai_assistant.tools;
 
-import java.util.UUID;
-
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -33,7 +31,7 @@ public class DashboardTools {
             @ToolParam(required = false, description = "Start date in yyyy-MM-dd format. Omit to use the first day of the current month.") String from,
             @ToolParam(required = false, description = "End date in yyyy-MM-dd format. Omit to use today's date.") String to,
             ToolContext toolContext) {
-        return dashboardClient.getSummary(authorization(toolContext), from, to).getBody();
+        return dashboardClient.getSummary(from, to).getBody();
     }
 
     @Tool(
@@ -49,14 +47,9 @@ public class DashboardTools {
             @ToolParam(required = false, description = "End date in yyyy-MM-dd format. Omit to use today's date.") String to,
             ToolContext toolContext) {
         return dashboardClient.getAccountSummary(
-                authorization(toolContext),
-                UUID.fromString(accountId),
+                java.util.UUID.fromString(accountId),
                 from,
                 to)
                 .getBody();
-    }
-
-    private String authorization(ToolContext toolContext) {
-        return toolContext.getContext().get("authorization").toString();
     }
 }

@@ -221,6 +221,8 @@ services:
       dockerfile: ai-assistant/Dockerfile
     container_name: ai-assistant-service
     env_file: config/.ai-assistant
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "${AI_ASSISTANT_SERVICE_PORT}:8091"
     volumes:

@@ -47,30 +47,24 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     public UserDashboardSummaryResponseDto getUserSummary(LocalDate from, LocalDate to, Integer recentLimit, Jwt principal) {
+        UUID userId = UUID.fromString(principal.getSubject());
         LocalDate[] range = resolveRange(from, to);
         int limit = recentLimit == null ? 5 : recentLimit;
-        String authorization = bearer(principal);
         String fromParam = range[0].format(ISO_DATE);
         String toParam = range[1].format(ISO_DATE);
 
-        var accountSummary = accountClient.getAccountSummary(authorization).getBody();
+        var accountSummary = accountClient.getAccountSummary().getBody();
         CursorResponse<TransactionViewResponseDto> recentTransactions = transactionClient
-                .getTransactions(authorization, null, limit, null)
+                .getTransactions(null, limit, null)
                 .getBody();
-        IncomeSummaryResponseDto incomeResponse = insightsClient
-                .getIncome(authorization, fromParam, toParam)
-                .getBody();
-        SpendingPerCategoryResponseDto spendingResponse = insightsClient
-                .getSpendingByCategory(authorization, fromParam, toParam)
-                .getBody();
-        SpendingGraphResponseDto spendingGraph = insightsClient
-                .getSpendingGraph(authorization, fromParam, toParam)
-                .getBody();
-        List<BudgetResponseDto> budgets = budgetingClient.getBudgets(authorization).getBody();
+        IncomeSummaryResponseDto incomeResponse = insightsClient.getIncome(fromParam, toParam).getBody();
+        SpendingPerCategoryResponseDto spendingResponse = insightsClient.getSpendingByCategory(fromParam, toParam).getBody();
+        SpendingGraphResponseDto spendingGraph = insightsClient.getSpendingGraph(fromParam, toParam).getBody();
+        List<BudgetResponseDto> budgets = budgetingClient.getBudgets().getBody();
 
         var spendingSection = new UserDashboardSummaryResponseDto.SpendingSectionDto(
                 spendingResponse == null ? java.math.BigDecimal.ZERO : spendingResponse.totalSpent(),
-                enrichSpending(spendingResponse == null ? List.of() : spendingResponse.categories(), authorization),
+                enrichSpending(spendingResponse == null ? List.of() : spendingResponse.categories()),
                 spendingGraph);
 
         List<BudgetResponseDto> budgetItems = budgets == null ? List.of() : budgets.stream().limit(3).toList();
@@ -79,7 +73,7 @@ public class DashboardServiceImpl implements DashboardService {
                 : budgets.stream().filter(budget -> budget.spentAmount().compareTo(budget.limitAmount()) > 0).count();
 
         return new UserDashboardSummaryResponseDto(
-                UUID.fromString(principal.getSubject()),
+                userId,
                 new UserDashboardSummaryResponseDto.PeriodDto(range[0], range[1]),
                 accountSummary,
                 new UserDashboardSummaryResponseDto.IncomeSectionDto(
@@ -95,31 +89,31 @@ public class DashboardServiceImpl implements DashboardService {
     @Override
     public AccountDashboardSummaryResponseDto getAccountSummary(UUID accountId, LocalDate from, LocalDate to,
             Integer recentLimit, Jwt principal) {
+        UUID userId = UUID.fromString(principal.getSubject());
         LocalDate[] range = resolveRange(from, to);
         int limit = recentLimit == null ? 10 : recentLimit;
-        String authorization = bearer(principal);
         String fromParam = range[0].format(ISO_DATE);
         String toParam = range[1].format(ISO_DATE);
 
-        var account = accountClient.getAccount(authorization, accountId).getBody();
-        var balanceHistory = insightsClient.getAccountBalanceHistory(authorization, accountId, fromParam, toParam).getBody();
+        var account = accountClient.getAccount(accountId).getBody();
+        var balanceHistory = insightsClient.getAccountBalanceHistory(accountId, fromParam, toParam).getBody();
         SpendingPerCategoryByAccountResponseDto spendingResponse = insightsClient
-                .getSpendingByCategoryByAccount(authorization, accountId, fromParam, toParam)
+                .getSpendingByCategoryByAccount(accountId, fromParam, toParam)
                 .getBody();
         SpendingGraphResponseDto spendingGraph = insightsClient
-                .getSpendingGraphByAccount(authorization, accountId, fromParam, toParam)
+                .getSpendingGraphByAccount(accountId, fromParam, toParam)
                 .getBody();
         CursorResponse<TransactionViewResponseDto> recentTransactions = transactionClient
-                .getTransactions(authorization, accountId, limit, null)
+                .getTransactions(accountId, limit, null)
                 .getBody();
 
         var spendingSection = new UserDashboardSummaryResponseDto.SpendingSectionDto(
                 spendingResponse == null ? java.math.BigDecimal.ZERO : spendingResponse.totalSpent(),
-                enrichAccountSpending(spendingResponse == null ? List.of() : spendingResponse.categories(), authorization),
+                enrichAccountSpending(spendingResponse == null ? List.of() : spendingResponse.categories()),
                 spendingGraph);
 
         return new AccountDashboardSummaryResponseDto(
-                UUID.fromString(principal.getSubject()),
+                userId,
                 new UserDashboardSummaryResponseDto.PeriodDto(range[0], range[1]),
                 account,
                 balanceHistory == null ? List.of() : balanceHistory,
@@ -130,10 +124,9 @@ public class DashboardServiceImpl implements DashboardService {
                         recentTransactions == null ? null : recentTransactions.getNextCursor()));
     }
 
-    private List<SpendingCategoryItemDto> enrichSpending(List<SpendingPerCategoryDto> categories, String authorization) {
+    private List<SpendingCategoryItemDto> enrichSpending(List<SpendingPerCategoryDto> categories) {
         Map<UUID, TransactionPrimaryCategoryDto> categoryMetadata = loadCategoryMetadata(
-                categories.stream().map(SpendingPerCategoryDto::primaryCategoryId).collect(Collectors.toSet()),
-                authorization);
+                categories.stream().map(SpendingPerCategoryDto::primaryCategoryId).collect(Collectors.toSet()));
 
         return categories.stream()
                 .map(category -> toSpendingItem(category.primaryCategoryId(), category.percentage(), category.totalAmount(),
@@ -141,11 +134,9 @@ public class DashboardServiceImpl implements DashboardService {
                 .toList();
     }
 
-    private List<SpendingCategoryItemDto> enrichAccountSpending(List<SpendingPerCategoryByAccountDto> categories,
-            String authorization) {
+    private List<SpendingCategoryItemDto> enrichAccountSpending(List<SpendingPerCategoryByAccountDto> categories) {
         Map<UUID, TransactionPrimaryCategoryDto> categoryMetadata = loadCategoryMetadata(
-                categories.stream().map(SpendingPerCategoryByAccountDto::primaryCategoryId).collect(Collectors.toSet()),
-                authorization);
+                categories.stream().map(SpendingPerCategoryByAccountDto::primaryCategoryId).collect(Collectors.toSet()));
 
         return categories.stream()
                 .map(category -> toSpendingItem(category.primaryCategoryId(), category.percentage(), category.totalAmount(),
@@ -153,13 +144,13 @@ public class DashboardServiceImpl implements DashboardService {
                 .toList();
     }
 
-    private Map<UUID, TransactionPrimaryCategoryDto> loadCategoryMetadata(Set<UUID> categoryIds, String authorization) {
+    private Map<UUID, TransactionPrimaryCategoryDto> loadCategoryMetadata(Set<UUID> categoryIds) {
         if (categoryIds.isEmpty()) {
             return Map.of();
         }
 
         List<TransactionPrimaryCategoryDto> categories = transactionClient
-                .getPrimaryCategoriesByIds(authorization, new PrimaryCategoryIdsRequestDto(categoryIds))
+                .getPrimaryCategoriesByIds(new PrimaryCategoryIdsRequestDto(categoryIds))
                 .getBody();
 
         if (categories == null || categories.isEmpty()) {
@@ -191,9 +182,5 @@ public class DashboardServiceImpl implements DashboardService {
         LocalDate resolvedFrom = from == null ? today.withDayOfMonth(1) : from;
         LocalDate resolvedTo = to == null ? today : to;
         return new LocalDate[] { resolvedFrom, resolvedTo };
-    }
-
-    private String bearer(Jwt principal) {
-        return "Bearer " + principal.getTokenValue();
     }
 }

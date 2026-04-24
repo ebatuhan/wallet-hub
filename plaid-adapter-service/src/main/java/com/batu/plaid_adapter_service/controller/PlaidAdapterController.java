@@ -4,7 +4,8 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -12,7 +13,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.batu.plaid_adapter_service.entity.Connection;
@@ -27,8 +27,7 @@ import com.batu.shared.dto.response.ExchangeTokenResponseDto;
 import com.batu.shared.dto.response.LinkTokenResponseDto;
 
 @RestController
-@RequestMapping("/internal/plaid")
-@PreAuthorize("hasAuthority('ROLE_SERVICE')")
+@RequestMapping("/plaid")
 public class PlaidAdapterController {
 
     private final PlaidIntegrationService plaidIntegrationService;
@@ -44,62 +43,72 @@ public class PlaidAdapterController {
     }
 
     @PostMapping("/link-token")
-    public ResponseEntity<LinkTokenResponseDto> createLinkToken(@RequestParam UUID userId,
+    public ResponseEntity<LinkTokenResponseDto> createLinkToken(
+            @AuthenticationPrincipal Jwt jwt,
             @RequestBody(required = false) LinkTokenRequestDto request) {
-        LinkTokenRequestDto safeRequest = request == null ? new LinkTokenRequestDto() : request;
-        return ResponseEntity.ok(plaidIntegrationService.createLinkToken(safeRequest, userId));
+        LinkTokenRequestDto safeRequest = request == null ? new LinkTokenRequestDto("US") : request;
+        return ResponseEntity.ok(plaidIntegrationService.createLinkToken(safeRequest, userId(jwt)));
     }
 
     @PostMapping("/exchange")
-    public ResponseEntity<ExchangeTokenResponseDto> exchangeToken(@RequestParam UUID userId,
+    public ResponseEntity<ExchangeTokenResponseDto> exchangeToken(
+            @AuthenticationPrincipal Jwt jwt,
             @RequestBody ExchangeTokenRequestDto request) {
-        return ResponseEntity.ok(plaidIntegrationService.exchangeLinkToken(request, userId));
+        return ResponseEntity.ok(plaidIntegrationService.exchangeLinkToken(request, userId(jwt)));
     }
 
     @PostMapping("/mock")
-    public ResponseEntity<ExchangeTokenResponseDto> mockToken(@RequestParam UUID userId) {
-        return ResponseEntity.ok(plaidIntegrationService.mockToken(userId));
+    public ResponseEntity<ExchangeTokenResponseDto> mockToken(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(plaidIntegrationService.mockToken(userId(jwt)));
     }
 
     @GetMapping("/connections")
-    public ResponseEntity<List<ConnectionResponseDto>> listConnections(@RequestParam UUID userId) {
-        return ResponseEntity.ok(connectionService.readAllByUserId(userId).stream()
+    public ResponseEntity<List<ConnectionResponseDto>> listConnections(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(connectionService.readAllByUserId(userId(jwt)).stream()
                 .map(connectionMapper::toResponse)
                 .toList());
     }
 
     @GetMapping("/connections/{connectionId}")
-    public ResponseEntity<ConnectionResponseDto> getConnection(@RequestParam UUID userId,
+    public ResponseEntity<ConnectionResponseDto> getConnection(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID connectionId) {
-        return ResponseEntity.ok(connectionMapper.toResponse(loadConnection(userId, connectionId)));
+        return ResponseEntity.ok(connectionMapper.toResponse(loadConnection(userId(jwt), connectionId)));
     }
 
     @PatchMapping("/connections/{connectionId}")
-    public ResponseEntity<ConnectionResponseDto> updateConnection(@RequestParam UUID userId,
+    public ResponseEntity<ConnectionResponseDto> updateConnection(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID connectionId,
             @RequestBody ConnectionUpdateRequestDto request) {
-        Connection connection = loadConnection(userId, connectionId);
+        Connection connection = loadConnection(userId(jwt), connectionId);
         connectionMapper.updateConnectionFromRequest(request, connection);
         return ResponseEntity.ok(connectionMapper.toResponse(connectionService.updateById(connectionId, connection)));
     }
 
     @PostMapping("/connections/{connectionId}/refresh")
-    public ResponseEntity<Void> refreshConnection(@RequestParam UUID userId,
+    public ResponseEntity<Void> refreshConnection(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID connectionId) {
-        loadConnection(userId, connectionId);
+        loadConnection(userId(jwt), connectionId);
         plaidIntegrationService.syncConnection(connectionId);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/connections/{connectionId}")
-    public ResponseEntity<Void> removeConnection(@RequestParam UUID userId,
+    public ResponseEntity<Void> removeConnection(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID connectionId) {
-        loadConnection(userId, connectionId);
+        loadConnection(userId(jwt), connectionId);
         plaidIntegrationService.removeConnection(connectionId, "USER_REQUESTED_REMOVAL");
         return ResponseEntity.noContent().build();
     }
 
     private Connection loadConnection(UUID userId, UUID connectionId) {
         return connectionService.readByIdAndUserId(connectionId, userId);
+    }
+
+    private UUID userId(Jwt jwt) {
+        return UUID.fromString(jwt.getSubject());
     }
 }

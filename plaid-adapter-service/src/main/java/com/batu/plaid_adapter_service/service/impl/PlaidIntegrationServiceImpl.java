@@ -33,6 +33,7 @@ import com.plaid.client.model.AccountsGetResponse;
 import com.plaid.client.model.ItemPublicTokenExchangeRequest;
 import com.plaid.client.model.ItemPublicTokenExchangeResponse;
 import com.plaid.client.model.LinkTokenCreateRequest;
+import com.plaid.client.model.LinkTokenCreateRequestUser;
 import com.plaid.client.model.LinkTokenCreateResponse;
 import com.plaid.client.model.Products;
 import com.plaid.client.model.RemovedTransaction;
@@ -75,7 +76,7 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
     @Retryable(retryFor = PlaidRetryableException.class, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
     public LinkTokenResponseDto createLinkToken(LinkTokenRequestDto linkTokenRequestDto, UUID userId) {
         LinkTokenCreateRequest request = new LinkTokenCreateRequest()
-                .userId(userId.toString())
+                .user(new LinkTokenCreateRequestUser().clientUserId(userId.toString()))
                 .clientName("Wallet-Hub")
                 .language("en")
                 .countryCodes(List.of(com.plaid.client.model.CountryCode.US))
@@ -83,6 +84,7 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
                 .webhook(webhookUrl);
 
         LinkTokenCreateResponse response = plaidClient.createLinkToken(request);
+
         return new LinkTokenResponseDto(response.getLinkToken());
     }
 

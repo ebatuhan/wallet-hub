@@ -18,15 +18,15 @@ import com.batu.account_service.messaging.AccountsPersistedDomainEvent;
 import com.batu.account_service.repository.AccountRepository;
 import com.batu.account_service.repository.specs.AccountSpecification;
 import com.batu.account_service.service.AccountService;
-import com.batu.shared.dto.request.AccountRequestDto;
+import com.batu.account_service.util.CursorUtils;
 import com.batu.shared.dto.request.AccountNameRequestDto;
+import com.batu.shared.dto.request.AccountRequestDto;
+import com.batu.shared.dto.response.AccountCurrencyTotalDto;
 import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.shared.dto.response.AccountResponseDto;
-import com.batu.shared.dto.response.AccountCurrencyTotalDto;
 import com.batu.shared.dto.response.AccountSummaryResponseDto;
 import com.batu.shared.dto.response.AccountViewDto;
 import com.batu.shared.dto.response.CursorResponse;
-import com.batu.shared.util.CursorUtils;
 
 import jakarta.transaction.Transactional;
 
@@ -59,7 +59,6 @@ public class AccountServiceImpl implements AccountService {
                         int limit,
                         AccountSortField sortBy,
                         Sort.Direction direction) {
-
                 UUID userId = UUID.fromString(principal.getSubject());
 
                 Sort sort = sortBy == null
@@ -87,9 +86,11 @@ public class AccountServiceImpl implements AccountService {
 
         @Override
         public AccountResponseDto getAccount(UUID accountId, Jwt principal) {
+                return getAccount(accountId, UUID.fromString(principal.getSubject()));
+        }
 
-                UUID userId = UUID.fromString(principal.getSubject());
-
+        @Override
+        public AccountResponseDto getAccount(UUID accountId, UUID userId) {
                 return accountRepository.findByAccountIdAndUserIdAndIsActiveTrue(accountId, userId)
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "This account is not exists, or access restricted."));
@@ -97,8 +98,11 @@ public class AccountServiceImpl implements AccountService {
 
         @Override
         public AccountSummaryResponseDto getAccountSummary(Jwt principal) {
-                UUID userId = UUID.fromString(principal.getSubject());
+                return getAccountSummary(UUID.fromString(principal.getSubject()));
+        }
 
+        @Override
+        public AccountSummaryResponseDto getAccountSummary(UUID userId) {
                 List<AccountCurrencyTotalDto> totalsByCurrency = accountRepository.summarizeActiveBalancesByCurrency(userId)
                                 .stream()
                                 .map(total -> new AccountCurrencyTotalDto(

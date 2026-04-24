@@ -29,7 +29,7 @@ public class BudgetTools {
             to avoid duplicating an already existing budget."""
     )
     public java.util.List<BudgetResponseDto> getBudgets(ToolContext toolContext) {
-        return budgetingClient.getBudgets(authorization(toolContext)).getBody();
+        return budgetingClient.getBudgets().getBody();
     }
 
     @Tool(
@@ -49,7 +49,6 @@ public class BudgetTools {
             @ToolParam(required = false, description = "Budget start date in yyyy-MM-dd format. Default: first day of the current month.") String periodStart,
             ToolContext toolContext) {
         return budgetingClient.createBudget(
-                authorization(toolContext),
                 new CreateBudgetRequestDto(
                         UUID.fromString(categoryId),
                         limitAmount,
@@ -77,7 +76,6 @@ public class BudgetTools {
             @ToolParam(required = false, description = "Budget start date in yyyy-MM-dd format. Default: first day of the current month.") String periodStart,
             ToolContext toolContext) {
         return budgetingClient.updateBudget(
-                authorization(toolContext),
                 UUID.fromString(budgetId),
                 new CreateBudgetRequestDto(
                         UUID.fromString(categoryId),
@@ -97,12 +95,8 @@ public class BudgetTools {
     public String deactivateBudget(
             @ToolParam(description = "The ID of the budget to deactivate.") String budgetId,
             ToolContext toolContext) {
-        budgetingClient.deactivateBudget(authorization(toolContext), UUID.fromString(budgetId));
+        budgetingClient.deactivateBudget(UUID.fromString(budgetId));
         return "Budget deactivated.";
-    }
-
-    private String authorization(ToolContext toolContext) {
-        return toolContext.getContext().get("authorization").toString();
     }
 
     private String normalizePeriod(String period) {

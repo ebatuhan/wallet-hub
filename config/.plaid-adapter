@@ -3,6 +3,7 @@ SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-plaid:5432/plaid_db
 SPRING_DATASOURCE_USERNAME=postgres
 SPRING_DATASOURCE_PASSWORD=postgres
 KEYCLOAK_SERVER_URL=http://keycloak:8080
+KEYCLOAK_ISSUER_URL=http://localhost:8080
 TRANSACTION_SERVICE_URL=http://transaction-service:8086
 ACCOUNT_SERVICE_URL=http://account-service:8083
 

@@ -13,17 +13,16 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.annotations.UuidGenerator;
+import org.springframework.data.domain.Persistable;
 
 @Entity
 @Table(name = "accounts")
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Account {
+public class Account implements Persistable<UUID> {
 
     @Id
-    @UuidGenerator
     @Column(name = "account_id", nullable = false, updatable = false)
     @Setter(AccessLevel.NONE)
     private UUID accountId;
@@ -89,5 +88,15 @@ public class Account {
         this(userId, institutionName, accountName, accountType, accountSubtype, accountMask, currentBalance,
                 availableBalance, isoCurrencyCode, isActive);
         this.accountId = accountId;
+    }
+
+    @Override
+    public UUID getId() {
+        return accountId;
+    }
+
+    @Override
+    public boolean isNew() {
+        return createdAt == null;
     }
 }
