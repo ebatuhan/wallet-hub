@@ -96,6 +96,11 @@ services:
     depends_on:
       postgres-keycloak:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -ec '</dev/tcp/localhost/8080'"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     restart: unless-stopped
 
   plaid-adapter-service:
@@ -258,6 +263,9 @@ services:
       - ./api-gateway:/app
       - ./shared:/shared
       - ~/.m2:/root/.m2
+    depends_on:
+      keycloak:
+        condition: service_healthy
     
 
 

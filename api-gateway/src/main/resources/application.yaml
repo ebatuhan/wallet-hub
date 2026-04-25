@@ -3,53 +3,55 @@ spring:
     name: api-gateway
   cloud:
     gateway:
-      routes:
-        - id: account-service-route
-          uri: ${ACCOUNT_SERVICE_URL:http://localhost:8083}
-          predicates:
-            - Path=/api/accounts/**
-          filters:
-            - StripPrefix=1
+      server:
+        webflux:
+          routes:
+            - id: account-service-route
+              uri: ${ACCOUNT_SERVICE_URL:http://localhost:8083}
+              predicates:
+                - Path=/api/accounts,/api/accounts/**
+              filters:
+                - StripPrefix=1
 
-        - id: transaction-service-route
-          uri: ${TRANSACTION_SERVICE_URL:http://localhost:8086}
-          predicates:
-            - Path=/api/transactions/**
-          filters:
-            - StripPrefix=1
+            - id: transaction-service-route
+              uri: ${TRANSACTION_SERVICE_URL:http://localhost:8086}
+              predicates:
+                - Path=/api/transactions,/api/transactions/**
+              filters:
+                - StripPrefix=1
 
-        - id: consent-service-route
-          uri: ${CONSENT_SERVICE_URL:http://localhost:8092}
-          predicates:
-            - Path=/api/connections/**
-          filters:
-            - StripPrefix=1
+            - id: consent-service-route
+              uri: ${CONSENT_SERVICE_URL:http://localhost:8092}
+              predicates:
+                - Path=/api/connections,/api/connections/**
+              filters:
+                - StripPrefix=1
 
-        - id: insights-service-route
-          uri: ${INSIGHTS_SERVICE_URL:http://localhost:8088}
-          predicates:
-            - Path=/api/insights/**
+            - id: insights-service-route
+              uri: ${INSIGHTS_SERVICE_URL:http://localhost:8088}
+              predicates:
+                - Path=/api/insights,/api/insights/**
 
-        - id: budgeting-service-route
-          uri: ${BUDGETING_SERVICE_URL:http://localhost:8089}
-          predicates:
-            - Path=/api/budgets/**
-          filters:
-            - StripPrefix=1
+            - id: budgeting-service-route
+              uri: ${BUDGETING_SERVICE_URL:http://localhost:8089}
+              predicates:
+                - Path=/api/budgets,/api/budgets/**
+              filters:
+                - StripPrefix=1
 
-        - id: dashboard-service-route
-          uri: ${DASHBOARD_SERVICE_URL:http://localhost:8090}
-          predicates:
-            - Path=/api/dashboard/**
-          filters:
-            - StripPrefix=1
+            - id: dashboard-service-route
+              uri: ${DASHBOARD_SERVICE_URL:http://localhost:8090}
+              predicates:
+                - Path=/api/dashboard,/api/dashboard/**
+              filters:
+                - StripPrefix=1
 
-        - id: ai-assistant-service-route
-          uri: ${AI_ASSISTANT_SERVICE_URL:http://localhost:8091}
-          predicates:
-            - Path=/api/assistant/**
-          filters:
-            - StripPrefix=1
+            - id: ai-assistant-service-route
+              uri: ${AI_ASSISTANT_SERVICE_URL:http://localhost:8091}
+              predicates:
+                - Path=/api/assistant,/api/assistant/**
+              filters:
+                - StripPrefix=1
 
   security:
     oauth2:
