@@ -5,6 +5,8 @@ import java.math.BigDecimal;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
+import io.micrometer.observation.annotation.Observed;
+
 import com.batu.insights_service.entity.TransactionInsightRow;
 import com.batu.insights_service.service.TransactionInsightsService;
 import com.batu.shared.messaging.MessagingTopology;
@@ -19,6 +21,7 @@ public class TransactionEventListener {
     }
 
     @RabbitListener(queues=MessagingTopology.TRANSACTION_PERSISTED_QUEUE)
+    @Observed(name = "insights.consume.transaction-persisted", contextualName = "insights consume transaction persisted")
     public void onTransactionPersisted(TransactionPersistedEvent message){
         boolean isOutflow = message.getAmount().signum() < 0;
 

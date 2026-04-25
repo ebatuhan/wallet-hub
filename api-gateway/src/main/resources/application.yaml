@@ -28,7 +28,7 @@ spring:
                 - StripPrefix=1
 
             - id: insights-service-route
-              uri: ${INSIGHTS_SERVICE_URL:http://localhost:8088}
+              uri: ${INSIGHTS_SERVICE_URL:http://localhost:8084}
               predicates:
                 - Path=/api/insights,/api/insights/**
 
@@ -62,3 +62,37 @@ spring:
 
 server:
   port: ${API_GATEWAY_PORT:8085}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  tracing:
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
+  opentelemetry:
+    resource-attributes:
+      deployment.environment: ${DEPLOYMENT_ENVIRONMENT:local}
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://tempo:4318/v1/traces}
+          transport: http
+  otlp:
+    metrics:
+      export:
+        enabled: false
+
+logging:
+  pattern:
+    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}] "
+  include-application-name: false

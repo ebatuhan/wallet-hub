@@ -176,7 +176,7 @@ services:
     container_name: insights-service
     env_file: config/.insights-service
     ports:
-      - "${INSIGHTS_SERVICE_PORT}:8088"
+      - "${INSIGHTS_SERVICE_PORT}:8084"
     depends_on:
       clickhouse-insights:
         condition: service_healthy
@@ -281,6 +281,80 @@ services:
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
 
+  prometheus:
+    image: prom/prometheus:v3.0.1
+    container_name: prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-remote-write-receiver
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    depends_on:
+      - api-gateway
+      - account-service
+      - transaction-service
+      - plaid-adapter-service
+      - consent-service
+      - insights-service
+      - budgeting-service
+      - dashboard-service
+      - ai-assistant-service
+
+  tempo:
+    image: grafana/tempo:2.6.1
+    container_name: tempo
+    command: ["-config.file=/etc/tempo.yml"]
+    ports:
+      - "${TEMPO_HTTP_PORT:-3200}:3200"
+      - "${TEMPO_OTLP_GRPC_PORT:-4317}:4317"
+      - "${TEMPO_OTLP_HTTP_PORT:-4318}:4318"
+      - "${TEMPO_ZIPKIN_PORT:-9411}:9411"
+    volumes:
+      - ./observability/tempo/tempo.yml:/etc/tempo.yml:ro
+      - tempo-data:/tmp/tempo
+
+  loki:
+    image: grafana/loki:3.3.2
+    container_name: loki
+    command: ["-config.file=/etc/loki/loki.yml"]
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    volumes:
+      - ./observability/loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki-data:/loki
+
+  promtail:
+    image: grafana/promtail:3.3.2
+    container_name: promtail
+    command: ["-config.file=/etc/promtail/promtail.yml"]
+    volumes:
+      - ./observability/promtail/promtail.yml:/etc/promtail/promtail.yml:ro
+      - ${DOCKER_ROOT_DIR:-/var/lib/docker}/containers:/var/lib/docker/containers:ro
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: grafana
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_USERS_DEFAULT_THEME=dark
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+      - tempo
+      - loki
+
 volumes:
   postgres-plaid-data:
   postgres-keycloak-data:
@@ -291,3 +365,7 @@ volumes:
   maven-repo:
   rabbitmq-data:
   clickhouse-insights-data:
+  prometheus-data:
+  tempo-data:
+  loki-data:
+  grafana-data:

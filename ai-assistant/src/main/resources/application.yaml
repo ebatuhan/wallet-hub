@@ -18,12 +18,20 @@ spring:
           issuer-uri: ${KEYCLOAK_ISSUER_URL:http://localhost:8080}/realms/keycloak-realm
           jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/certs
 
+  cloud:
+    openfeign:
+      micrometer:
+        enabled: true
+
 logging:
-    level:
-      org.springframework.ai: DEBUG
-      org.springframework.web.reactive.function.client: DEBUG
-      reactor.netty.http.client: DEBUG
-      reactor.netty.transport: DEBUG
+  pattern:
+    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}] "
+  include-application-name: false
+  level:
+    org.springframework.ai: DEBUG
+    org.springframework.web.reactive.function.client: DEBUG
+    reactor.netty.http.client: DEBUG
+    reactor.netty.transport: DEBUG
 assistant:
   guard:
     model: ${OLLAMA_GUARD_MODEL:${OLLAMA_MODEL}}
@@ -33,6 +41,35 @@ assistant:
 
 server:
   port: ${AI_ASSISTANT_SERVICE_PORT:8091}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  tracing:
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
+  opentelemetry:
+    resource-attributes:
+      deployment.environment: ${DEPLOYMENT_ENVIRONMENT:local}
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://tempo:4318/v1/traces}
+          transport: http
+  otlp:
+    metrics:
+      export:
+        enabled: false
 
 dashboardclient:
   url: ${DASHBOARD_SERVICE_URL:http://localhost:8090}/dashboard

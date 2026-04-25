@@ -14,11 +14,13 @@ spring:
     password: ${SPRING_RABBITMQ_PASSWORD:guest}
     listener:
       simple:
+        observation-enabled: true
         retry:
           enabled: true
           initial-interval: 2s
           max-attempts: 3
     template:
+      observation-enabled: true
       retry:
         enabled: true
         initial-interval: 2s
@@ -32,6 +34,8 @@ spring:
 
   cloud:
     openfeign:
+      micrometer:
+        enabled: true
       circuitbreaker:
         enabled: false
 
@@ -41,6 +45,40 @@ spring:
 
 server:
   port: ${PLAID_SERVICE_PORT:8082}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  tracing:
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
+  opentelemetry:
+    resource-attributes:
+      deployment.environment: ${DEPLOYMENT_ENVIRONMENT:local}
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://tempo:4318/v1/traces}
+          transport: http
+  otlp:
+    metrics:
+      export:
+        enabled: false
+
+logging:
+  pattern:
+    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}] "
+  include-application-name: false
 
 plaid:
   api: ${PLAID_API_ID:68f013c09bda9e001fac9053}

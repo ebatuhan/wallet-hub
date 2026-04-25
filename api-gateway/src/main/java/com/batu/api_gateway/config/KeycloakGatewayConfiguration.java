@@ -26,7 +26,9 @@ public class KeycloakGatewayConfiguration {
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .authorizeExchange(
-                        auth -> auth.anyExchange().authenticated())
+                        auth -> auth
+                                .pathMatchers("/actuator/health", "/actuator/prometheus").permitAll()
+                                .anyExchange().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
                 .build();
     }

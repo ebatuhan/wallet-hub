@@ -12,6 +12,8 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import io.micrometer.observation.annotation.Observed;
+
 import com.batu.plaid_adapter_service.client.AccountServiceClient;
 import com.batu.plaid_adapter_service.client.PlaidClientWrapper;
 import com.batu.plaid_adapter_service.client.TransactionServiceClient;
@@ -73,6 +75,7 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
     }
 
     @Override
+    @Observed(name = "plaid.create-link-token", contextualName = "plaid create link token")
     @Retryable(retryFor = PlaidRetryableException.class, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
     public LinkTokenResponseDto createLinkToken(LinkTokenRequestDto linkTokenRequestDto, UUID userId) {
         LinkTokenCreateRequest request = new LinkTokenCreateRequest()
@@ -90,6 +93,7 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
 
     @Override
     @Transactional
+    @Observed(name = "plaid.exchange-token", contextualName = "plaid exchange token")
     @Retryable(retryFor = PlaidRetryableException.class, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
     public ExchangeTokenResponseDto exchangeLinkToken(ExchangeTokenRequestDto exchangeTokenRequestDto, UUID userId) {
         ItemPublicTokenExchangeResponse response = plaidClient.exchangePublicToken(
@@ -112,6 +116,7 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
     }
 
     @Override
+    @Observed(name = "plaid.mock-token", contextualName = "plaid mock token")
     @Retryable(retryFor = PlaidRetryableException.class, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
     public ExchangeTokenResponseDto mockToken(UUID userId) {
         String institutionId = "ins_109508";
@@ -131,6 +136,7 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
     }
 
     @Override
+    @Observed(name = "plaid.sync-connection", contextualName = "plaid sync connection")
     @Retryable(retryFor = PlaidRetryableException.class, maxAttempts = 5, backoff = @Backoff(delay = 2000, multiplier = 2, maxDelay = 60000))
     public void syncConnection(UUID connectionId) {
         Connection connection = connectionService.startSync(connectionId);
@@ -171,6 +177,7 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
 
     @Override
     @Transactional
+    @Observed(name = "plaid.remove-connection", contextualName = "plaid remove connection")
     public void removeConnection(UUID connectionId, String reason) {
         connectionService.markRemoving(connectionId, reason);
 

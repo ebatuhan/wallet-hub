@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
+import io.micrometer.observation.annotation.Observed;
+
 import com.batu.insights_service.entity.AccountBalanceDataPointRow;
 import com.batu.insights_service.service.AccountInsightsService;
 import com.batu.shared.messaging.MessagingTopology;
@@ -20,6 +22,7 @@ public class AccountEventListener {
     }
 
     @RabbitListener(queues = MessagingTopology.ACCOUNT_PERSISTED_QUEUE)
+    @Observed(name = "insights.consume.account-persisted", contextualName = "insights consume account persisted")
     public void onAccountPersistedEvent(AccountPersistedEvent message) {
         AccountBalanceDataPointRow accountBalanceDataPointRow = new AccountBalanceDataPointRow(message.getAccountId(),
                 message.getUserId(),

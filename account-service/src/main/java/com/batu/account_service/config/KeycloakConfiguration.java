@@ -39,6 +39,7 @@ public class KeycloakConfiguration {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(
                         auth -> auth
+                                .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/accounts", "/accounts/batch").permitAll()
                                 .requestMatchers(HttpMethod.PUT, "/accounts/*").permitAll()
                                 .requestMatchers(HttpMethod.DELETE, "/accounts/*").permitAll()

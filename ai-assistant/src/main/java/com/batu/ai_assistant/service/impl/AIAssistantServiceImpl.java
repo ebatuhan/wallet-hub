@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
+import io.micrometer.observation.annotation.Observed;
+
 import com.batu.ai_assistant.dto.ChatRequestDTO;
 import com.batu.ai_assistant.dto.ChatResponseDTO;
 import com.batu.ai_assistant.exception.ModelNotConfiguredException;
@@ -34,6 +36,7 @@ public class AIAssistantServiceImpl implements AIAssistantService {
     }
 
     @Override
+    @Observed(name = "assistant.chat", contextualName = "assistant chat")
     public ChatResponseDTO chat(ChatRequestDTO request, Jwt principal) {
         if (modelName == null || modelName.isBlank()) {
             throw new ModelNotConfiguredException();

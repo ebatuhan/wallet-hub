@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
+import io.micrometer.observation.annotation.Observed;
+
 import com.batu.dashboard_service.client.AccountClient;
 import com.batu.dashboard_service.client.BudgetingClient;
 import com.batu.dashboard_service.client.InsightsClient;
@@ -46,6 +48,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final BudgetingClient budgetingClient;
 
     @Override
+    @Observed(name = "dashboard.aggregate.summary", contextualName = "dashboard aggregate summary")
     public UserDashboardSummaryResponseDto getUserSummary(LocalDate from, LocalDate to, Integer recentLimit, Jwt principal) {
         UUID userId = UUID.fromString(principal.getSubject());
         LocalDate[] range = resolveRange(from, to);
@@ -87,6 +90,7 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
+    @Observed(name = "dashboard.aggregate.account-summary", contextualName = "dashboard aggregate account summary")
     public AccountDashboardSummaryResponseDto getAccountSummary(UUID accountId, LocalDate from, LocalDate to,
             Integer recentLimit, Jwt principal) {
         UUID userId = UUID.fromString(principal.getSubject());

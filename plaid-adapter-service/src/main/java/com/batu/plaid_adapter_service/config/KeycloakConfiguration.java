@@ -37,6 +37,7 @@ public class KeycloakConfiguration {
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                    .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
                     .requestMatchers("/api/plaid/webhook").permitAll()
                     .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
