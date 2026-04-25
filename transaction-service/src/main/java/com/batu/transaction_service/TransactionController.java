@@ -3,9 +3,9 @@ package com.batu.transaction_service;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -54,15 +54,13 @@ public class TransactionController {
         return ResponseEntity.ok(transactionService.getTransactionById(principal, transactionId));
     }
 
-    @PostMapping("/internal")
-    @PreAuthorize("hasAuthority('ROLE_SERVICE')")
+    @PostMapping
     public ResponseEntity<Void> create(@RequestBody TransactionRequestDto request) {
         transactionService.create(request);
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/internal/{transactionId}")
-    @PreAuthorize("hasAuthority('ROLE_SERVICE')")
+    @PutMapping("/{transactionId}")
     public ResponseEntity<Void> update(@PathVariable UUID transactionId, @RequestBody TransactionRequestDto request) {
         if (!transactionId.equals(request.getTransactionId())) {
             throw new IllegalArgumentException("Transaction id mismatch");
@@ -72,8 +70,7 @@ public class TransactionController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/internal/accounts/{accountId}/deactivate")
-    @PreAuthorize("hasAuthority('ROLE_SERVICE')")
+    @DeleteMapping("/accounts/{accountId}")
     public ResponseEntity<Void> deactivateTransactionsByAccountId(@PathVariable UUID accountId) {
         transactionService.deactivateByAccountId(accountId);
         return ResponseEntity.noContent().build();

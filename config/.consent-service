@@ -3,5 +3,5 @@ SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-consent:5432/consent_db
 SPRING_DATASOURCE_USERNAME=postgres
 SPRING_DATASOURCE_PASSWORD=postgres
 KEYCLOAK_SERVER_URL=http://keycloak:8080
-CONSENT_SERVICE_CLIENT_SECRET=consent-service-secret
+KEYCLOAK_ISSUER_URL=http://localhost:8080
 PLAID_ADAPTER_SERVICE_URL=http://plaid-adapter-service:8082

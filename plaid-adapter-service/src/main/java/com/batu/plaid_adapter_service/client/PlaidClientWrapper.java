@@ -77,6 +77,8 @@ public class PlaidClientWrapper {
         }
 
         PlaidError plaidError = gson.fromJson(errorBody.string(), PlaidError.class);
+
+        System.out.println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA : " + plaidError.getErrorCode());
         plaidErrorHandlerFactory.execute(plaidError);
 
         return null;

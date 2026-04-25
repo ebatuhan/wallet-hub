@@ -8,6 +8,7 @@ import java.util.UUID;
 import com.batu.shared.dto.response.AccountSummaryResponseDto;
 import com.batu.shared.dto.response.BudgetResponseDto;
 import com.batu.shared.dto.response.IncomeTotalByCurrencyDto;
+import com.batu.shared.dto.response.SpendingGraphResponseDto;
 import com.batu.shared.dto.response.TransactionViewResponseDto;
 
 public record UserDashboardSummaryResponseDto(
@@ -25,7 +26,7 @@ public record UserDashboardSummaryResponseDto(
 
     public record IncomeSectionDto(List<IncomeTotalByCurrencyDto> totalsByCurrency) {}
 
-    public record SpendingSectionDto(BigDecimal totalSpent, List<SpendingCategoryItemDto> categories) {}
+    public record SpendingSectionDto(BigDecimal totalSpent, List<SpendingCategoryItemDto> categories, SpendingGraphResponseDto graph) {}
 
     public record BudgetHighlightsDto(long activeBudgetCount, long overBudgetCount, List<BudgetResponseDto> items) {}
 }

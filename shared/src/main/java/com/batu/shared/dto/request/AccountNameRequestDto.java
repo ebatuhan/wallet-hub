@@ -1,6 +1,5 @@
 package com.batu.shared.dto.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -15,6 +14,5 @@ import lombok.Setter;
 @AllArgsConstructor
 public class AccountNameRequestDto {
 
-    @JsonProperty("accountIds")
     private Set<UUID> accountIds = new HashSet<>();
 }

@@ -2,7 +2,7 @@ package com.batu.plaid_adapter_service.exception;
 
 import org.springframework.http.HttpStatus;
 
-import com.batu.shared.exception.AbstractApplicationException;
+import com.batu.plaid_adapter_service.exception.AbstractApplicationException;
 
 public class PlaidClientException extends AbstractApplicationException{
 

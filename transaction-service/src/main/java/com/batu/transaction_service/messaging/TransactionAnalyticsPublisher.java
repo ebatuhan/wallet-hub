@@ -5,6 +5,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+import io.micrometer.observation.annotation.Observed;
+
 import com.batu.shared.messaging.MessagingTopology;
 import com.batu.shared.messaging.event.TransactionPersistedEvent;
 
@@ -18,6 +20,7 @@ public class TransactionAnalyticsPublisher {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Observed(name = "analytics.publish.transaction-persisted", contextualName = "analytics publish transaction persisted")
     public void publishTransactionsPersisted(TransactionsPersistedDomainEvent event) {
         for (TransactionPersistedEvent transaction : event.transactions()) {
             rabbitTemplate.convertAndSend(

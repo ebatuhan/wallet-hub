@@ -32,13 +32,12 @@ public class PlaidConnectionGateway implements ProviderConnectionGateway {
 
     @Override
     public LinkTokenResponseDto createLinkToken(UUID userId, String country) {
-        return plaidAdapterClient.createLinkToken(userId, new LinkTokenRequestDto(country)).getBody();
+        return plaidAdapterClient.createLinkToken(new LinkTokenRequestDto(country)).getBody();
     }
 
     @Override
     public ExchangeTokenResponseDto exchangeConnection(UUID userId, ConnectionExchangeRequestDto request) {
         return plaidAdapterClient.exchangeToken(
-                userId,
                 new ExchangeTokenRequestDto(
                         request.getPublicToken(),
                         request.getAccountIds(),
@@ -49,26 +48,26 @@ public class PlaidConnectionGateway implements ProviderConnectionGateway {
 
     @Override
     public ExchangeTokenResponseDto mockConnection(UUID userId) {
-        return plaidAdapterClient.mockToken(userId).getBody();
+        return plaidAdapterClient.mockToken().getBody();
     }
 
     @Override
     public ConnectionResponseDto getConnection(UUID userId, UUID providerConnectionId) {
-        return plaidAdapterClient.getConnection(userId, providerConnectionId).getBody();
+        return plaidAdapterClient.getConnection(providerConnectionId).getBody();
     }
 
     @Override
     public ConnectionResponseDto updateConnection(UUID userId, UUID providerConnectionId, ConnectionUpdateRequestDto request) {
-        return plaidAdapterClient.updateConnection(userId, providerConnectionId, request).getBody();
+        return plaidAdapterClient.updateConnection(providerConnectionId, request).getBody();
     }
 
     @Override
     public void refreshConnection(UUID userId, UUID providerConnectionId) {
-        plaidAdapterClient.refreshConnection(userId, providerConnectionId);
+        plaidAdapterClient.refreshConnection(providerConnectionId);
     }
 
     @Override
     public void removeConnection(UUID userId, UUID providerConnectionId) {
-        plaidAdapterClient.removeConnection(userId, providerConnectionId);
+        plaidAdapterClient.removeConnection(providerConnectionId);
     }
 }

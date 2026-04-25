@@ -48,8 +48,12 @@ public class BudgetServiceImpl implements BudgetService {
     @Override
     @Transactional
     public BudgetResponse createBudget(CreateBudgetRequest request, Jwt principal) {
-        UUID userId = UUID.fromString(principal.getSubject());
+        return createBudget(request, UUID.fromString(principal.getSubject()));
+    }
 
+    @Override
+    @Transactional
+    public BudgetResponse createBudget(CreateBudgetRequest request, UUID userId) {
         validateNoOverlap(userId, request);
 
         Budget budget = new Budget(
@@ -70,7 +74,12 @@ public class BudgetServiceImpl implements BudgetService {
     @Override
     @Transactional
     public BudgetResponse updateBudget(UUID budgetId, CreateBudgetRequest request, Jwt principal) {
-        UUID userId = UUID.fromString(principal.getSubject());
+        return updateBudget(budgetId, request, UUID.fromString(principal.getSubject()));
+    }
+
+    @Override
+    @Transactional
+    public BudgetResponse updateBudget(UUID budgetId, CreateBudgetRequest request, UUID userId) {
         Budget budget = budgetRepository.findByIdAndUserId(budgetId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Budget with id " + budgetId + " not found"));
 
@@ -93,7 +102,12 @@ public class BudgetServiceImpl implements BudgetService {
     @Override
     @Transactional(readOnly = true)
     public List<BudgetResponse> getBudgets(Jwt principal) {
-        UUID userId = UUID.fromString(principal.getSubject());
+        return getBudgets(UUID.fromString(principal.getSubject()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BudgetResponse> getBudgets(UUID userId) {
         List<Budget> budgets = budgetRepository.findByUserIdAndActiveTrue(userId);
         Map<UUID, TransactionPrimaryCategoryDto> categoriesById = loadCategoryMetadataByIds(
                 budgets.stream().map(Budget::getCategoryId).collect(java.util.stream.Collectors.toSet()));
@@ -106,7 +120,12 @@ public class BudgetServiceImpl implements BudgetService {
     @Override
     @Transactional
     public void deactivateBudget(UUID budgetId, Jwt principal) {
-        UUID userId = UUID.fromString(principal.getSubject());
+        deactivateBudget(budgetId, UUID.fromString(principal.getSubject()));
+    }
+
+    @Override
+    @Transactional
+    public void deactivateBudget(UUID budgetId, UUID userId) {
         Budget budget = budgetRepository.findByIdAndUserId(budgetId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Budget with id " + budgetId + " not found"));
 
@@ -165,7 +184,7 @@ public class BudgetServiceImpl implements BudgetService {
     }
 
     private void validateNoOverlap(UUID userId, CreateBudgetRequest request, UUID ignoredBudgetId) {
-        var budgets = budgetRepository.findByUserIdAndCategoryIdAndIsoCurrencyCodeAndActiveTrue(
+        List<Budget> budgets = budgetRepository.findByUserIdAndCategoryIdAndIsoCurrencyCodeAndActiveTrue(
                 userId,
                 request.categoryId(),
                 request.isoCurrencyCode());
@@ -205,4 +224,5 @@ public class BudgetServiceImpl implements BudgetService {
         }
         return categoriesById;
     }
+
 }

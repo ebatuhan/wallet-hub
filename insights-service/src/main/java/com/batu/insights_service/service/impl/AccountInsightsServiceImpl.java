@@ -28,8 +28,11 @@ public class AccountInsightsServiceImpl implements AccountInsightsService {
 
     @Override
     public List<AccountBalanceDataPointDto> getAccountBalanceHistory(UUID accountId, LocalDate from, LocalDate to, Jwt principal) {
-        UUID userId = UUID.fromString(principal.getSubject());
+        return getAccountBalanceHistory(accountId, from, to, UUID.fromString(principal.getSubject()));
+    }
 
+    @Override
+    public List<AccountBalanceDataPointDto> getAccountBalanceHistory(UUID accountId, LocalDate from, LocalDate to, UUID userId) {
         return accountInsightRepository.getAccountBalanceHistory(accountId, userId, from, to)
                 .stream()
                 .map(row -> new AccountBalanceDataPointDto(

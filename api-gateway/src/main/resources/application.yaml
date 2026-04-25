@@ -3,59 +3,100 @@ spring:
     name: api-gateway
   cloud:
     gateway:
-      routes:
-        - id: account-service-route
-          uri: ${ACCOUNT_SERVICE_URL:http://localhost:8083}
-          predicates:
-            - Path=/api/accounts/**
-          filters:
-            - StripPrefix=1
+      server:
+        webflux:
+          routes:
+            - id: account-service-route
+              uri: ${ACCOUNT_SERVICE_URL:http://localhost:8083}
+              predicates:
+                - Path=/api/accounts,/api/accounts/**
+              filters:
+                - StripPrefix=1
 
-        - id: transaction-service-route
-          uri: ${TRANSACTION_SERVICE_URL:http://localhost:8086}
-          predicates:
-            - Path=/api/transactions/**
-          filters:
-            - StripPrefix=1
+            - id: transaction-service-route
+              uri: ${TRANSACTION_SERVICE_URL:http://localhost:8086}
+              predicates:
+                - Path=/api/transactions,/api/transactions/**
+              filters:
+                - StripPrefix=1
 
-        - id: consent-service-route
-          uri: ${CONSENT_SERVICE_URL:http://localhost:8092}
-          predicates:
-            - Path=/api/connections/**
-          filters:
-            - StripPrefix=1
+            - id: consent-service-route
+              uri: ${CONSENT_SERVICE_URL:http://localhost:8092}
+              predicates:
+                - Path=/api/connections,/api/connections/**
+              filters:
+                - StripPrefix=1
 
-        - id: insights-service-route
-          uri: ${INSIGHTS_SERVICE_URL:http://localhost:8088}
-          predicates:
-            - Path=/api/insights/**
+            - id: insights-service-route
+              uri: ${INSIGHTS_SERVICE_URL:http://localhost:8084}
+              predicates:
+                - Path=/api/insights,/api/insights/**
 
-        - id: budgeting-service-route
-          uri: ${BUDGETING_SERVICE_URL:http://localhost:8089}
-          predicates:
-            - Path=/api/budgets/**
-          filters:
-            - StripPrefix=1
+            - id: budgeting-service-route
+              uri: ${BUDGETING_SERVICE_URL:http://localhost:8089}
+              predicates:
+                - Path=/api/budgets,/api/budgets/**
+              filters:
+                - StripPrefix=1
 
-        - id: dashboard-service-route
-          uri: ${DASHBOARD_SERVICE_URL:http://localhost:8090}
-          predicates:
-            - Path=/api/dashboard/**
-          filters:
-            - StripPrefix=1
+            - id: dashboard-service-route
+              uri: ${DASHBOARD_SERVICE_URL:http://localhost:8090}
+              predicates:
+                - Path=/api/dashboard,/api/dashboard/**
+              filters:
+                - StripPrefix=1
 
-        - id: ai-assistant-service-route
-          uri: ${AI_ASSISTANT_SERVICE_URL:http://localhost:8091}
-          predicates:
-            - Path=/api/assistant/**
-          filters:
-            - StripPrefix=1
+            - id: ai-assistant-service-route
+              uri: ${AI_ASSISTANT_SERVICE_URL:http://localhost:8091}
+              predicates:
+                - Path=/api/assistant,/api/assistant/**
+              filters:
+                - StripPrefix=1
 
   security:
     oauth2:
       resourceserver:
         jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URL:http://localhost:8080}/realms/keycloak-realm
           jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/certs
 
 server:
   port: ${API_GATEWAY_PORT:8085}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  tracing:
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
+  opentelemetry:
+    resource-attributes:
+      deployment.environment: ${DEPLOYMENT_ENVIRONMENT:local}
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://grafana-lgtm:4318/v1/traces}
+          transport: http
+    logging:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_LOGS_ENDPOINT:http://grafana-lgtm:4318/v1/logs}
+  otlp:
+    metrics:
+      export:
+        url: ${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:http://grafana-lgtm:4318/v1/metrics}
+
+logging:
+  pattern:
+    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}] "
+  include-application-name: false

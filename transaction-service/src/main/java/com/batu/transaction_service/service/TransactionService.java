@@ -17,7 +17,15 @@ public interface TransactionService {
             String cursor,
             int limit);
 
+    CursorResponse<TransactionViewResponseDto> transactions(UUID userId,
+            String category,
+            UUID accountId,
+            String cursor,
+            int limit);
+
     TransactionDto getTransactionById(Jwt principal, UUID transactionId);
+
+    TransactionDto getTransactionById(UUID userId, UUID transactionId);
 
     void create(TransactionRequestDto request);
 

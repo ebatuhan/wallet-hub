@@ -10,15 +10,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-import com.batu.budgeting.config.ClientCredentialsFeignConfiguration;
 import com.batu.shared.dto.request.PrimaryCategoryIdsRequestDto;
 import com.batu.shared.dto.response.TransactionPrimaryCategoryDto;
 
-@FeignClient(name = "transactionCategories", url = "${transactionclient.url}", configuration = ClientCredentialsFeignConfiguration.class)
+@FeignClient(name = "transactionCategories", url = "${transactionclient.url}")
 public interface TransactionCategoryClient {
 
     @GetMapping("/{id}")
-    ResponseEntity<TransactionPrimaryCategoryDto> getPrimaryCategoryById(@PathVariable UUID id);
+    ResponseEntity<TransactionPrimaryCategoryDto> getPrimaryCategoryById(@PathVariable("id") UUID id);
 
     @PostMapping("/by-ids")
     ResponseEntity<List<TransactionPrimaryCategoryDto>> getPrimaryCategoriesByIds(

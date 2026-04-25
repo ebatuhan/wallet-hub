@@ -1,0 +1,60 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    url: http://localhost:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      httpMethod: POST
+      prometheusType: Prometheus
+      prometheusVersion: 3.5.0
+      exemplarTraceIdDestinations:
+        - datasourceUid: tempo
+          name: trace_id
+        - datasourceUid: tempo
+          name: traceId
+
+  - name: Tempo
+    type: tempo
+    uid: tempo
+    access: proxy
+    url: http://localhost:3200
+    editable: false
+    jsonData:
+      httpMethod: GET
+      serviceMap:
+        datasourceUid: prometheus
+      nodeGraph:
+        enabled: true
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: -5m
+        spanEndTimeShift: 5m
+        filterByTraceID: true
+        filterBySpanID: false
+        customQuery: true
+        query: '{service_name=~".+"} | trace_id="$${__trace.traceId}"'
+      tracesToMetrics:
+        datasourceUid: prometheus
+        spanStartTimeShift: -5m
+        spanEndTimeShift: 5m
+        tags:
+          - key: service.name
+            value: service_name
+        queries:
+          - name: Request rate
+            query: 'sum(rate(http_server_requests_milliseconds_count{$$__tags}[5m]))'
+
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://localhost:3100
+    editable: false
+    jsonData:
+      maxLines: 1000
+      derivedFields: []

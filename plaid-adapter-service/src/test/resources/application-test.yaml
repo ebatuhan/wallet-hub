@@ -12,10 +12,6 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: http://localhost/test-jwks
-      client:
-        provider:
-          keycloak:
-            token-uri: http://localhost/test-token
 
 plaid:
   api: test-client-id

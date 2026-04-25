@@ -2,7 +2,7 @@ package com.batu.ai_assistant.exception;
 
 import org.springframework.http.HttpStatus;
 
-import com.batu.shared.exception.AbstractApplicationException;
+import com.batu.ai_assistant.exception.AbstractApplicationException;
 
 public class ModelNotConfiguredException extends AbstractApplicationException {
     public ModelNotConfiguredException() {

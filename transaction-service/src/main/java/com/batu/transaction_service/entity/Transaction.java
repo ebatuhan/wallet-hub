@@ -17,17 +17,16 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.annotations.UuidGenerator;
+import org.springframework.data.domain.Persistable;
 
 @Entity
 @Table(name = "transactions")
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Transaction {
+public class Transaction implements Persistable<UUID> {
 
     @Id
-    @UuidGenerator
     @Column(name = "transaction_id", nullable = false, updatable = false)
     @Setter(AccessLevel.NONE)
     private UUID transactionId;
@@ -98,5 +97,15 @@ public class Transaction {
         this(userId, accountId, amount, isoCurrencyCode, transactionName, transactionType, date, pending,
                 paymentChannel, detailedCategory, isActive);
         this.transactionId = transactionId;
+    }
+
+    @Override
+    public UUID getId() {
+        return transactionId;
+    }
+
+    @Override
+    public boolean isNew() {
+        return createdAt == null;
     }
 }

@@ -12,11 +12,19 @@ import com.batu.shared.messaging.event.TransactionPersistedEvent;
 public interface BudgetService {
     BudgetResponse createBudget(CreateBudgetRequest request, Jwt principal);
 
+    BudgetResponse createBudget(CreateBudgetRequest request, UUID userId);
+
     BudgetResponse updateBudget(UUID budgetId, CreateBudgetRequest request, Jwt principal);
+
+    BudgetResponse updateBudget(UUID budgetId, CreateBudgetRequest request, UUID userId);
 
     List<BudgetResponse> getBudgets(Jwt principal);
 
+    List<BudgetResponse> getBudgets(UUID userId);
+
     void deactivateBudget(UUID budgetId, Jwt principal);
+
+    void deactivateBudget(UUID budgetId, UUID userId);
 
     void applyTransactionEvent(TransactionPersistedEvent event);
 }

@@ -1,0 +1,91 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {"options": {"0": {"color": "red", "index": 0, "text": "DOWN"}, "1": {"color": "green", "index": 1, "text": "UP"}}, "type": "value"}
+          ],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]},
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 0},
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {"expr": "max by (service_name) (process_uptime_milliseconds{service_name=~\"api-gateway|account-service|transaction-service|plaid-adapter-service|consent-service|insights-service|budgeting|dashboard-service|ai-assistant\"} > bool 0)", "legendFormat": "{{service_name}}", "refId": "A"}
+      ],
+      "title": "Service Up / Down",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "custom": {"align": "auto", "cellOptions": {"type": "auto"}, "inspect": false},
+          "mappings": [
+            {"options": {"0": {"color": "red", "index": 0, "text": "DOWN"}, "1": {"color": "green", "index": 1, "text": "UP"}}, "type": "value"}
+          ],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "Value"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}]}
+        ]
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 10},
+      "id": 2,
+      "options": {"cellHeight": "sm", "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "showHeader": true},
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {"expr": "max by (service_name) (process_uptime_milliseconds{service_name=~\"api-gateway|account-service|transaction-service|plaid-adapter-service|consent-service|insights-service|budgeting|dashboard-service|ai-assistant\"} > bool 0)", "format": "table", "instant": true, "refId": "A"}
+      ],
+      "title": "Service Status Table",
+      "transformations": [
+        {"id": "organize", "options": {"excludeByName": {"Time": true, "__name__": true}, "indexByName": {"service_name": 0, "Value": 1}, "renameByName": {"Value": "Status", "service_name": "Service"}}}
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 10},
+      "id": 3,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [
+        {"expr": "(time() * 1000 - process_start_time_milliseconds{service_name=~\"api-gateway|account-service|transaction-service|plaid-adapter-service|consent-service|insights-service|budgeting|dashboard-service|ai-assistant\"}) / 1000", "legendFormat": "{{service_name}}", "refId": "A"}
+      ],
+      "title": "Service Uptime",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["wallet-hub", "metrics", "status"],
+  "templating": {"list": []},
+  "time": {"from": "now-30m", "to": "now"},
+  "timezone": "browser",
+  "title": "WalletHub Service Status",
+  "uid": "wallethub-service-status",
+  "version": 1,
+  "weekStart": ""
+}

@@ -7,4 +7,4 @@ COPY shared/src ./src
 WORKDIR /app
 COPY transaction-service/pom.xml .
 
-CMD ["mvn", "spring-boot:run", "-Dspring-boot.run.fork=false", "-Dspring-boot.run.profiles=dev"]
+CMD ["sh", "-c", "mvn -f /shared/pom.xml install -DskipTests && mvn clean spring-boot:run -Dspring-boot.run.fork=false -Dspring-boot.run.profiles=dev"]

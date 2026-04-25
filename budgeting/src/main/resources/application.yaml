@@ -22,27 +22,26 @@ spring:
     password: ${SPRING_RABBITMQ_PASSWORD:guest}
     listener:
       simple:
+        observation-enabled: true
         retry:
           enabled: true
           initial-interval: 2s
           max-attempts: 3
 
+    template:
+      observation-enabled: true
+
   security:
     oauth2:
       resourceserver:
         jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URL:http://localhost:8080}/realms/keycloak-realm
           jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/certs
-      client:
-        registration:
-          keycloak:
-            provider: keycloak
-            client-id: budgeting-service
-            client-secret: budgeting-service-secret
-            authorization-grant-type: client_credentials
-            scope: openid
-        provider:
-          keycloak:
-            token-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/token
+
+  cloud:
+    openfeign:
+      micrometer:
+        enabled: true
 
   jpa:
     show-sql: true
@@ -55,6 +54,44 @@ spring:
 
 server:
   port: ${BUDGETING_SERVICE_PORT:8089}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  tracing:
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
+  opentelemetry:
+    resource-attributes:
+      deployment.environment: ${DEPLOYMENT_ENVIRONMENT:local}
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://grafana-lgtm:4318/v1/traces}
+          transport: http
+    logging:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_LOGS_ENDPOINT:http://grafana-lgtm:4318/v1/logs}
+  otlp:
+    metrics:
+      export:
+        url: ${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:http://grafana-lgtm:4318/v1/metrics}
+
+logging:
+  pattern:
+    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}] "
+  include-application-name: false
 
 transactionclient:
   url: ${TRANSACTION_SERVICE_URL:http://localhost:8086}/transactions/categories/primary

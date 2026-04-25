@@ -25,10 +25,6 @@ public class LookupTools {
             ENTERTAINMENT → cinema, games, streaming, events. \
             PERSONAL_CARE → salon, gym, cosmetics.""")
     public java.util.List<TransactionPrimaryCategoryDto> getAllPrimaryCategories(ToolContext toolContext) {
-        return transactionCategoryClient.getAllPrimaryCategories(authorization(toolContext)).getBody();
-    }
-
-    private String authorization(ToolContext toolContext) {
-        return toolContext.getContext().get("authorization").toString();
+        return transactionCategoryClient.getAllPrimaryCategories().getBody();
     }
 }

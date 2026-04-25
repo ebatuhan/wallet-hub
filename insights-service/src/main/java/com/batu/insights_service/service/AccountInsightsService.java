@@ -15,4 +15,6 @@ public interface AccountInsightsService {
     void save(AccountBalanceDataPointRow row);
 
     List<AccountBalanceDataPointDto> getAccountBalanceHistory(UUID accountId, LocalDate from, LocalDate to, Jwt principal);
+
+    List<AccountBalanceDataPointDto> getAccountBalanceHistory(UUID accountId, LocalDate from, LocalDate to, UUID userId);
 }
