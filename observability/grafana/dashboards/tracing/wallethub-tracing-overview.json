@@ -48,7 +48,7 @@
     },
     {
       "datasource": {"type": "tempo", "uid": "tempo"},
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24},
       "id": 6,
       "targets": [{"query": "{ event:name = \"exception\" }", "queryType": "traceql", "refId": "A", "tableType": "traces"}],
       "title": "Traces With Exception Events",
