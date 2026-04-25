@@ -7,6 +7,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Window;
+import io.micrometer.observation.annotation.Observed;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
@@ -49,6 +50,7 @@ public class AccountServiceImpl implements AccountService {
         }
 
         @Override
+        @Observed(name = "account.list", contextualName = "account list accounts")
         public CursorResponse<AccountViewDto> getAccountsViewPaginated(
                         Jwt principal,
                         String accountName,

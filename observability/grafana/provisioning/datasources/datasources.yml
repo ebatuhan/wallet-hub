@@ -5,13 +5,13 @@ datasources:
     type: prometheus
     uid: prometheus
     access: proxy
-    url: http://prometheus:9090
+    url: http://localhost:9090
     isDefault: true
     editable: false
     jsonData:
       httpMethod: POST
       prometheusType: Prometheus
-      prometheusVersion: 3.0.1
+      prometheusVersion: 3.5.0
       exemplarTraceIdDestinations:
         - datasourceUid: tempo
           name: trace_id
@@ -22,7 +22,7 @@ datasources:
     type: tempo
     uid: tempo
     access: proxy
-    url: http://tempo:3200
+    url: http://localhost:3200
     editable: false
     jsonData:
       httpMethod: GET
@@ -37,28 +37,24 @@ datasources:
         filterByTraceID: true
         filterBySpanID: false
         customQuery: true
-        query: '{environment="local"} |= "$${__trace.traceId}"'
+        query: '{service_name=~".+"} | trace_id="$${__trace.traceId}"'
       tracesToMetrics:
         datasourceUid: prometheus
         spanStartTimeShift: -5m
         spanEndTimeShift: 5m
         tags:
           - key: service.name
-            value: service
+            value: service_name
         queries:
           - name: Request rate
-            query: 'sum(rate(http_server_requests_seconds_count{$$__tags}[5m]))'
+            query: 'sum(rate(http_server_requests_milliseconds_count{$$__tags}[5m]))'
 
   - name: Loki
     type: loki
     uid: loki
     access: proxy
-    url: http://loki:3100
+    url: http://localhost:3100
     editable: false
     jsonData:
       maxLines: 1000
-      derivedFields:
-        - name: TraceID
-          matcherRegex: '([a-fA-F0-9]{32})'
-          datasourceUid: tempo
-          url: '$${__value.raw}'
+      derivedFields: []

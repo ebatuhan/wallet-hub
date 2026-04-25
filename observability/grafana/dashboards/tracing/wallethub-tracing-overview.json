@@ -8,7 +8,7 @@
       "datasource": {"type": "tempo", "uid": "tempo"},
       "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
       "id": 1,
-      "targets": [{"query": "{ name =~ \"dashboard.*|plaid.*|assistant.*|analytics.*|insights.*|budgeting.*|http (get|post|put|patch|delete) /api/.*|http (get|post|put|patch|delete) /(dashboard|connections|plaid|assistant|accounts|transactions|budgets).*\" }", "queryType": "traceql", "refId": "A", "tableType": "traces"}],
+      "targets": [{"query": "{ name =~ \"account.*|dashboard.*|plaid.*|assistant.*|analytics.*|insights.*|budgeting.*|http (get|post|put|patch|delete) /api/.*|http (get|post|put|patch|delete) /(dashboard|connections|plaid|assistant|accounts|transactions|budgets).*\" || (resource.service.name = \"api-gateway\" && name =~ \"http (get|post|put|patch|delete)\") }", "queryType": "traceql", "refId": "A", "tableType": "traces"}],
       "title": "Recent Non-Actuator Traces",
       "type": "table"
     },
@@ -16,7 +16,7 @@
       "datasource": {"type": "tempo", "uid": "tempo"},
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
       "id": 2,
-      "targets": [{"query": "{ status = error && name =~ \"dashboard.*|plaid.*|assistant.*|analytics.*|insights.*|budgeting.*|http (get|post|put|patch|delete) /api/.*|http (get|post|put|patch|delete) /(dashboard|connections|plaid|assistant|accounts|transactions|budgets).*\" }", "queryType": "traceql", "refId": "A", "tableType": "traces"}],
+      "targets": [{"query": "{ (status = error || span.status =~ \"5..\") && (name =~ \"account.*|dashboard.*|plaid.*|assistant.*|analytics.*|insights.*|budgeting.*|http (get|post|put|patch|delete) /api/.*|http (get|post|put|patch|delete) /(dashboard|connections|plaid|assistant|accounts|transactions|budgets).*\" || (resource.service.name = \"api-gateway\" && name =~ \"http (get|post|put|patch|delete)\")) }", "queryType": "traceql", "refId": "A", "tableType": "traces"}],
       "title": "Error Traces",
       "type": "table"
     },
@@ -24,7 +24,7 @@
       "datasource": {"type": "tempo", "uid": "tempo"},
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
       "id": 3,
-      "targets": [{"query": "{ duration > 2s && name =~ \"dashboard.*|plaid.*|assistant.*|analytics.*|insights.*|budgeting.*|http (get|post|put|patch|delete) /api/.*|http (get|post|put|patch|delete) /(dashboard|connections|plaid|assistant|accounts|transactions|budgets).*\" }", "queryType": "traceql", "refId": "A", "tableType": "traces"}],
+      "targets": [{"query": "{ duration > 2s && (name =~ \"account.*|dashboard.*|plaid.*|assistant.*|analytics.*|insights.*|budgeting.*|http (get|post|put|patch|delete) /api/.*|http (get|post|put|patch|delete) /(dashboard|connections|plaid|assistant|accounts|transactions|budgets).*\" || (resource.service.name = \"api-gateway\" && name =~ \"http (get|post|put|patch|delete)\")) }", "queryType": "traceql", "refId": "A", "tableType": "traces"}],
       "title": "Slow Traces Over 2s",
       "type": "table"
     },
@@ -45,6 +45,23 @@
       "targets": [{"expr": "histogram_quantile(0.95, sum by (le, service) (rate(traces_spanmetrics_latency_bucket[5m])))", "legendFormat": "{{service}}", "refId": "A"}],
       "title": "p95 Span Latency From Tempo",
       "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+      "id": 6,
+      "targets": [{"query": "{ event:name = \"exception\" }", "queryType": "traceql", "refId": "A", "tableType": "traces"}],
+      "title": "Traces With Exception Events",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 32},
+      "id": 7,
+      "options": {"dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": true, "showCommonLabels": false, "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true},
+      "targets": [{"expr": "{service_name=~\".+\"}", "refId": "A"}],
+      "title": "Trace-Correlated Logs",
+      "type": "logs"
     }
   ],
   "refresh": "10s",

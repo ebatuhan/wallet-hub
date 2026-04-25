@@ -34,14 +34,13 @@ public class ObservationConfiguration {
     }
 
     @Bean
-    SpanExportingPredicate noActuatorOrSecuritySpans() {
-        return span -> !isActuatorOrSecuritySpan(span);
+    SpanExportingPredicate noActuatorSpans() {
+        return span -> !isActuatorSpan(span);
     }
 
-    private boolean isActuatorOrSecuritySpan(FinishedSpan span) {
+    private boolean isActuatorSpan(FinishedSpan span) {
         String name = span.getName();
-        if (name != null && (name.contains("actuator") || name.startsWith("security filterchain")
-                || name.startsWith("secured request") || name.startsWith("authorize "))) {
+        if (name != null && name.contains("actuator")) {
             return true;
         }
         return span.getTags().values().stream().anyMatch(value -> value != null && value.startsWith("/actuator"));

@@ -11,6 +11,9 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 import com.batu.budgeting.exception.AbstractApplicationException;
 
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
+
 @RestControllerAdvice
 public class ApplicationErrorAdvice extends ResponseEntityExceptionHandler {
 
@@ -19,6 +22,9 @@ public class ApplicationErrorAdvice extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(AbstractApplicationException.class)
     public ProblemDetail handleApplicationExceptions(AbstractApplicationException ex) {
+        if (ex.getHttpStatus().is5xxServerError()) {
+            recordExceptionOnCurrentSpan(ex);
+        }
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(ex.getHttpStatus(), ex.getMessage());
         problemDetail.setProperty("code", ex.getCode());
         return problemDetail;
@@ -33,6 +39,7 @@ public class ApplicationErrorAdvice extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(DataAccessException.class)
     public ProblemDetail handleDataAccessException(DataAccessException ex) {
+        recordExceptionOnCurrentSpan(ex);
         logger.error("Data access error", ex);
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,
                 GENERIC_ERROR_MESSAGE);
@@ -42,10 +49,18 @@ public class ApplicationErrorAdvice extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleUnexpectedException(Exception ex) {
+        recordExceptionOnCurrentSpan(ex);
         logger.error("Unexpected error", ex);
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,
                 GENERIC_ERROR_MESSAGE);
         problemDetail.setProperty("code", "UNEXPECTED_ERROR");
         return problemDetail;
+    }
+
+    private void recordExceptionOnCurrentSpan(Exception ex) {
+        Span span = Span.current();
+        span.recordException(ex);
+        span.setStatus(StatusCode.ERROR, ex.getMessage());
+        span.setAttribute("error.type", ex.getClass().getName());
     }
 }

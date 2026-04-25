@@ -43,7 +43,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics
   endpoint:
     health:
       probes:
@@ -61,12 +61,16 @@ management:
     tracing:
       export:
         otlp:
-          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://tempo:4318/v1/traces}
+          endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://grafana-lgtm:4318/v1/traces}
           transport: http
+    logging:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_LOGS_ENDPOINT:http://grafana-lgtm:4318/v1/logs}
   otlp:
     metrics:
       export:
-        enabled: false
+        url: ${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:http://grafana-lgtm:4318/v1/metrics}
 
 logging:
   pattern:
