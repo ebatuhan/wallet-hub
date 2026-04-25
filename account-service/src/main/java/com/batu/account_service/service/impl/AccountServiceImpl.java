@@ -73,8 +73,7 @@ public class AccountServiceImpl implements AccountService {
 
                 var spec = AccountSpecification.filter(userId, accountName, institutionName, accountType, accountSubtype);
 
-                Window<AccountViewDto> accounts = accountRepository.findBy(spec, query -> query
-                                .as(AccountViewDto.class)
+                Window<Account> accounts = accountRepository.findBy(spec, query -> query
                                 .sortBy(sort)
                                 .limit(limit)
                                 .scroll(scrollPosition));
@@ -83,7 +82,18 @@ public class AccountServiceImpl implements AccountService {
                                 ? cursorUtils.encode(accounts.positionAt(accounts.size() - 1))
                                 : null;
 
-                return new CursorResponse<>(accounts.getContent(), accounts.hasNext(), nextCursor);
+                List<AccountViewDto> content = accounts.getContent().stream()
+                                .map(account -> new AccountViewDto(
+                                                account.getAccountId(),
+                                                account.getInstitutionName(),
+                                                account.getAccountName(),
+                                                account.getCurrentBalance(),
+                                                account.getAccountType(),
+                                                account.getAccountMask(),
+                                                account.getCreatedAt()))
+                                .toList();
+
+                return new CursorResponse<>(content, accounts.hasNext(), nextCursor);
         }
 
         @Override
