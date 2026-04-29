@@ -26,6 +26,8 @@ import com.batu.account_service.util.KeycloakScopeConverter;
 @Configuration
 @EnableMethodSecurity
 public class KeycloakConfiguration {
+    private static final String SERVICE_AUTHORITY = "ROLE_service";
+
     @org.springframework.beans.factory.annotation.Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
     private String jwkSetUri;
 
@@ -40,9 +42,10 @@ public class KeycloakConfiguration {
                 .authorizeHttpRequests(
                         auth -> auth
                                 .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
-                                .requestMatchers(HttpMethod.POST, "/accounts", "/accounts/batch").permitAll()
-                                .requestMatchers(HttpMethod.PUT, "/accounts/*").permitAll()
-                                .requestMatchers(HttpMethod.DELETE, "/accounts/*").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/accounts/batch").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/accounts").hasAuthority(SERVICE_AUTHORITY)
+                                .requestMatchers(HttpMethod.PUT, "/accounts/*").hasAuthority(SERVICE_AUTHORITY)
+                                .requestMatchers(HttpMethod.DELETE, "/accounts/*").hasAuthority(SERVICE_AUTHORITY)
                                 .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .oauth2ResourceServer(

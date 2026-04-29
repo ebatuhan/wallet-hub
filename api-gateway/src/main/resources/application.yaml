@@ -60,6 +60,11 @@ spring:
           issuer-uri: ${KEYCLOAK_ISSUER_URL:http://localhost:8080}/realms/keycloak-realm
           jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/certs
 
+wallet-hub:
+  security:
+    jwt:
+      audience: ${WALLET_HUB_API_AUDIENCE:wallet-hub-api}
+
 server:
   port: ${API_GATEWAY_PORT:8085}
 

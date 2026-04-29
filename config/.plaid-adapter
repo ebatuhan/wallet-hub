@@ -6,6 +6,9 @@ KEYCLOAK_SERVER_URL=http://keycloak:8080
 KEYCLOAK_ISSUER_URL=http://192.168.1.49:8080
 TRANSACTION_SERVICE_URL=http://transaction-service:8086
 ACCOUNT_SERVICE_URL=http://account-service:8083
+INTERNAL_CLIENT_TOKEN_URL=http://keycloak:8080/realms/keycloak-realm/protocol/openid-connect/token
+INTERNAL_CLIENT_ID=wallet-hub-internal
+INTERNAL_CLIENT_SECRET=wallet-hub-internal-secret
 
 
 SPRING_RABBITMQ_HOST=rabbitmq
