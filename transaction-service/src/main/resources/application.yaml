@@ -98,6 +98,3 @@ logging:
   pattern:
     correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}] "
   include-application-name: false
-
-accountclient:
-  url: ${ACCOUNT_SERVICE_URL:http://localhost:8083}/accounts

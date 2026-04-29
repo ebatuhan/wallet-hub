@@ -14,7 +14,11 @@ public class AccountViewDto {
     private String institutionName;
     private String accountName;
     private BigDecimal currentBalance;
+    private BigDecimal availableBalance;
+    private String isoCurrencyCode;
     private String accountType;
+    private String accountSubtype;
     private String accountMask;
     private Instant createdAt;
+    private Instant updatedAt;
 }

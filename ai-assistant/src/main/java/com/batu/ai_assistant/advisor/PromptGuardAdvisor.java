@@ -5,11 +5,14 @@ import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.client.advisor.api.CallAdvisor;
 import org.springframework.ai.chat.client.advisor.api.CallAdvisorChain;
+import org.springframework.ai.retry.TransientAiException;
 import org.springframework.core.Ordered;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.ResourceAccessException;
 
 import com.batu.ai_assistant.dto.PromptSafetyDecisionDTO;
 import com.batu.ai_assistant.dto.PromptSafetyDecisionType;
+import com.batu.ai_assistant.exception.ModelUnavailableException;
 import com.batu.ai_assistant.exception.PromptBlockedException;
 
 @Component
@@ -36,6 +39,8 @@ public class PromptGuardAdvisor implements CallAdvisor {
             }
         } catch (PromptBlockedException ex) {
             throw ex;
+        } catch (TransientAiException | ResourceAccessException ex) {
+            throw new ModelUnavailableException();
         } catch (Exception ex) {
             throw new PromptBlockedException("Request blocked because prompt safety guard failed.");
         }

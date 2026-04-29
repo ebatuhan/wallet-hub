@@ -2,7 +2,28 @@ spring:
   application:
     name: ai-assistant
 
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5439/ai_assistant_db}
+    user: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5439/ai_assistant_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+
   ai:
+    retry:
+      max-attempts: ${SPRING_AI_RETRY_MAX_ATTEMPTS:3}
+      on-client-errors: false
+      on-transient-error-only: true
+      backoff:
+        initial-interval: ${SPRING_AI_RETRY_INITIAL_INTERVAL:1s}
+        multiplier: ${SPRING_AI_RETRY_MULTIPLIER:2}
+        max-interval: ${SPRING_AI_RETRY_MAX_INTERVAL:3s}
     ollama:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       init:
@@ -22,6 +43,15 @@ spring:
     openfeign:
       micrometer:
         enabled: true
+
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
 logging:
   pattern:

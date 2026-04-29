@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.batu.shared.dto.request.PrimaryCategoryIdsRequestDto;
 import com.batu.shared.dto.response.CursorResponse;
+import com.batu.shared.dto.response.TransactionDto;
 import com.batu.shared.dto.response.TransactionPrimaryCategoryDto;
 import com.batu.shared.dto.response.TransactionViewResponseDto;
 
@@ -24,6 +25,9 @@ public interface TransactionClient {
             @RequestParam(value = "accountId", required = false) UUID accountId,
             @RequestParam(value = "limit", required = false) Integer limit,
             @RequestParam(value = "cursor", required = false) String cursor);
+
+    @GetMapping("/{transactionId}")
+    ResponseEntity<TransactionDto> getTransaction(@PathVariable("transactionId") UUID transactionId);
 
     @PostMapping("/categories/primary/by-ids")
     ResponseEntity<List<TransactionPrimaryCategoryDto>> getPrimaryCategoriesByIds(

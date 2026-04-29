@@ -1,8 +1,11 @@
 package com.batu.ai_assistant.controller;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -10,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.batu.ai_assistant.dto.ChatRequestDTO;
 import com.batu.ai_assistant.dto.ChatResponseDTO;
+import com.batu.ai_assistant.dto.ChatMessageResponseDTO;
 import com.batu.ai_assistant.service.AIAssistantService;
 
 import jakarta.validation.Valid;
@@ -29,5 +33,10 @@ public class AIAssistantController {
             @Valid @RequestBody ChatRequestDTO request,
             @AuthenticationPrincipal Jwt principal) {
         return ResponseEntity.ok(aiAssistantService.chat(request, principal));
+    }
+
+    @GetMapping("/chat/history")
+    public ResponseEntity<List<ChatMessageResponseDTO>> history(@AuthenticationPrincipal Jwt principal) {
+        return ResponseEntity.ok(aiAssistantService.history(principal));
     }
 }

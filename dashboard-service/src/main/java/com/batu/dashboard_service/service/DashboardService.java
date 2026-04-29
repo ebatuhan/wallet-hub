@@ -6,11 +6,14 @@ import java.util.UUID;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import com.batu.dashboard_service.dto.AccountDashboardSummaryResponseDto;
+import com.batu.dashboard_service.dto.TransactionDashboardSummaryResponseDto;
 import com.batu.dashboard_service.dto.UserDashboardSummaryResponseDto;
 
 public interface DashboardService {
     UserDashboardSummaryResponseDto getUserSummary(LocalDate from, LocalDate to, Integer recentLimit, Jwt principal);
 
-    AccountDashboardSummaryResponseDto getAccountSummary(UUID accountId, LocalDate from, LocalDate to, Integer recentLimit,
-            Jwt principal);
+    AccountDashboardSummaryResponseDto getAccountSummary(UUID accountId, LocalDate from, LocalDate to, Integer limit,
+            String cursor, Jwt principal);
+
+    TransactionDashboardSummaryResponseDto getTransactionSummary(UUID transactionId, Jwt principal);
 }

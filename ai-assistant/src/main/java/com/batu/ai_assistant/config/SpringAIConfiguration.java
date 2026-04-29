@@ -7,6 +7,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.ToolCallAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.ChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,8 +23,9 @@ import com.batu.ai_assistant.tools.LookupTools;
 public class SpringAIConfiguration {
 
     @Bean
-    ChatMemory chatMemory() {
+    ChatMemory chatMemory(ChatMemoryRepository chatMemoryRepository) {
         return MessageWindowChatMemory.builder()
+                .chatMemoryRepository(chatMemoryRepository)
                 .maxMessages(10)
                 .build();
     }
@@ -40,7 +42,9 @@ public class SpringAIConfiguration {
                 .defaultTools(dashboardTools, budgetTools, lookupTools)
                 .defaultAdvisors(
                         promptGuardAdvisor,
-                        ToolCallAdvisor.builder().conversationHistoryEnabled(false).build(),
+                        
+                        ToolCallAdvisor.builder().conversationHistoryEnabled(true).build(),
+        
                         MessageChatMemoryAdvisor.builder(chatMemory).build())
                 .build();
     }
@@ -56,7 +60,8 @@ public class SpringAIConfiguration {
                         .keepAlive(keepAlive)
                         .disableThinking()
                         .temperature(0.0)
-                        .seed(7))
+                        .seed(7)
+                        .build())
                 .build();
     }
 
@@ -76,8 +81,8 @@ public class SpringAIConfiguration {
                 + "If amount is missing for a budget action, ask one follow-up question. "
                 + "If currency is missing, you may use the user's only currency if dashboard totals show exactly one currency; otherwise ask one follow-up question. "
                 + "Never expose internal UUIDs in final answers. "
-                 + "Do not say a budget was created, updated, or deactivated unless the tool returned success. "
-                 + "The current system supports category budgets, not savings-goal entities.";
+                + "Do not say a budget was created, updated, or deactivated unless the tool returned success. "
+                + "The current system supports category budgets, not savings-goal entities.";
     }
 
     private String guardSystemPrompt() {

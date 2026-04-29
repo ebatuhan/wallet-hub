@@ -1,8 +1,6 @@
 package com.batu.transaction_service.service.impl;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -15,13 +13,10 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.batu.shared.dto.request.AccountNameRequestDto;
 import com.batu.shared.dto.request.TransactionRequestDto;
-import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.shared.dto.response.CursorResponse;
 import com.batu.shared.dto.response.TransactionDto;
 import com.batu.shared.dto.response.TransactionViewResponseDto;
-import com.batu.transaction_service.client.AccountServiceClient;
 import com.batu.transaction_service.entity.Transaction;
 import com.batu.transaction_service.entity.TransactionDetailedCategory;
 import com.batu.transaction_service.exception.ResourceNotFoundException;
@@ -38,18 +33,16 @@ public class TransactionServiceImpl implements TransactionService {
 
         private final TransactionRepository transactionRepository;
         private final CursorUtils cursorUtils;
-        private final AccountServiceClient accountClient;
         private final DetailedCategoryService detailedCategoryService;
         private final ApplicationEventPublisher eventPublisher;
         private final TransactionSyncMapper transactionSyncMapper;
 
         public TransactionServiceImpl(TransactionRepository transactionRepository, CursorUtils cursorUtils,
-                        AccountServiceClient accountService, DetailedCategoryService detailedCategoryService,
+                        DetailedCategoryService detailedCategoryService,
                         ApplicationEventPublisher eventPublisher,
                         TransactionSyncMapper transactionSyncMapper) {
                 this.transactionRepository = transactionRepository;
                 this.cursorUtils = cursorUtils;
-                this.accountClient = accountService;
                 this.detailedCategoryService = detailedCategoryService;
                 this.eventPublisher = eventPublisher;
                 this.transactionSyncMapper = transactionSyncMapper;
@@ -82,34 +75,28 @@ public class TransactionServiceImpl implements TransactionService {
                                                 .limit(limit)
                                                 .scroll(position));
 
-                Set<UUID> accountIds = window.getContent()
-                                .stream()
-                                .map(acc -> acc.getAccountId())
-                                .collect(Collectors.toSet());
-
-                var request = new AccountNameRequestDto(accountIds);
-                List<AccountNameResponseDto> response = accountClient
-                                .getAccountNames(request)
-                                .getBody();
-
-                List<AccountNameResponseDto> accountNames = response == null ? List.of() : response;
-
-                Map<UUID, String> accountInformationsMap = accountNames.stream().collect(Collectors.toMap(
-                                AccountNameResponseDto::getAccountId,
-                                AccountNameResponseDto::getAccountName));
-
                 var dtos = window.getContent().stream()
                                 .map(
                                                 tx -> new TransactionViewResponseDto(tx.getTransactionId(),
                                                                 tx.getAmount(),
                                                                 tx.getTransactionName(),
+                                                                tx.getTransactionType(),
+                                                                tx.getDate(),
+                                                                tx.getPending(),
+                                                                tx.getPaymentChannel(),
                                                                 tx.getIsoCurrencyCode(),
                                                                 tx.getDetailedCategory().getTransactionPrimaryCategory()
+                                                                                .getTransactionPrimaryCategoryId(),
+                                                                tx.getDetailedCategory().getTransactionPrimaryCategory()
+                                                                                .getCategoryCode(),
+                                                                tx.getDetailedCategory().getTransactionPrimaryCategory()
                                                                                 .getDisplayName(),
-                                                                 tx.getDetailedCategory().getDisplayName(),
-                                                                 tx.getAccountId(),
-                                                                 accountInformationsMap.getOrDefault(tx.getAccountId(),
-                                                                                 "")))
+                                                                tx.getDetailedCategory().getTransactionPrimaryCategory()
+                                                                                .getIconUrl(),
+                                                                tx.getDetailedCategory().getTransactionDetailedCategoryId(),
+                                                                tx.getDetailedCategory().getCategoryCode(),
+                                                                tx.getDetailedCategory().getDisplayName(),
+                                                                tx.getAccountId()))
                                 .collect(Collectors.toList());
 
                 String nextCursor = null;

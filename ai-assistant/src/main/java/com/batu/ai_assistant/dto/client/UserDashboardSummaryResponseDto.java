@@ -23,7 +23,7 @@ public record UserDashboardSummaryResponseDto(
     public record AccountCurrencyTotalDto(String isoCurrencyCode, BigDecimal currentBalanceTotal,
             BigDecimal availableBalanceTotal) {}
 
-    public record RecentTransactionsDto(List<TransactionViewResponseDto> items, boolean hasNext, String nextCursor) {}
+    public record RecentTransactionsDto(List<TransactionViewResponseDto> items, boolean hasMore, String nextCursor) {}
 
     public record SpendingSectionDto(List<SpendingCategoryItemDto> categories) {}
 

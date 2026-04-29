@@ -68,6 +68,7 @@ public class TransactionSyncMapper {
         return new TransactionDto(
                 transaction.getTransactionId(),
                 transaction.getUserId(),
+                transaction.getAccountId(),
                 transaction.getAmount(),
                 transaction.getIsoCurrencyCode(),
                 transaction.getTransactionName(),
