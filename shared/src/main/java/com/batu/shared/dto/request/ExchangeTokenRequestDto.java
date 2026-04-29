@@ -15,6 +15,7 @@ public class ExchangeTokenRequestDto {
 
     private String publicToken;
     private List<String> accountIds = new ArrayList<>();
+    private List<ConnectionAccountMetadataDto> accounts = new ArrayList<>();
     private String institutionId;
     private String institutionName;
 

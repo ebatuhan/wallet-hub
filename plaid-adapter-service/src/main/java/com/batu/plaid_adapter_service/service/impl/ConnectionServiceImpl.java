@@ -37,6 +37,11 @@ public class ConnectionServiceImpl implements ConnectionService {
     }
 
     @Override
+    public List<Connection> readAllByUserIdAndInstitutionId(UUID userId, String institutionId) {
+        return connectionRepository.findByUserIdAndInstitutionId(userId, institutionId);
+    }
+
+    @Override
     @Transactional
     public Connection startSync(UUID connectionId) {
         Connection connection = readById(connectionId);

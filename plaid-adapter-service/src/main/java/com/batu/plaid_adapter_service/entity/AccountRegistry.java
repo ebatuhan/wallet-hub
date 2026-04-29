@@ -40,9 +40,17 @@ public class AccountRegistry {
     @Column(name = "account_id", nullable = false)
     private UUID accountId;
 
+    @Column(name = "fingerprint")
+    private String fingerprint;
+
     public AccountRegistry(UUID connectionId, String externalAccountId, UUID accountId) {
         this.connectionId = connectionId;
         this.externalAccountId = externalAccountId;
         this.accountId = accountId;
+    }
+
+    public AccountRegistry(UUID connectionId, String externalAccountId, UUID accountId, String fingerprint) {
+        this(connectionId, externalAccountId, accountId);
+        this.fingerprint = fingerprint;
     }
 }

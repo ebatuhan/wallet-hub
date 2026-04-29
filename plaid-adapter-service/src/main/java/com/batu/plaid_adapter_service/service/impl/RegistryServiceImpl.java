@@ -37,6 +37,19 @@ public class RegistryServiceImpl implements RegistryService {
     }
 
     @Override
+    @Transactional
+    public AccountRegistry createAccount(UUID connectionId, String externalAccountId, UUID accountId, String fingerprint) {
+        return accountRegistryRepository.save(new AccountRegistry(connectionId, externalAccountId, accountId, fingerprint));
+    }
+
+    @Override
+    @Transactional
+    public AccountRegistry updateAccountFingerprint(AccountRegistry accountRegistry, String fingerprint) {
+        accountRegistry.setFingerprint(fingerprint);
+        return accountRegistryRepository.save(accountRegistry);
+    }
+
+    @Override
     public List<AccountRegistry> findAccountsByConnection(UUID connectionId) {
         return accountRegistryRepository.findByConnectionId(connectionId);
     }

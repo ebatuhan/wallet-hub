@@ -12,6 +12,10 @@ public interface RegistryService {
 
     AccountRegistry createAccount(UUID connectionId, String externalAccountId, UUID accountId);
 
+    AccountRegistry createAccount(UUID connectionId, String externalAccountId, UUID accountId, String fingerprint);
+
+    AccountRegistry updateAccountFingerprint(AccountRegistry accountRegistry, String fingerprint);
+
     List<AccountRegistry> findAccountsByConnection(UUID connectionId);
 
     void deleteAccount(UUID accountRegistryId);

@@ -41,6 +41,7 @@ public class PlaidConnectionGateway implements ProviderConnectionGateway {
                 new ExchangeTokenRequestDto(
                         request.getPublicToken(),
                         request.getAccountIds(),
+                        request.getAccounts(),
                         request.getInstitutionId(),
                         request.getInstitutionName()))
                 .getBody();

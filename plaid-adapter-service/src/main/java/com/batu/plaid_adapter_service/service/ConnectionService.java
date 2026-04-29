@@ -25,6 +25,8 @@ public interface ConnectionService {
 
     List<Connection> readAllByUserId(UUID userId);
 
+    List<Connection> readAllByUserIdAndInstitutionId(UUID userId, String institutionId);
+
     Connection startSync(UUID connectionId);
 
     Connection completeSync(UUID connectionId, String cursor);

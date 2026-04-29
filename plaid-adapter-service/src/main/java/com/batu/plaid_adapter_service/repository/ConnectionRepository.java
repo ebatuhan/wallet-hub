@@ -18,4 +18,6 @@ public interface ConnectionRepository extends JpaRepository<Connection, UUID> {
     Optional<Connection> findByConnectionIdAndUserId(UUID connectionId, UUID userId);
 
     List<Connection> findByUserId(UUID userId);
+
+    List<Connection> findByUserIdAndInstitutionId(UUID userId, String institutionId);
 }

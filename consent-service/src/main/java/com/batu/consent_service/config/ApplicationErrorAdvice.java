@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.batu.consent_service.exception.ResourceNotFoundException;
 
+import feign.FeignException;
+
 @RestControllerAdvice
 public class ApplicationErrorAdvice {
 
@@ -18,5 +20,14 @@ public class ApplicationErrorAdvice {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<String> handleBadRequest(IllegalArgumentException ex) {
         return ResponseEntity.badRequest().body(ex.getMessage());
+    }
+
+    @ExceptionHandler(FeignException.class)
+    public ResponseEntity<String> handleProviderException(FeignException ex) {
+        HttpStatus status = HttpStatus.resolve(ex.status());
+        String body = ex.contentUTF8();
+
+        return ResponseEntity.status(status == null ? HttpStatus.BAD_GATEWAY : status)
+                .body(body == null || body.isBlank() ? ex.getMessage() : body);
     }
 }

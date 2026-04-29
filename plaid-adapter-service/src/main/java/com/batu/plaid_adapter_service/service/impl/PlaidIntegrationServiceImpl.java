@@ -59,19 +59,22 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
     private final AccountServiceClient accountServiceClient;
     private final TransactionServiceClient transactionServiceClient;
     private final PlaidRequestMapper plaidRequestMapper;
+    private final PlaidDuplicateConnectionService duplicateConnectionService;
 
     public PlaidIntegrationServiceImpl(PlaidClientWrapper plaidClient,
             ConnectionService connectionService,
             RegistryService registryService,
             AccountServiceClient accountServiceClient,
             TransactionServiceClient transactionServiceClient,
-            PlaidRequestMapper plaidRequestMapper) {
+            PlaidRequestMapper plaidRequestMapper,
+            PlaidDuplicateConnectionService duplicateConnectionService) {
         this.plaidClient = plaidClient;
         this.connectionService = connectionService;
         this.registryService = registryService;
         this.accountServiceClient = accountServiceClient;
         this.transactionServiceClient = transactionServiceClient;
         this.plaidRequestMapper = plaidRequestMapper;
+        this.duplicateConnectionService = duplicateConnectionService;
     }
 
     @Override
@@ -96,6 +99,8 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
     @Observed(name = "plaid.exchange-token", contextualName = "plaid exchange token")
     @Retryable(retryFor = PlaidRetryableException.class, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
     public ExchangeTokenResponseDto exchangeLinkToken(ExchangeTokenRequestDto exchangeTokenRequestDto, UUID userId) {
+        duplicateConnectionService.validateNotDuplicate(exchangeTokenRequestDto, userId);
+
         ItemPublicTokenExchangeResponse response = plaidClient.exchangePublicToken(
                 new ItemPublicTokenExchangeRequest().publicToken(exchangeTokenRequestDto.getPublicToken()));
 
@@ -131,7 +136,7 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
                                 .overridePassword("pass_good")));
 
         return exchangeLinkToken(
-                new ExchangeTokenRequestDto(response.getPublicToken(), Collections.emptyList(), institutionId, "Sandbox Bank"),
+                new ExchangeTokenRequestDto(response.getPublicToken(), Collections.emptyList(), Collections.emptyList(), institutionId, "Sandbox Bank"),
                 userId);
     }
 
@@ -203,7 +208,11 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
             }
 
             if (registry == null) {
-                registry = registryService.createAccount(connection.getConnectionId(), account.getAccountId(), UUID.randomUUID());
+                registry = registryService.createAccount(
+                        connection.getConnectionId(),
+                        account.getAccountId(),
+                        UUID.randomUUID(),
+                        duplicateConnectionService.createFingerprint(account.getName(), account.getMask()));
                 try {
                     accountServiceClient.create(
                             plaidRequestMapper.toAccountRequest(connection, registry.getAccountId(), account));
@@ -213,6 +222,11 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
                 }
                 accountCache.put(account.getAccountId(), registry);
                 continue;
+            }
+
+            String fingerprint = duplicateConnectionService.createFingerprint(account.getName(), account.getMask());
+            if (!fingerprint.equals(registry.getFingerprint())) {
+                registry = registryService.updateAccountFingerprint(registry, fingerprint);
             }
 
             accountServiceClient.update(
@@ -313,4 +327,5 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
                     plaidRequestMapper.toDeactivateTransactionRequest(connection, pendingRegistry.getTransactionId()));
         }
     }
+
 }
