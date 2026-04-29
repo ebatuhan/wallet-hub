@@ -45,11 +45,15 @@ public class DashboardTools {
             @ToolParam(description = "The ID of the account to summarize.") String accountId,
             @ToolParam(required = false, description = "Start date in yyyy-MM-dd format. Omit to use the first day of the current month.") String from,
             @ToolParam(required = false, description = "End date in yyyy-MM-dd format. Omit to use today's date.") String to,
+            @ToolParam(required = false, description = "Maximum number of transactions to return. Omit to use the dashboard default.") Integer limit,
+            @ToolParam(required = false, description = "Pagination cursor for transactions. Omit for the first page.") String cursor,
             ToolContext toolContext) {
         return dashboardClient.getAccountSummary(
                 java.util.UUID.fromString(accountId),
                 from,
-                to)
+                to,
+                limit,
+                cursor)
                 .getBody();
     }
 }

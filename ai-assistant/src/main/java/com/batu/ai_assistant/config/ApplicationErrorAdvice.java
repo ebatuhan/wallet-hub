@@ -4,11 +4,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.ai.retry.TransientAiException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import com.batu.ai_assistant.exception.AbstractApplicationException;
+import com.batu.ai_assistant.exception.ModelUnavailableException;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
@@ -25,6 +28,31 @@ public class ApplicationErrorAdvice extends ResponseEntityExceptionHandler {
         }
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(ex.getHttpStatus(), ex.getMessage());
         problemDetail.setProperty("code", ex.getCode());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(TransientAiException.class)
+    public ProblemDetail handleTransientAiException(TransientAiException ex) {
+        recordExceptionOnCurrentSpan(ex);
+        logger.warn("AI model temporarily unavailable", ex);
+
+        return modelUnavailableProblemDetail();
+    }
+
+    @ExceptionHandler(ResourceAccessException.class)
+    public ProblemDetail handleResourceAccessException(ResourceAccessException ex) {
+        recordExceptionOnCurrentSpan(ex);
+        logger.warn("AI model transport error", ex);
+
+        return modelUnavailableProblemDetail();
+    }
+
+    private ProblemDetail modelUnavailableProblemDetail() {
+        ModelUnavailableException modelUnavailableException = new ModelUnavailableException();
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                modelUnavailableException.getHttpStatus(),
+                modelUnavailableException.getMessage());
+        problemDetail.setProperty("code", modelUnavailableException.getCode());
         return problemDetail;
     }
 

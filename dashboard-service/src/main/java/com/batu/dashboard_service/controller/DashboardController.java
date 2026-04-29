@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.batu.dashboard_service.dto.AccountDashboardSummaryResponseDto;
+import com.batu.dashboard_service.dto.TransactionDashboardSummaryResponseDto;
 import com.batu.dashboard_service.dto.UserDashboardSummaryResponseDto;
 import com.batu.dashboard_service.service.DashboardService;
 
@@ -40,8 +41,16 @@ public class DashboardController {
             @PathVariable UUID accountId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-            @RequestParam(required = false) Integer recentLimit,
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) String cursor,
             @AuthenticationPrincipal Jwt principal) {
-        return ResponseEntity.ok(dashboardService.getAccountSummary(accountId, from, to, recentLimit, principal));
+        return ResponseEntity.ok(dashboardService.getAccountSummary(accountId, from, to, limit, cursor, principal));
+    }
+
+    @GetMapping("/transactions/{transactionId}/summary")
+    public ResponseEntity<TransactionDashboardSummaryResponseDto> getTransactionSummary(
+            @PathVariable UUID transactionId,
+            @AuthenticationPrincipal Jwt principal) {
+        return ResponseEntity.ok(dashboardService.getTransactionSummary(transactionId, principal));
     }
 }

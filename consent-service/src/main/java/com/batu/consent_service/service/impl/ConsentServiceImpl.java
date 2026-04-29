@@ -10,6 +10,8 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import feign.FeignException;
+
 import com.batu.consent_service.entity.ConsentConnection;
 import com.batu.consent_service.exception.ResourceNotFoundException;
 import com.batu.consent_service.mapper.ConsentConnectionMapper;
@@ -147,11 +149,14 @@ public class ConsentServiceImpl implements ConsentService {
         connection.setStatus("REMOVING");
         consentConnectionRepository.save(connection);
 
-        resolveGateway(connection.getProvider())
-                .removeConnection(UUID.fromString(principal.getSubject()), connection.getProviderConnectionId());
+        try {
+            resolveGateway(connection.getProvider())
+                    .removeConnection(UUID.fromString(principal.getSubject()), connection.getProviderConnectionId());
+        } catch (FeignException.NotFound ignored) {
+            // Provider data can be wiped independently in local/dev environments.
+        }
 
-        connection.setStatus("REMOVED");
-        consentConnectionRepository.save(connection);
+        consentConnectionRepository.delete(connection);
     }
 
     private ProviderConnectionGateway resolveGateway(String provider) {

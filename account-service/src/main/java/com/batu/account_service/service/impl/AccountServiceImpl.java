@@ -88,9 +88,13 @@ public class AccountServiceImpl implements AccountService {
                                                 account.getInstitutionName(),
                                                 account.getAccountName(),
                                                 account.getCurrentBalance(),
+                                                account.getAvailableBalance(),
+                                                account.getIsoCurrencyCode(),
                                                 account.getAccountType(),
+                                                account.getAccountSubtype(),
                                                 account.getAccountMask(),
-                                                account.getCreatedAt()))
+                                                account.getCreatedAt(),
+                                                account.getUpdatedAt()))
                                 .toList();
 
                 return new CursorResponse<>(content, accounts.hasNext(), nextCursor);

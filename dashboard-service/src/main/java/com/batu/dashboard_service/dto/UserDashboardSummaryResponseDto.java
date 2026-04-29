@@ -22,11 +22,12 @@ public record UserDashboardSummaryResponseDto(
 ) {
     public record PeriodDto(LocalDate from, LocalDate to) {}
 
-    public record RecentTransactionsDto(List<TransactionViewResponseDto> items, boolean hasNext, String nextCursor) {}
+    public record RecentTransactionsDto(List<TransactionViewResponseDto> items, boolean hasMore, String nextCursor) {}
 
     public record IncomeSectionDto(List<IncomeTotalByCurrencyDto> totalsByCurrency) {}
 
-    public record SpendingSectionDto(BigDecimal totalSpent, List<SpendingCategoryItemDto> categories, SpendingGraphResponseDto graph) {}
+    public record SpendingSectionDto(BigDecimal totalSpent, List<SpendingCategoryItemDto> categories,
+            SpendingGraphResponseDto yearlySpendings) {}
 
     public record BudgetHighlightsDto(long activeBudgetCount, long overBudgetCount, List<BudgetResponseDto> items) {}
 }

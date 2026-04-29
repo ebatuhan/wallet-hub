@@ -23,5 +23,7 @@ public interface DashboardClient {
     ResponseEntity<AccountDashboardSummaryResponseDto> getAccountSummary(
             @PathVariable("accountId") UUID accountId,
             @RequestParam(value = "from", required = false) String from,
-            @RequestParam(value = "to", required = false) String to);
+            @RequestParam(value = "to", required = false) String to,
+            @RequestParam(value = "limit", required = false) Integer limit,
+            @RequestParam(value = "cursor", required = false) String cursor);
 }

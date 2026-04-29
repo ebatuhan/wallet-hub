@@ -14,7 +14,7 @@ public record AccountDashboardSummaryResponseDto(
         AccountDto account,
         List<AccountBalanceDataPointDto> balanceHistory,
         SpendingSectionDto spending,
-        RecentTransactionsDto recentTransactions
+        RecentTransactionsDto transactions
 ) {
     public record PeriodDto(LocalDate from, LocalDate to) {}
 
@@ -26,5 +26,5 @@ public record AccountDashboardSummaryResponseDto(
 
     public record SpendingSectionDto(List<SpendingCategoryItemDto> categories) {}
 
-    public record RecentTransactionsDto(List<TransactionViewResponseDto> items, boolean hasNext, String nextCursor) {}
+    public record RecentTransactionsDto(List<TransactionViewResponseDto> items, boolean hasMore, String nextCursor) {}
 }
