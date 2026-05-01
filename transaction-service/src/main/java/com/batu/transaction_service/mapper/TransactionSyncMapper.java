@@ -29,7 +29,8 @@ public class TransactionSyncMapper {
                 request.getPending(),
                 request.getPaymentChannel(),
                 detailedCategory,
-                request.isActive());
+                request.isActive(),
+                request.getSyncVersion());
     }
 
     public TransactionPersistedEvent toPersistedEvent(Transaction transaction) {
@@ -49,7 +50,8 @@ public class TransactionSyncMapper {
                 transaction.getPaymentChannel(),
                 transaction.getDetailedCategory().getTransactionPrimaryCategory().getTransactionPrimaryCategoryId(),
                 transaction.getDetailedCategory().getTransactionPrimaryCategory().getCategoryCode(),
-                transaction.isActive());
+                transaction.isActive(),
+                transaction.getSyncVersion());
     }
 
     public TransactionDto toDto(Transaction transaction) {

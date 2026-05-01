@@ -27,7 +27,7 @@ class ItemLoginRequiredStrategyTest {
     private ItemLoginRequiredStrategy strategy;
 
     @Test
-    void handle_marksConnectionDisabledWithPlaidErrorCode() {
+    void handle_deactivatesConnectionWithPlaidErrorCode() {
         Connection connection = new Connection(UUID.randomUUID(), "item-1", "access-token", "ins-1", "Test Bank");
         when(connectionService.readByExternalId("item-1")).thenReturn(connection);
 
@@ -35,6 +35,6 @@ class ItemLoginRequiredStrategyTest {
 
         strategy.handle(new PlaidWebhookDto("ITEM", "ITEM_LOGIN_REQUIRED", "item-1", error, null, null));
 
-        verify(connectionService).markDisabled(connection.getConnectionId(), "ITEM_LOGIN_REQUIRED");
+        verify(connectionService).deactivate(connection.getConnectionId(), "ITEM_LOGIN_REQUIRED");
     }
 }

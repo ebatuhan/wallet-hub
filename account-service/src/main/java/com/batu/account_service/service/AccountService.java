@@ -41,5 +41,9 @@ public interface AccountService {
 
     void update(AccountRequestDto request);
 
+    void upsertFromSync(AccountRequestDto request);
+
+    void deactivateFromSync(UUID accountId, long syncVersion);
+
     void deactivate(UUID accountId);
 }

@@ -7,7 +7,7 @@ import java.security.NoSuchAlgorithmException;
 import org.springframework.stereotype.Component;
 
 @Component
-public class FingerprintHasher {
+public class StringHasher {
 
     public String sha256(String value) {
         try {

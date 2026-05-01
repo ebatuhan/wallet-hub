@@ -30,4 +30,12 @@ public class AccountPersistedEvent {
     private String isoCurrencyCode;
     @JsonProperty("isActive")
     private boolean isActive;
+    private long syncVersion;
+
+    public AccountPersistedEvent(UUID eventId, Instant occurredAt, String sourceService, UUID accountId, UUID userId,
+            String institutionName, String accountName, String accountType, String accountSubtype, String accountMask,
+            BigDecimal currentBalance, BigDecimal availableBalance, String isoCurrencyCode, boolean isActive) {
+        this(eventId, occurredAt, sourceService, accountId, userId, institutionName, accountName, accountType,
+                accountSubtype, accountMask, currentBalance, availableBalance, isoCurrencyCode, isActive, 0L);
+    }
 }

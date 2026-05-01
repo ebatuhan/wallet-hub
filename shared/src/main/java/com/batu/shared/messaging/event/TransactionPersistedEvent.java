@@ -33,4 +33,14 @@ public class TransactionPersistedEvent {
     private String primaryCategoryCode;
     @JsonProperty("isActive")
     private boolean isActive;
+    private long syncVersion;
+
+    public TransactionPersistedEvent(UUID eventId, Instant occurredAt, String sourceService, UUID transactionId,
+            UUID userId, UUID accountId, BigDecimal amount, String isoCurrencyCode, String transactionName,
+            String transactionType, LocalDate date, Boolean pending, String paymentChannel, UUID primaryCategoryId,
+            String primaryCategoryCode, boolean isActive) {
+        this(eventId, occurredAt, sourceService, transactionId, userId, accountId, amount, isoCurrencyCode,
+                transactionName, transactionType, date, pending, paymentChannel, primaryCategoryId, primaryCategoryCode,
+                isActive, 0L);
+    }
 }

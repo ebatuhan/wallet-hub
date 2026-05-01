@@ -11,4 +11,7 @@ public interface TransactionRegistryRepository extends JpaRepository<Transaction
 
     Optional<TransactionRegistry> findByAccountRegistryConnectionIdAndExternalTransactionId(UUID connectionId,
             String externalTransactionId);
+
+    Optional<TransactionRegistry> findByAccountRegistryAccountRegistryIdAndExternalTransactionId(UUID accountRegistryId,
+            String externalTransactionId);
 }

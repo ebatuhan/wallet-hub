@@ -24,7 +24,8 @@ public class AccountSyncMapper {
                 request.getCurrentBalance(),
                 request.getAvailableBalance(),
                 request.getIsoCurrencyCode(),
-                request.isActive());
+                request.isActive(),
+                request.getSyncVersion());
     }
 
     public AccountPersistedEvent toPersistedEvent(Account account) {
@@ -42,6 +43,7 @@ public class AccountSyncMapper {
                 account.getCurrentBalance(),
                 account.getAvailableBalance(),
                 account.getIsoCurrencyCode(),
-                account.isActive());
+                account.isActive(),
+                account.getSyncVersion());
     }
 }

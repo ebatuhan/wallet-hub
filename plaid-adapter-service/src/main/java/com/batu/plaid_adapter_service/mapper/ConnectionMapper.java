@@ -3,7 +3,6 @@ package com.batu.plaid_adapter_service.mapper;
 import org.springframework.stereotype.Component;
 
 import com.batu.plaid_adapter_service.entity.Connection;
-import com.batu.plaid_adapter_service.entity.enums.ConnectionStatus;
 import com.batu.shared.dto.request.ConnectionUpdateRequestDto;
 import com.batu.shared.dto.response.ConnectionResponseDto;
 
@@ -32,9 +31,7 @@ public class ConnectionMapper {
         if (source.getDisplayName() != null) {
             target.setDisplayName(source.getDisplayName());
         }
-        if (source.getConnectionStatus() != null) {
-            target.setConnectionStatus(source.getConnectionStatus());
-        }
+        target.setActive(source.isActive());
         if (source.getErrorCode() != null) {
             target.setErrorCode(source.getErrorCode());
         }
@@ -53,14 +50,7 @@ public class ConnectionMapper {
     }
 
     public ConnectionResponseDto toResponse(Connection connection) {
-        String status = connection.getConnectionStatus();
-        boolean supportsRefresh = ConnectionStatus.ACTIVE.name().equals(status)
-                || ConnectionStatus.DISABLED.name().equals(status)
-                || ConnectionStatus.FAILED.name().equals(status);
-        boolean supportsReconnect = ConnectionStatus.DISABLED.name().equals(status)
-                || ConnectionStatus.FAILED.name().equals(status);
-        boolean supportsDisconnect = !ConnectionStatus.REMOVED.name().equals(status)
-                && !ConnectionStatus.REMOVING.name().equals(status);
+        boolean active = connection.isActive();
 
         return new ConnectionResponseDto(
                 connection.getConnectionId(),
@@ -69,11 +59,11 @@ public class ConnectionMapper {
                 connection.getInstitutionId(),
                 connection.getInstitutionName(),
                 connection.getDisplayName(),
-                status,
+                active ? "ACTIVE" : "INACTIVE",
                 connection.getLastSyncedAt(),
-                supportsRefresh,
-                supportsReconnect,
-                supportsDisconnect);
+                active,
+                false,
+                active);
     }
 
     private String toProviderDisplayName(String provider) {

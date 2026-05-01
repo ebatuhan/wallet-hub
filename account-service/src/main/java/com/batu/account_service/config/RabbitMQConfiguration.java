@@ -30,9 +30,33 @@ public class RabbitMQConfiguration {
     }
 
     @Bean
+    Queue accountSyncQueue() {
+        return new Queue(MessagingTopology.ACCOUNT_SYNC_QUEUE, true);
+    }
+
+    @Bean
+    Queue accountDeactivateQueue() {
+        return new Queue(MessagingTopology.ACCOUNT_DEACTIVATE_QUEUE, true);
+    }
+
+    @Bean
     Binding accountPersistedBinding(Queue accountPersistedQueue, TopicExchange analyticsExchange) {
         return BindingBuilder.bind(accountPersistedQueue)
                 .to(analyticsExchange)
                 .with(MessagingTopology.ACCOUNT_PERSISTED_ROUTING_KEY);
+    }
+
+    @Bean
+    Binding accountSyncBinding(Queue accountSyncQueue, TopicExchange analyticsExchange) {
+        return BindingBuilder.bind(accountSyncQueue)
+                .to(analyticsExchange)
+                .with(MessagingTopology.ACCOUNT_SYNC_ROUTING_KEY);
+    }
+
+    @Bean
+    Binding accountDeactivateBinding(Queue accountDeactivateQueue, TopicExchange analyticsExchange) {
+        return BindingBuilder.bind(accountDeactivateQueue)
+                .to(analyticsExchange)
+                .with(MessagingTopology.ACCOUNT_DEACTIVATE_ROUTING_KEY);
     }
 }

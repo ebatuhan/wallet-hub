@@ -28,4 +28,12 @@ public class AccountRequestDto {
     private String isoCurrencyCode;
     @JsonProperty("isActive")
     private boolean isActive = true;
+    private long syncVersion;
+
+    public AccountRequestDto(UUID accountId, UUID userId, String institutionName, String accountName, String accountType,
+            String accountSubtype, String accountMask, BigDecimal currentBalance, BigDecimal availableBalance,
+            String isoCurrencyCode, boolean isActive) {
+        this(accountId, userId, institutionName, accountName, accountType, accountSubtype, accountMask, currentBalance,
+                availableBalance, isoCurrencyCode, isActive, 0L);
+    }
 }

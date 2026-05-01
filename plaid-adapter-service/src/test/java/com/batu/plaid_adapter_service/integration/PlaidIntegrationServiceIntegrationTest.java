@@ -3,8 +3,8 @@ package com.batu.plaid_adapter_service.integration;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,28 +21,28 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.ResponseEntity;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.batu.plaid_adapter_service.TestSupportConfiguration;
-import com.batu.plaid_adapter_service.client.AccountServiceClient;
 import com.batu.plaid_adapter_service.client.PlaidClientWrapper;
-import com.batu.plaid_adapter_service.client.TransactionServiceClient;
+import com.batu.plaid_adapter_service.entity.AccountRegistry;
 import com.batu.plaid_adapter_service.entity.Connection;
-import com.batu.plaid_adapter_service.entity.enums.ConnectionStatus;
 import com.batu.plaid_adapter_service.mapper.PlaidRequestMapper;
+import com.batu.plaid_adapter_service.messaging.PlaidSyncPublisher;
 import com.batu.plaid_adapter_service.repository.AccountRegistryRepository;
 import com.batu.plaid_adapter_service.repository.ConnectionRepository;
 import com.batu.plaid_adapter_service.repository.TransactionRegistryRepository;
 import com.batu.plaid_adapter_service.service.PlaidIntegrationService;
+import com.batu.shared.dto.request.AccountDeactivateRequestDto;
 import com.batu.shared.dto.request.AccountRequestDto;
 import com.batu.shared.dto.request.TransactionRequestDto;
+import com.batu.shared.dto.request.TransactionsDeactivateByAccountRequestDto;
 import com.plaid.client.model.AccountBase;
-import com.plaid.client.model.AccountsGetResponse;
 import com.plaid.client.model.RemovedTransaction;
 import com.plaid.client.model.Transaction;
 import com.plaid.client.model.TransactionsSyncResponse;
@@ -68,13 +68,10 @@ class PlaidIntegrationServiceIntegrationTest {
     private PlaidClientWrapper plaidClientWrapper;
 
     @MockitoBean
-    private AccountServiceClient accountServiceClient;
-
-    @MockitoBean
-    private TransactionServiceClient transactionServiceClient;
-
-    @MockitoBean
     private PlaidRequestMapper plaidRequestMapper;
+
+    @MockitoBean
+    private PlaidSyncPublisher plaidSyncPublisher;
 
     @BeforeEach
     @AfterEach
@@ -85,7 +82,7 @@ class PlaidIntegrationServiceIntegrationTest {
     }
 
     @Test
-    void syncConnection_allowsOnlyOneConcurrentRun() throws Exception {
+    void syncConnection_serializesConcurrentRunsForSameConnection() throws Exception {
         Connection connection = connectionRepository.save(
                 new Connection(UUID.randomUUID(), "item-sync-1", "access-token", "ins-1", "Test Bank"));
 
@@ -97,10 +94,8 @@ class PlaidIntegrationServiceIntegrationTest {
         when(transaction.getAccountId()).thenReturn("ext-account-1");
         when(transaction.getPendingTransactionId()).thenReturn(null);
 
-        AccountsGetResponse accountsGetResponse = org.mockito.Mockito.mock(AccountsGetResponse.class);
-        when(accountsGetResponse.getAccounts()).thenReturn(List.of(account));
-
         TransactionsSyncResponse transactionsSyncResponse = org.mockito.Mockito.mock(TransactionsSyncResponse.class);
+        when(transactionsSyncResponse.getAccounts()).thenReturn(List.of(account));
         when(transactionsSyncResponse.getAdded()).thenReturn(List.of(transaction));
         when(transactionsSyncResponse.getModified()).thenReturn(Collections.emptyList());
         when(transactionsSyncResponse.getRemoved()).thenReturn(Collections.<RemovedTransaction>emptyList());
@@ -116,39 +111,33 @@ class PlaidIntegrationServiceIntegrationTest {
 
         when(plaidRequestMapper.toAccountRequest(any(), any(), any())).thenReturn(accountRequest);
         when(plaidRequestMapper.toTransactionRequest(any(), any(), any(), any())).thenReturn(transactionRequest);
-        when(plaidClientWrapper.syncTransactions(any())).thenReturn(transactionsSyncResponse);
-        when(accountServiceClient.create(any())).thenReturn(ResponseEntity.noContent().build());
-        when(accountServiceClient.update(any(), any())).thenReturn(ResponseEntity.noContent().build());
-        when(transactionServiceClient.create(any())).thenReturn(ResponseEntity.noContent().build());
-        when(transactionServiceClient.update(any(), any())).thenReturn(ResponseEntity.noContent().build());
-
-        CountDownLatch firstAccountsCallEntered = new CountDownLatch(1);
-        CountDownLatch releaseAccountsCall = new CountDownLatch(1);
-        when(plaidClientWrapper.accountsGet(any())).thenAnswer(invocation -> {
-            firstAccountsCallEntered.countDown();
-            releaseAccountsCall.await(5, TimeUnit.SECONDS);
-            return accountsGetResponse;
+        CountDownLatch firstSyncCallEntered = new CountDownLatch(1);
+        CountDownLatch releaseSyncCall = new CountDownLatch(1);
+        when(plaidClientWrapper.syncTransactions(any())).thenAnswer(invocation -> {
+            firstSyncCallEntered.countDown();
+            releaseSyncCall.await(5, TimeUnit.SECONDS);
+            return transactionsSyncResponse;
         });
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
         Future<?> firstSync = executor.submit(() -> plaidIntegrationService.syncConnection(connection.getConnectionId()));
-        firstAccountsCallEntered.await(5, TimeUnit.SECONDS);
+        firstSyncCallEntered.await(5, TimeUnit.SECONDS);
         Future<?> secondSync = executor.submit(() -> plaidIntegrationService.syncConnection(connection.getConnectionId()));
 
-        releaseAccountsCall.countDown();
+        releaseSyncCall.countDown();
         firstSync.get(5, TimeUnit.SECONDS);
         secondSync.get(5, TimeUnit.SECONDS);
         executor.shutdownNow();
 
-        verify(accountServiceClient, times(1)).create(any());
-        verify(transactionServiceClient, times(1)).create(any());
-        verify(accountServiceClient, never()).update(any(), any());
-        verify(transactionServiceClient, never()).update(any(), any());
+        verify(plaidSyncPublisher, times(2)).publishAccount(any());
+        verify(plaidSyncPublisher, times(2)).publishTransaction(any());
+        assertEquals(2, accountRequest.getSyncVersion());
+        assertEquals(2, transactionRequest.getSyncVersion());
         assertEquals(1, accountRegistryRepository.count());
         assertEquals(1, transactionRegistryRepository.count());
         assertEquals("cursor-1", connectionRepository.findById(connection.getConnectionId()).orElseThrow().getLastCursor());
-        assertEquals(ConnectionStatus.ACTIVE.name(),
-                connectionRepository.findById(connection.getConnectionId()).orElseThrow().getConnectionStatus());
+        assertEquals(2, connectionRepository.findById(connection.getConnectionId()).orElseThrow().getSyncVersion());
+        assertEquals(true, connectionRepository.findById(connection.getConnectionId()).orElseThrow().isActive());
     }
 
     @Test
@@ -159,21 +148,24 @@ class PlaidIntegrationServiceIntegrationTest {
         AccountBase account = org.mockito.Mockito.mock(AccountBase.class);
         when(account.getAccountId()).thenReturn("ext-account-2");
 
-        AccountsGetResponse accountsGetResponse = org.mockito.Mockito.mock(AccountsGetResponse.class);
-        when(accountsGetResponse.getAccounts()).thenReturn(List.of(account));
+        TransactionsSyncResponse transactionsSyncResponse = org.mockito.Mockito.mock(TransactionsSyncResponse.class);
+        when(transactionsSyncResponse.getAccounts()).thenReturn(List.of(account));
+        when(transactionsSyncResponse.getAdded()).thenReturn(Collections.emptyList());
+        when(transactionsSyncResponse.getModified()).thenReturn(Collections.emptyList());
+        when(transactionsSyncResponse.getNextCursor()).thenReturn("cursor-failed-account");
+        when(transactionsSyncResponse.getHasMore()).thenReturn(false);
 
-        when(plaidClientWrapper.accountsGet(any())).thenReturn(accountsGetResponse);
+        when(plaidClientWrapper.syncTransactions(any())).thenReturn(transactionsSyncResponse);
         when(plaidRequestMapper.toAccountRequest(any(), any(), any())).thenReturn(
                 new AccountRequestDto(UUID.randomUUID(), connection.getUserId(), "Test Bank", "Checking", "depository",
                         "checking", "0000", java.math.BigDecimal.TEN, java.math.BigDecimal.TEN, "USD", true));
-        when(accountServiceClient.create(any())).thenThrow(new RuntimeException("account create failed"));
+        doThrow(new RuntimeException("account publish failed")).when(plaidSyncPublisher).publishAccount(any());
 
         assertThrows(RuntimeException.class, () -> plaidIntegrationService.syncConnection(connection.getConnectionId()));
 
         assertEquals(0, accountRegistryRepository.count());
-        assertEquals(ConnectionStatus.ACTIVE.name(),
-                connectionRepository.findById(connection.getConnectionId()).orElseThrow().getConnectionStatus());
-        verify(plaidClientWrapper, never()).syncTransactions(any());
+        assertEquals(true, connectionRepository.findById(connection.getConnectionId()).orElseThrow().isActive());
+        verify(plaidSyncPublisher, never()).publishTransaction(any());
     }
 
     @Test
@@ -189,10 +181,8 @@ class PlaidIntegrationServiceIntegrationTest {
         when(transaction.getAccountId()).thenReturn("ext-account-3");
         when(transaction.getPendingTransactionId()).thenReturn(null);
 
-        AccountsGetResponse accountsGetResponse = org.mockito.Mockito.mock(AccountsGetResponse.class);
-        when(accountsGetResponse.getAccounts()).thenReturn(List.of(account));
-
         TransactionsSyncResponse transactionsSyncResponse = org.mockito.Mockito.mock(TransactionsSyncResponse.class);
+        when(transactionsSyncResponse.getAccounts()).thenReturn(List.of(account));
         when(transactionsSyncResponse.getAdded()).thenReturn(List.of(transaction));
         when(transactionsSyncResponse.getModified()).thenReturn(Collections.emptyList());
         when(transactionsSyncResponse.getRemoved()).thenReturn(Collections.<RemovedTransaction>emptyList());
@@ -206,18 +196,43 @@ class PlaidIntegrationServiceIntegrationTest {
                 accountRequest.getAccountId(), java.math.BigDecimal.ONE, "USD", "Coffee", "place",
                 java.time.LocalDate.now(), false, "in store", "FOOD_AND_DRINK_COFFEE", true);
 
-        when(plaidClientWrapper.accountsGet(any())).thenReturn(accountsGetResponse);
         when(plaidClientWrapper.syncTransactions(any())).thenReturn(transactionsSyncResponse);
         when(plaidRequestMapper.toAccountRequest(any(), any(), any())).thenReturn(accountRequest);
         when(plaidRequestMapper.toTransactionRequest(any(), any(), any(), any())).thenReturn(transactionRequest);
-        when(accountServiceClient.create(any())).thenReturn(ResponseEntity.noContent().build());
-        when(transactionServiceClient.create(any())).thenThrow(new RuntimeException("transaction create failed"));
+        doThrow(new RuntimeException("transaction publish failed")).when(plaidSyncPublisher).publishTransaction(any());
 
         assertThrows(RuntimeException.class, () -> plaidIntegrationService.syncConnection(connection.getConnectionId()));
 
-        assertEquals(1, accountRegistryRepository.count());
+        assertEquals(0, accountRegistryRepository.count());
         assertEquals(0, transactionRegistryRepository.count());
-        assertEquals(ConnectionStatus.ACTIVE.name(),
-                connectionRepository.findById(connection.getConnectionId()).orElseThrow().getConnectionStatus());
+        assertEquals(true, connectionRepository.findById(connection.getConnectionId()).orElseThrow().isActive());
+    }
+
+    @Test
+    void removeConnection_publishesDeactivateEventsWithIncrementedVersion() {
+        Connection connection = connectionRepository.save(
+                new Connection(UUID.randomUUID(), "item-remove-1", "access-token", "ins-1", "Test Bank"));
+        UUID accountId = UUID.randomUUID();
+        accountRegistryRepository.save(new AccountRegistry(
+                connection.getConnectionId(), "ext-account-remove-1", accountId));
+
+        plaidIntegrationService.removeConnection(connection.getConnectionId(), "USER_REQUESTED_REMOVAL");
+
+        ArgumentCaptor<TransactionsDeactivateByAccountRequestDto> transactionsCaptor = ArgumentCaptor
+                .forClass(TransactionsDeactivateByAccountRequestDto.class);
+        ArgumentCaptor<AccountDeactivateRequestDto> accountCaptor = ArgumentCaptor.forClass(AccountDeactivateRequestDto.class);
+
+        verify(plaidSyncPublisher).publishTransactionsDeactivateByAccount(transactionsCaptor.capture());
+        verify(plaidSyncPublisher).publishAccountDeactivate(accountCaptor.capture());
+        verify(plaidClientWrapper).removeItem(any());
+
+        assertEquals(accountId, transactionsCaptor.getValue().getAccountId());
+        assertEquals(1, transactionsCaptor.getValue().getSyncVersion());
+        assertEquals(accountId, accountCaptor.getValue().getAccountId());
+        assertEquals(1, accountCaptor.getValue().getSyncVersion());
+
+        Connection removedConnection = connectionRepository.findById(connection.getConnectionId()).orElseThrow();
+        assertEquals(false, removedConnection.isActive());
+        assertEquals(1, removedConnection.getSyncVersion());
     }
 }

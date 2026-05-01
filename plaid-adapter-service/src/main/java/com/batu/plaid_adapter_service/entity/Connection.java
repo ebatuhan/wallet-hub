@@ -4,7 +4,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import jakarta.persistence.Version;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -51,8 +50,8 @@ public class Connection {
     @Column(name = "display_name")
     private String displayName;
 
-    @Column(name = "connection_status", nullable = false)
-    private String connectionStatus = "ACTIVE";
+    @Column(name = "is_active", nullable = false, columnDefinition = "boolean default true")
+    private boolean active = true;
 
     @Column(name = "error_code")
     private String errorCode;
@@ -63,9 +62,8 @@ public class Connection {
     @Column(name = "last_synced_at")
     private Instant lastSyncedAt;
 
-    @Version
-    @Column(name = "version", nullable = false)
-    private long version;
+    @Column(name = "sync_version", nullable = false, columnDefinition = "bigint default 0")
+    private long syncVersion;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -87,9 +85,9 @@ public class Connection {
     }
 
     public Connection(UUID userId, String externalId, String accessToken, String institutionId, String institutionName,
-            String connectionStatus, String errorCode, String lastCursor) {
+            boolean active, String errorCode, String lastCursor) {
         this(userId, externalId, accessToken, institutionId, institutionName);
-        this.connectionStatus = connectionStatus;
+        this.active = active;
         this.errorCode = errorCode;
         this.lastCursor = lastCursor;
     }

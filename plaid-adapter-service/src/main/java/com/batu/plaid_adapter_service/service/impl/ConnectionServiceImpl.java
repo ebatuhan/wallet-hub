@@ -6,7 +6,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 import com.batu.plaid_adapter_service.entity.Connection;
-import com.batu.plaid_adapter_service.entity.enums.ConnectionStatus;
 import com.batu.plaid_adapter_service.exception.ResourceNotFoundException;
 import com.batu.plaid_adapter_service.mapper.ConnectionMapper;
 import com.batu.plaid_adapter_service.repository.ConnectionRepository;
@@ -43,50 +42,34 @@ public class ConnectionServiceImpl implements ConnectionService {
 
     @Override
     @Transactional
-    public Connection startSync(UUID connectionId) {
-        Connection connection = readById(connectionId);
-        if (ConnectionStatus.SYNCING.name().equals(connection.getConnectionStatus())
-                || ConnectionStatus.DISABLED.name().equals(connection.getConnectionStatus())
-                || ConnectionStatus.REMOVING.name().equals(connection.getConnectionStatus())
-                || ConnectionStatus.REMOVED.name().equals(connection.getConnectionStatus())) {
-            return null;
-        }
-
-        connection.setConnectionStatus(ConnectionStatus.SYNCING.name());
-        connection.setErrorCode(null);
-        return connectionRepository.save(connection);
-    }
-
-    @Override
-    @Transactional
     public Connection completeSync(UUID connectionId, String cursor) {
         Connection connection = readById(connectionId);
-        if (ConnectionStatus.REMOVED.name().equals(connection.getConnectionStatus())
-                || ConnectionStatus.REMOVING.name().equals(connection.getConnectionStatus())
-                || ConnectionStatus.DISABLED.name().equals(connection.getConnectionStatus())) {
+        if (!connection.isActive()) {
             return connection;
         }
 
         connection.setLastCursor(cursor);
         connection.setLastSyncedAt(java.time.Instant.now());
-        connection.setConnectionStatus(ConnectionStatus.ACTIVE.name());
         connection.setErrorCode(null);
         return connectionRepository.save(connection);
     }
 
     @Override
     @Transactional
-    public Connection releaseSync(UUID connectionId) {
-        Connection connection = readById(connectionId);
-        if (ConnectionStatus.SYNCING.name().equals(connection.getConnectionStatus())) {
-            connection.setConnectionStatus(ConnectionStatus.ACTIVE.name());
-        }
-        return connectionRepository.save(connection);
+    public long incrementSyncVersion(Connection connection) {
+        connection.setSyncVersion(connection.getSyncVersion() + 1);
+        return connection.getSyncVersion();
+    }
+
+    private Connection readById(UUID connectionId) {
+        return connectionRepository.findById(connectionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Connection with " + connectionId + "not found"));
     }
 
     @Override
-    public Connection readById(UUID connectionId) {
-        return connectionRepository.findById(connectionId)
+    @Transactional
+    public Connection readByIdForUpdate(UUID connectionId) {
+        return connectionRepository.lockByConnectionId(connectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Connection with " + connectionId + "not found"));
     }
 
@@ -125,33 +108,12 @@ public class ConnectionServiceImpl implements ConnectionService {
 
     @Override
     @Transactional
-    public Connection markDisabled(UUID connectionId, String errorCode) {
+    public Connection deactivate(UUID connectionId, String errorCode) {
         Connection connection = readById(connectionId);
-        connection.setConnectionStatus(ConnectionStatus.DISABLED.name());
+        connection.setActive(false);
         connection.setErrorCode(errorCode);
         return connectionRepository.save(connection);
     }
 
-    @Override
-    @Transactional
-    public Connection markRemoving(UUID connectionId, String errorCode) {
-        Connection connection = readById(connectionId);
-        if (ConnectionStatus.REMOVED.name().equals(connection.getConnectionStatus())) {
-            return connection;
-        }
-
-        connection.setConnectionStatus(ConnectionStatus.REMOVING.name());
-        connection.setErrorCode(errorCode);
-        return connectionRepository.save(connection);
-    }
-
-    @Override
-    @Transactional
-    public Connection markRemoved(UUID connectionId, String errorCode) {
-        Connection connection = readById(connectionId);
-        connection.setConnectionStatus(ConnectionStatus.REMOVED.name());
-        connection.setErrorCode(errorCode);
-        return connectionRepository.save(connection);
-    }
 
 }

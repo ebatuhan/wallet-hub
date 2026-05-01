@@ -31,5 +31,9 @@ public interface TransactionService {
 
     void update(TransactionRequestDto request);
 
+    void upsertFromSync(TransactionRequestDto request);
+
+    void deactivateByAccountIdFromSync(UUID accountId, long syncVersion);
+
     void deactivateByAccountId(UUID accountId);
 }

@@ -30,4 +30,12 @@ public class TransactionRequestDto {
     private String detailedCategoryCode;
     @JsonProperty("isActive")
     private boolean isActive = true;
+    private long syncVersion;
+
+    public TransactionRequestDto(UUID transactionId, UUID userId, UUID accountId, BigDecimal amount, String isoCurrencyCode,
+            String transactionName, String transactionType, LocalDate date, Boolean pending, String paymentChannel,
+            String detailedCategoryCode, boolean isActive) {
+        this(transactionId, userId, accountId, amount, isoCurrencyCode, transactionName, transactionType, date, pending,
+                paymentChannel, detailedCategoryCode, isActive, 0L);
+    }
 }

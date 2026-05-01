@@ -16,7 +16,7 @@ public class ItemLoginRequiredStrategy implements WebhookStrategy {
 
     @Override
     public void handle(PlaidWebhookDto dto) {
-        connectionService.markDisabled(connectionService.readByExternalId(dto.itemId()).getConnectionId(),
+        connectionService.deactivate(connectionService.readByExternalId(dto.itemId()).getConnectionId(),
                 dto.error() == null ? dto.webhookCode() : dto.error().errorCode());
     }
 }

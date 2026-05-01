@@ -19,9 +19,3 @@ plaid:
   env: sandbox
   webhook:
     url: http://localhost/test-webhook
-
-accountclient:
-  url: http://localhost/accounts
-
-transactionclient:
-  url: http://localhost/transactions

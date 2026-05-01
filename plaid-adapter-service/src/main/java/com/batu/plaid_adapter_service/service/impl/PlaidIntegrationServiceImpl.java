@@ -1,9 +1,13 @@
 package com.batu.plaid_adapter_service.service.impl;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -14,31 +18,35 @@ import org.springframework.transaction.annotation.Transactional;
 
 import io.micrometer.observation.annotation.Observed;
 
-import com.batu.plaid_adapter_service.client.AccountServiceClient;
 import com.batu.plaid_adapter_service.client.PlaidClientWrapper;
-import com.batu.plaid_adapter_service.client.TransactionServiceClient;
 import com.batu.plaid_adapter_service.entity.AccountRegistry;
 import com.batu.plaid_adapter_service.entity.Connection;
 import com.batu.plaid_adapter_service.entity.TransactionRegistry;
+import com.batu.plaid_adapter_service.exception.DuplicateConnectionException;
 import com.batu.plaid_adapter_service.exception.PlaidRetryableException;
 import com.batu.plaid_adapter_service.mapper.PlaidRequestMapper;
+import com.batu.plaid_adapter_service.messaging.PlaidSyncPublisher;
+import com.batu.plaid_adapter_service.service.AccountRegistryService;
 import com.batu.plaid_adapter_service.service.ConnectionService;
 import com.batu.plaid_adapter_service.service.PlaidIntegrationService;
-import com.batu.plaid_adapter_service.service.RegistryService;
+import com.batu.plaid_adapter_service.service.TransactionRegistryService;
+import com.batu.plaid_adapter_service.util.StringHasher;
+import com.batu.shared.dto.request.AccountRequestDto;
+import com.batu.shared.dto.request.AccountDeactivateRequestDto;
 import com.batu.shared.dto.request.ExchangeTokenRequestDto;
 import com.batu.shared.dto.request.LinkTokenRequestDto;
+import com.batu.shared.dto.request.TransactionRequestDto;
+import com.batu.shared.dto.request.TransactionsDeactivateByAccountRequestDto;
 import com.batu.shared.dto.response.ExchangeTokenResponseDto;
 import com.batu.shared.dto.response.LinkTokenResponseDto;
 import com.plaid.client.model.AccountBase;
-import com.plaid.client.model.AccountsGetRequest;
-import com.plaid.client.model.AccountsGetResponse;
+import com.plaid.client.model.ItemRemoveRequest;
 import com.plaid.client.model.ItemPublicTokenExchangeRequest;
 import com.plaid.client.model.ItemPublicTokenExchangeResponse;
 import com.plaid.client.model.LinkTokenCreateRequest;
 import com.plaid.client.model.LinkTokenCreateRequestUser;
 import com.plaid.client.model.LinkTokenCreateResponse;
 import com.plaid.client.model.Products;
-import com.plaid.client.model.RemovedTransaction;
 import com.plaid.client.model.SandboxPublicTokenCreateRequest;
 import com.plaid.client.model.SandboxPublicTokenCreateRequestOptions;
 import com.plaid.client.model.SandboxPublicTokenCreateResponse;
@@ -55,26 +63,26 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
 
     private final PlaidClientWrapper plaidClient;
     private final ConnectionService connectionService;
-    private final RegistryService registryService;
-    private final AccountServiceClient accountServiceClient;
-    private final TransactionServiceClient transactionServiceClient;
+    private final AccountRegistryService accountRegistryService;
+    private final TransactionRegistryService transactionRegistryService;
     private final PlaidRequestMapper plaidRequestMapper;
-    private final PlaidDuplicateConnectionService duplicateConnectionService;
+    private final PlaidSyncPublisher plaidSyncPublisher;
+    private final StringHasher stringHasher;
 
     public PlaidIntegrationServiceImpl(PlaidClientWrapper plaidClient,
             ConnectionService connectionService,
-            RegistryService registryService,
-            AccountServiceClient accountServiceClient,
-            TransactionServiceClient transactionServiceClient,
+            AccountRegistryService accountRegistryService,
+            TransactionRegistryService transactionRegistryService,
             PlaidRequestMapper plaidRequestMapper,
-            PlaidDuplicateConnectionService duplicateConnectionService) {
+            PlaidSyncPublisher plaidSyncPublisher,
+            StringHasher stringHasher) {
         this.plaidClient = plaidClient;
         this.connectionService = connectionService;
-        this.registryService = registryService;
-        this.accountServiceClient = accountServiceClient;
-        this.transactionServiceClient = transactionServiceClient;
+        this.accountRegistryService = accountRegistryService;
+        this.transactionRegistryService = transactionRegistryService;
         this.plaidRequestMapper = plaidRequestMapper;
-        this.duplicateConnectionService = duplicateConnectionService;
+        this.plaidSyncPublisher = plaidSyncPublisher;
+        this.stringHasher = stringHasher;
     }
 
     @Override
@@ -99,7 +107,10 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
     @Observed(name = "plaid.exchange-token", contextualName = "plaid exchange token")
     @Retryable(retryFor = PlaidRetryableException.class, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
     public ExchangeTokenResponseDto exchangeLinkToken(ExchangeTokenRequestDto exchangeTokenRequestDto, UUID userId) {
-        duplicateConnectionService.validateNotDuplicate(exchangeTokenRequestDto, userId);
+
+        if (isExchangeTokenRequestDuplicate(exchangeTokenRequestDto)) {
+            throw new DuplicateConnectionException("This connection already exists. Remove the current one before continue.");
+        }
 
         ItemPublicTokenExchangeResponse response = plaidClient.exchangePublicToken(
                 new ItemPublicTokenExchangeRequest().publicToken(exchangeTokenRequestDto.getPublicToken()));
@@ -136,196 +147,162 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
                                 .overridePassword("pass_good")));
 
         return exchangeLinkToken(
-                new ExchangeTokenRequestDto(response.getPublicToken(), Collections.emptyList(), Collections.emptyList(), institutionId, "Sandbox Bank"),
+                new ExchangeTokenRequestDto(response.getPublicToken(), Collections.emptyList(), Collections.emptyList(),
+                        institutionId, "Sandbox Bank"),
                 userId);
-    }
-
-    @Override
-    @Observed(name = "plaid.sync-connection", contextualName = "plaid sync connection")
-    @Retryable(retryFor = PlaidRetryableException.class, maxAttempts = 5, backoff = @Backoff(delay = 2000, multiplier = 2, maxDelay = 60000))
-    public void syncConnection(UUID connectionId) {
-        Connection connection = connectionService.startSync(connectionId);
-        if (connection == null) {
-            return;
-        }
-
-        try {
-            Map<String, AccountRegistry> accountCache = new HashMap<>();
-            Map<String, TransactionRegistry> transactionCache = new HashMap<>();
-
-            syncAccounts(connection, accountCache);
-
-            String cursor = connection.getLastCursor();
-            boolean hasMore = true;
-
-            while (hasMore) {
-                TransactionsSyncResponse response = plaidClient.syncTransactions(
-                        new TransactionsSyncRequest()
-                                .accessToken(connection.getAccessToken())
-                                .cursor(cursor)
-                                .options(new TransactionsSyncRequestOptions().includePersonalFinanceCategory(true)));
-
-                syncTransactions(connection, response.getAdded(), accountCache, transactionCache);
-                syncTransactions(connection, response.getModified(), accountCache, transactionCache);
-                deactivateRemovedTransactions(connection, response.getRemoved(), transactionCache);
-
-                cursor = response.getNextCursor();
-                hasMore = response.getHasMore();
-            }
-
-            connectionService.completeSync(connection.getConnectionId(), cursor);
-        } catch (RuntimeException ex) {
-            connectionService.releaseSync(connectionId);
-            throw ex;
-        }
     }
 
     @Override
     @Transactional
     @Observed(name = "plaid.remove-connection", contextualName = "plaid remove connection")
     public void removeConnection(UUID connectionId, String reason) {
-        connectionService.markRemoving(connectionId, reason);
-
-        for (AccountRegistry accountRegistry : registryService.findAccountsByConnection(connectionId)) {
-            transactionServiceClient.deactivateByAccountId(accountRegistry.getAccountId());
-            accountServiceClient.deactivate(accountRegistry.getAccountId());
-        }
-
-        connectionService.markRemoved(connectionId, reason);
-    }
-
-    private void syncAccounts(Connection connection, Map<String, AccountRegistry> accountCache) {
-        AccountsGetResponse response = plaidClient.accountsGet(
-                new AccountsGetRequest().accessToken(connection.getAccessToken()));
-
-        for (AccountBase account : response.getAccounts()) {
-            AccountRegistry registry = accountCache.get(account.getAccountId());
-            if (registry == null) {
-                registry = registryService.findAccount(connection.getConnectionId(), account.getAccountId());
-                if (registry != null) {
-                    accountCache.put(account.getAccountId(), registry);
-                }
-            }
-
-            if (registry == null) {
-                registry = registryService.createAccount(
-                        connection.getConnectionId(),
-                        account.getAccountId(),
-                        UUID.randomUUID(),
-                        duplicateConnectionService.createFingerprint(account.getName(), account.getMask()));
-                try {
-                    accountServiceClient.create(
-                            plaidRequestMapper.toAccountRequest(connection, registry.getAccountId(), account));
-                } catch (RuntimeException ex) {
-                    registryService.deleteAccount(registry.getAccountRegistryId());
-                    throw ex;
-                }
-                accountCache.put(account.getAccountId(), registry);
-                continue;
-            }
-
-            String fingerprint = duplicateConnectionService.createFingerprint(account.getName(), account.getMask());
-            if (!fingerprint.equals(registry.getFingerprint())) {
-                registry = registryService.updateAccountFingerprint(registry, fingerprint);
-            }
-
-            accountServiceClient.update(
-                    registry.getAccountId(),
-                    plaidRequestMapper.toAccountRequest(connection, registry.getAccountId(), account));
-        }
-    }
-
-    private void syncTransactions(Connection connection,
-            List<Transaction> transactions,
-            Map<String, AccountRegistry> accountCache,
-            Map<String, TransactionRegistry> transactionCache) {
-        for (Transaction transaction : transactions) {
-            AccountRegistry accountRegistry = accountCache.get(transaction.getAccountId());
-            if (accountRegistry == null) {
-                accountRegistry = registryService.findAccount(connection.getConnectionId(), transaction.getAccountId());
-                if (accountRegistry == null) {
-                    continue;
-                }
-                accountCache.put(transaction.getAccountId(), accountRegistry);
-            }
-
-            deactivatePendingTransaction(connection, transaction, transactionCache);
-
-            TransactionRegistry registry = transactionCache.get(transaction.getTransactionId());
-            if (registry == null) {
-                registry = registryService.findTransaction(connection.getConnectionId(), transaction.getTransactionId());
-                if (registry != null) {
-                    transactionCache.put(transaction.getTransactionId(), registry);
-                }
-            }
-
-            if (registry == null) {
-                registry = registryService.createTransaction(accountRegistry, transaction.getTransactionId(), UUID.randomUUID());
-                try {
-                    transactionServiceClient.create(
-                            plaidRequestMapper.toTransactionRequest(
-                                    connection,
-                                    registry.getTransactionId(),
-                                    accountRegistry.getAccountId(),
-                                    transaction));
-                } catch (RuntimeException ex) {
-                    registryService.deleteTransaction(registry.getTransactionRegistryId());
-                    throw ex;
-                }
-                transactionCache.put(transaction.getTransactionId(), registry);
-                continue;
-            }
-
-            transactionServiceClient.update(
-                    registry.getTransactionId(),
-                    plaidRequestMapper.toTransactionRequest(
-                            connection,
-                            registry.getTransactionId(),
-                            accountRegistry.getAccountId(),
-                            transaction));
-        }
-    }
-
-    private void deactivateRemovedTransactions(Connection connection,
-            List<RemovedTransaction> removedTransactions,
-            Map<String, TransactionRegistry> transactionCache) {
-        for (RemovedTransaction removedTransaction : removedTransactions) {
-            TransactionRegistry registry = transactionCache.get(removedTransaction.getTransactionId());
-            if (registry == null) {
-                registry = registryService.findTransaction(connection.getConnectionId(), removedTransaction.getTransactionId());
-                if (registry != null) {
-                    transactionCache.put(removedTransaction.getTransactionId(), registry);
-                }
-            }
-
-            if (registry != null) {
-                transactionServiceClient.update(
-                        registry.getTransactionId(),
-                        plaidRequestMapper.toDeactivateTransactionRequest(connection, registry.getTransactionId()));
-            }
-        }
-    }
-
-    private void deactivatePendingTransaction(Connection connection,
-            Transaction transaction,
-            Map<String, TransactionRegistry> transactionCache) {
-        if (transaction.getPendingTransactionId() == null || transaction.getPendingTransactionId().isBlank()) {
+        Connection connection = connectionService.readByIdForUpdate(connectionId);
+        if (!connection.isActive()) {
             return;
         }
 
-        TransactionRegistry pendingRegistry = transactionCache.get(transaction.getPendingTransactionId());
-        if (pendingRegistry == null) {
-            pendingRegistry = registryService.findTransaction(connection.getConnectionId(), transaction.getPendingTransactionId());
-            if (pendingRegistry != null) {
-                transactionCache.put(transaction.getPendingTransactionId(), pendingRegistry);
-            }
+        long syncVersion = connectionService.incrementSyncVersion(connection);
+
+        for (AccountRegistry accountRegistry : accountRegistryService.findAccountsByConnection(connectionId)) {
+            plaidSyncPublisher.publishTransactionsDeactivateByAccount(
+                    new TransactionsDeactivateByAccountRequestDto(accountRegistry.getAccountId(), syncVersion));
+            plaidSyncPublisher.publishAccountDeactivate(
+                    new AccountDeactivateRequestDto(accountRegistry.getAccountId(), syncVersion));
         }
 
-        if (pendingRegistry != null) {
-            transactionServiceClient.update(
-                    pendingRegistry.getTransactionId(),
-                    plaidRequestMapper.toDeactivateTransactionRequest(connection, pendingRegistry.getTransactionId()));
+        plaidClient.removeItem(new ItemRemoveRequest().accessToken(connection.getAccessToken()));
+
+        connectionService.deactivate(connectionId, reason);
+    }
+
+    @Override
+    @Transactional
+    @Observed(name = "plaid.sync-connection", contextualName = "plaid sync connection")
+    @Retryable(retryFor = PlaidRetryableException.class, maxAttempts = 5, backoff = @Backoff(delay = 2000, multiplier = 2, maxDelay = 60000))
+    public void syncConnection(UUID connectionId) {
+        Connection conn = connectionService.readByIdForUpdate(connectionId);
+        if (!conn.isActive()) {
+            return;
         }
+
+        String lastCursor = conn.getLastCursor();
+        long syncVersion = connectionService.incrementSyncVersion(conn);
+
+        Set<AccountBase> accounts = new HashSet<>();
+        List<Transaction> transactions = new ArrayList<>();
+
+        TransactionsSyncRequest request = new TransactionsSyncRequest()
+                .accessToken(conn.getAccessToken())
+                .cursor(lastCursor)
+                .options(new TransactionsSyncRequestOptions().includePersonalFinanceCategory(true));
+
+        TransactionsSyncResponse response = plaidClient.syncTransactions(request);
+
+        accounts.addAll(response.getAccounts());
+        transactions.addAll(response.getAdded());
+        transactions.addAll(response.getModified());
+
+        lastCursor = response.getNextCursor();
+        boolean hasMore = response.getHasMore();
+
+        while (hasMore) {
+            request.setCursor(lastCursor);
+            response = plaidClient.syncTransactions(request);
+
+            accounts.addAll(response.getAccounts());
+            transactions.addAll(response.getAdded());
+            transactions.addAll(response.getModified());
+
+            lastCursor = response.getNextCursor();
+            hasMore = response.getHasMore();
+        }
+
+        Map<String, AccountRegistry> accountRegistriesByExternalId = new HashMap<>();
+        for (AccountBase account : accounts) {
+            UUID accountId = UUID.randomUUID();
+            AccountRegistry accountRegistry = accountRegistryService.upsertAccount(
+                    connectionId,
+                    account.getAccountId(),
+                    accountId,
+                    accountFingerprint(conn, account));
+
+            accountRegistriesByExternalId.put(account.getAccountId(), accountRegistry);
+
+            AccountRequestDto accountRequest = plaidRequestMapper.toAccountRequest(
+                    conn,
+                    accountRegistry.getAccountId(),
+                    account);
+            accountRequest.setSyncVersion(syncVersion);
+            plaidSyncPublisher.publishAccount(accountRequest);
+        }
+
+        for (Transaction transaction : transactions) {
+            AccountRegistry accountRegistry = accountRegistriesByExternalId.computeIfAbsent(
+                    transaction.getAccountId(),
+                    externalAccountId -> accountRegistryService.findAccount(connectionId, externalAccountId));
+
+            if (accountRegistry == null) {
+                continue;
+            }
+
+            TransactionRegistry transactionRegistry = transactionRegistryService.upsertTransaction(
+                    accountRegistry,
+                    transaction.getTransactionId(),
+                    UUID.randomUUID());
+
+            TransactionRequestDto transactionRequest = plaidRequestMapper.toTransactionRequest(
+                    conn,
+                    transactionRegistry.getTransactionId(),
+                    accountRegistry.getAccountId(),
+                    transaction);
+            transactionRequest.setSyncVersion(syncVersion);
+            plaidSyncPublisher.publishTransaction(transactionRequest);
+        }
+
+        connectionService.completeSync(connectionId, lastCursor);
+
+    }
+
+    private boolean isExchangeTokenRequestDuplicate(ExchangeTokenRequestDto request) {
+        if (request == null || request.getAccounts() == null || request.getAccounts().isEmpty()) {
+            return false;
+        }
+
+        String normalizedInstitutionId = request.getInstitutionId() == null
+                ? ""
+                : request.getInstitutionId().trim().toLowerCase(Locale.ROOT);
+
+        List<String> fingerprints = request.getAccounts().stream()
+                .map(account -> {
+                    String normalizedMask = account.getMask() == null
+                            ? ""
+                            : account.getMask().trim().toLowerCase(Locale.ROOT);
+
+                    String normalizedSubType = account.getSubType() == null
+                            ? ""
+                            : account.getSubType().trim().toLowerCase(Locale.ROOT);
+
+                    String valueToHash = String.join("|",
+                            normalizedMask,
+                            normalizedSubType,
+                            normalizedInstitutionId
+                    );
+
+                    return stringHasher.sha256(valueToHash);
+                })
+                .toList();
+
+        return accountRegistryService.existsByFingerprintIn(fingerprints);
+    }
+
+    private String accountFingerprint(Connection connection, AccountBase account) {
+        String normalizedMask = account.getMask() == null ? "" : account.getMask().trim().toLowerCase(Locale.ROOT);
+        String normalizedSubType = account.getSubtype() == null ? "" : account.getSubtype().getValue().trim().toLowerCase(Locale.ROOT);
+        String normalizedInstitutionId = connection.getInstitutionId() == null
+                ? ""
+                : connection.getInstitutionId().trim().toLowerCase(Locale.ROOT);
+
+        return stringHasher.sha256(String.join("|", normalizedMask, normalizedSubType, normalizedInstitutionId));
     }
 
 }

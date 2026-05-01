@@ -23,7 +23,8 @@ import com.batu.plaid_adapter_service.entity.AccountRegistry;
 import com.batu.plaid_adapter_service.entity.TransactionRegistry;
 import com.batu.plaid_adapter_service.repository.AccountRegistryRepository;
 import com.batu.plaid_adapter_service.repository.TransactionRegistryRepository;
-import com.batu.plaid_adapter_service.service.RegistryService;
+import com.batu.plaid_adapter_service.service.AccountRegistryService;
+import com.batu.plaid_adapter_service.service.TransactionRegistryService;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("test")
@@ -31,7 +32,10 @@ import com.batu.plaid_adapter_service.service.RegistryService;
 class RegistryServiceConcurrencyIntegrationTest {
 
     @Autowired
-    private RegistryService registryService;
+    private AccountRegistryService accountRegistryService;
+
+    @Autowired
+    private TransactionRegistryService transactionRegistryService;
 
     @Autowired
     private AccountRegistryRepository accountRegistryRepository;
@@ -57,12 +61,12 @@ class RegistryServiceConcurrencyIntegrationTest {
         Future<AccountRegistry> first = executor.submit(() -> {
             ready.countDown();
             start.await(5, TimeUnit.SECONDS);
-            return registryService.createAccount(connectionId, "ext-account-1", UUID.randomUUID());
+            return accountRegistryService.upsertAccount(connectionId, "ext-account-1", UUID.randomUUID());
         });
         Future<AccountRegistry> second = executor.submit(() -> {
             ready.countDown();
             start.await(5, TimeUnit.SECONDS);
-            return registryService.createAccount(connectionId, "ext-account-1", UUID.randomUUID());
+            return accountRegistryService.upsertAccount(connectionId, "ext-account-1", UUID.randomUUID());
         });
 
         ready.await(5, TimeUnit.SECONDS);
@@ -80,7 +84,7 @@ class RegistryServiceConcurrencyIntegrationTest {
 
     @Test
     void createTransaction_reusesSingleRegistryRowUnderConcurrency() throws Exception {
-        AccountRegistry accountRegistry = registryService.createAccount(UUID.randomUUID(), "ext-account-2", UUID.randomUUID());
+        AccountRegistry accountRegistry = accountRegistryService.upsertAccount(UUID.randomUUID(), "ext-account-2", UUID.randomUUID());
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
         CountDownLatch ready = new CountDownLatch(2);
@@ -89,12 +93,12 @@ class RegistryServiceConcurrencyIntegrationTest {
         Future<TransactionRegistry> first = executor.submit(() -> {
             ready.countDown();
             start.await(5, TimeUnit.SECONDS);
-            return registryService.createTransaction(accountRegistry, "ext-transaction-1", UUID.randomUUID());
+            return transactionRegistryService.upsertTransaction(accountRegistry, "ext-transaction-1", UUID.randomUUID());
         });
         Future<TransactionRegistry> second = executor.submit(() -> {
             ready.countDown();
             start.await(5, TimeUnit.SECONDS);
-            return registryService.createTransaction(accountRegistry, "ext-transaction-1", UUID.randomUUID());
+            return transactionRegistryService.upsertTransaction(accountRegistry, "ext-transaction-1", UUID.randomUUID());
         });
 
         ready.await(5, TimeUnit.SECONDS);

@@ -6,7 +6,11 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5434/plaid_db}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
-    
+
+  sql:
+    init:
+      mode: always
+
   rabbitmq:
     host: ${SPRING_RABBITMQ_HOST:rabbitmq}
     port: ${SPRING_RABBITMQ_PORT:5672}
@@ -31,13 +35,6 @@ spring:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URL:http://localhost:8080}/realms/keycloak-realm
           jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/certs
-
-  cloud:
-    openfeign:
-      micrometer:
-        enabled: true
-      circuitbreaker:
-        enabled: false
 
   jpa:
     hibernate:
@@ -90,14 +87,3 @@ plaid:
   env: ${PLAID_ENV_TYPE:sandbox}
   webhook:
    url: ${PLAID_WEBHOOK_URL:https://71l6b2-2a0b-4140-ab40--2.ru.tuna.am/api/plaid/webhook}
-
-accountclient:
-  url: ${ACCOUNT_SERVICE_URL:http://localhost:8083}/accounts
-
-transactionclient:
-  url: ${TRANSACTION_SERVICE_URL:http://localhost:8086}/transactions
-
-internalclient:
-  token-url: ${INTERNAL_CLIENT_TOKEN_URL:${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/token}
-  client-id: ${INTERNAL_CLIENT_ID:wallet-hub-internal}
-  client-secret: ${INTERNAL_CLIENT_SECRET:wallet-hub-internal-secret}

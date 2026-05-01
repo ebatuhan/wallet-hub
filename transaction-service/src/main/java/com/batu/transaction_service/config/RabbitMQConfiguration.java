@@ -30,9 +30,34 @@ public class RabbitMQConfiguration {
     }
 
     @Bean
+    Queue transactionSyncQueue() {
+        return new Queue(MessagingTopology.TRANSACTION_SYNC_QUEUE, true);
+    }
+
+    @Bean
+    Queue transactionDeactivateByAccountQueue() {
+        return new Queue(MessagingTopology.TRANSACTION_DEACTIVATE_BY_ACCOUNT_QUEUE, true);
+    }
+
+    @Bean
     Binding transactionPersistedBinding(Queue transactionPersistedQueue, TopicExchange analyticsExchange) {
         return BindingBuilder.bind(transactionPersistedQueue)
                 .to(analyticsExchange)
                 .with(MessagingTopology.TRANSACTION_PERSISTED_ROUTING_KEY);
+    }
+
+    @Bean
+    Binding transactionSyncBinding(Queue transactionSyncQueue, TopicExchange analyticsExchange) {
+        return BindingBuilder.bind(transactionSyncQueue)
+                .to(analyticsExchange)
+                .with(MessagingTopology.TRANSACTION_SYNC_ROUTING_KEY);
+    }
+
+    @Bean
+    Binding transactionDeactivateByAccountBinding(Queue transactionDeactivateByAccountQueue,
+            TopicExchange analyticsExchange) {
+        return BindingBuilder.bind(transactionDeactivateByAccountQueue)
+                .to(analyticsExchange)
+                .with(MessagingTopology.TRANSACTION_DEACTIVATE_BY_ACCOUNT_ROUTING_KEY);
     }
 }

@@ -141,9 +141,7 @@ public class AccountServiceImpl implements AccountService {
         @Override
         @Transactional
         public void create(AccountRequestDto request) {
-                Account account = accountSyncMapper.toEntity(request);
-                accountRepository.save(account);
-                publishPersistedEvents(List.of(account));
+                upsertFromSync(request);
         }
 
         @Override
@@ -164,9 +162,42 @@ public class AccountServiceImpl implements AccountService {
                 account.setAvailableBalance(request.getAvailableBalance());
                 account.setIsoCurrencyCode(request.getIsoCurrencyCode());
                 account.setActive(request.isActive());
+                account.setSyncVersion(request.getSyncVersion());
 
                 accountRepository.save(account);
                 publishPersistedEvents(List.of(account));
+        }
+
+        @Override
+        @Transactional
+        public void upsertFromSync(AccountRequestDto request) {
+                int changed = accountRepository.upsertFromSync(
+                                request.getAccountId(),
+                                request.getUserId(),
+                                request.getInstitutionName(),
+                                request.getAccountName(),
+                                request.getAccountType(),
+                                request.getAccountSubtype(),
+                                request.getAccountMask(),
+                                request.getCurrentBalance(),
+                                request.getAvailableBalance(),
+                                request.getIsoCurrencyCode(),
+                                request.isActive(),
+                                request.getSyncVersion());
+
+                if (changed > 0) {
+                        accountRepository.findById(request.getAccountId()).ifPresent(account -> publishPersistedEvents(List.of(account)));
+                }
+        }
+
+        @Override
+        @Transactional
+        public void deactivateFromSync(UUID accountId, long syncVersion) {
+                int changed = accountRepository.deactivateFromSync(accountId, syncVersion);
+
+                if (changed > 0) {
+                        accountRepository.findById(accountId).ifPresent(account -> publishPersistedEvents(List.of(account)));
+                }
         }
 
         @Override

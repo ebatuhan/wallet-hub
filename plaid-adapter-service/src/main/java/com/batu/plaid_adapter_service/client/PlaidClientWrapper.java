@@ -11,6 +11,8 @@ import com.batu.plaid_adapter_service.factory.PlaidErrorHandlerFactory;
 import com.google.gson.Gson;
 import com.plaid.client.model.AccountsGetRequest;
 import com.plaid.client.model.AccountsGetResponse;
+import com.plaid.client.model.ItemRemoveRequest;
+import com.plaid.client.model.ItemRemoveResponse;
 import com.plaid.client.model.ItemPublicTokenExchangeRequest;
 import com.plaid.client.model.ItemPublicTokenExchangeResponse;
 import com.plaid.client.model.LinkTokenCreateRequest;
@@ -55,6 +57,10 @@ public class PlaidClientWrapper {
 
     public AccountsGetResponse accountsGet(AccountsGetRequest request) {
         return executeRequest(() -> plaidClient.accountsGet(request).execute());
+    }
+
+    public ItemRemoveResponse removeItem(ItemRemoveRequest request) {
+        return executeRequest(() -> plaidClient.itemRemove(request).execute());
     }
 
     private <T> T executeRequest(PlaidRequestSupplier<T> supplier) {

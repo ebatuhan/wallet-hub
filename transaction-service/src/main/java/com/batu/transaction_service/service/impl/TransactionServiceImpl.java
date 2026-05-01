@@ -128,11 +128,7 @@ public class TransactionServiceImpl implements TransactionService {
         @Override
         @Transactional
         public void create(TransactionRequestDto request) {
-                TransactionDetailedCategory detailedCategory = detailedCategoryService
-                                .getByCategoryCode(request.getDetailedCategoryCode());
-                Transaction transaction = transactionSyncMapper.toEntity(request, detailedCategory);
-                transactionRepository.save(transaction);
-                publishPersistedEvents(List.of(transaction));
+                upsertFromSync(request);
         }
 
         @Override
@@ -164,9 +160,50 @@ public class TransactionServiceImpl implements TransactionService {
                 transaction.setPaymentChannel(request.getPaymentChannel());
                 transaction.setDetailedCategory(detailedCategory);
                 transaction.setActive(true);
+                transaction.setSyncVersion(request.getSyncVersion());
 
                 transactionRepository.save(transaction);
                 publishPersistedEvents(List.of(transaction));
+        }
+
+        @Override
+        @Transactional
+        public void upsertFromSync(TransactionRequestDto request) {
+                TransactionDetailedCategory detailedCategory = detailedCategoryService
+                                .getByCategoryCode(request.getDetailedCategoryCode());
+
+                int changed = transactionRepository.upsertFromSync(
+                                request.getTransactionId(),
+                                request.getUserId(),
+                                request.getAccountId(),
+                                request.getAmount(),
+                                request.getIsoCurrencyCode(),
+                                request.getTransactionName(),
+                                request.getTransactionType(),
+                                request.getDate(),
+                                request.getPending(),
+                                request.getPaymentChannel(),
+                                detailedCategory.getTransactionDetailedCategoryId(),
+                                request.isActive(),
+                                request.getSyncVersion());
+
+                if (changed > 0) {
+                        transactionRepository.findByTransactionIdAndUserIdWithCategory(
+                                        request.getTransactionId(), request.getUserId())
+                                        .ifPresent(transaction -> publishPersistedEvents(List.of(transaction)));
+                }
+        }
+
+        @Override
+        @Transactional
+        public void deactivateByAccountIdFromSync(UUID accountId, long syncVersion) {
+                int changed = transactionRepository.deactivateByAccountIdFromSync(accountId, syncVersion);
+
+                if (changed > 0) {
+                        List<Transaction> transactions = transactionRepository
+                                        .findByAccountIdAndSyncVersionWithCategory(accountId, syncVersion);
+                        publishPersistedEvents(transactions);
+                }
         }
 
         @Override

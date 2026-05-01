@@ -9,8 +9,6 @@ import com.batu.plaid_adapter_service.entity.Connection;
 
 @Service
 public interface ConnectionService {
-    Connection readById(UUID connectionId);
-
     Connection create(Connection connection);
 
     void deleteById(UUID connectionId);
@@ -21,21 +19,17 @@ public interface ConnectionService {
 
     Connection readByIdAndUserId(UUID connectionId, UUID userId);
 
+    Connection readByIdForUpdate(UUID connectionId);
+
     List<Connection> readAll();
 
     List<Connection> readAllByUserId(UUID userId);
 
     List<Connection> readAllByUserIdAndInstitutionId(UUID userId, String institutionId);
 
-    Connection startSync(UUID connectionId);
-
     Connection completeSync(UUID connectionId, String cursor);
 
-    Connection releaseSync(UUID connectionId);
+    long incrementSyncVersion(Connection connection);
 
-    Connection markDisabled(UUID connectionId, String errorCode);
-
-    Connection markRemoving(UUID connectionId, String errorCode);
-
-    Connection markRemoved(UUID connectionId, String errorCode);
+    Connection deactivate(UUID connectionId, String errorCode);
 }
