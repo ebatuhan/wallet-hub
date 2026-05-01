@@ -16,9 +16,8 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "account_registry", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_account_registry_connection_external", columnNames = { "connection_id",
-                "external_account_id" }),
-        @UniqueConstraint(name = "uk_account_registry_account_id", columnNames = { "account_id" })
+        @UniqueConstraint(name = "uk_account_registry_account_id", columnNames = { "account_id" }),
+        @UniqueConstraint(name = "uk_account_registry_fingerprint", columnNames = { "fingerprint" })
 })
 @Getter
 @Setter
@@ -34,23 +33,15 @@ public class AccountRegistry {
     @Column(name = "connection_id", nullable = false)
     private UUID connectionId;
 
-    @Column(name = "external_account_id", nullable = false)
-    private String externalAccountId;
-
     @Column(name = "account_id", nullable = false)
     private UUID accountId;
 
-    @Column(name = "fingerprint")
+    @Column(name = "fingerprint", nullable = false)
     private String fingerprint;
 
-    public AccountRegistry(UUID connectionId, String externalAccountId, UUID accountId) {
+    public AccountRegistry(UUID connectionId, UUID accountId, String fingerprint) {
         this.connectionId = connectionId;
-        this.externalAccountId = externalAccountId;
         this.accountId = accountId;
-    }
-
-    public AccountRegistry(UUID connectionId, String externalAccountId, UUID accountId, String fingerprint) {
-        this(connectionId, externalAccountId, accountId);
         this.fingerprint = fingerprint;
     }
 }

@@ -2,11 +2,9 @@ package com.batu.plaid_adapter_service.service.impl;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -21,7 +19,6 @@ import io.micrometer.observation.annotation.Observed;
 import com.batu.plaid_adapter_service.client.PlaidClientWrapper;
 import com.batu.plaid_adapter_service.entity.AccountRegistry;
 import com.batu.plaid_adapter_service.entity.Connection;
-import com.batu.plaid_adapter_service.entity.TransactionRegistry;
 import com.batu.plaid_adapter_service.exception.DuplicateConnectionException;
 import com.batu.plaid_adapter_service.exception.PlaidRetryableException;
 import com.batu.plaid_adapter_service.mapper.PlaidRequestMapper;
@@ -29,7 +26,7 @@ import com.batu.plaid_adapter_service.messaging.PlaidSyncPublisher;
 import com.batu.plaid_adapter_service.service.AccountRegistryService;
 import com.batu.plaid_adapter_service.service.ConnectionService;
 import com.batu.plaid_adapter_service.service.PlaidIntegrationService;
-import com.batu.plaid_adapter_service.service.TransactionRegistryService;
+import com.batu.plaid_adapter_service.util.DeterministicIdGenerator;
 import com.batu.plaid_adapter_service.util.StringHasher;
 import com.batu.shared.dto.request.AccountRequestDto;
 import com.batu.shared.dto.request.AccountDeactivateRequestDto;
@@ -64,24 +61,24 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
     private final PlaidClientWrapper plaidClient;
     private final ConnectionService connectionService;
     private final AccountRegistryService accountRegistryService;
-    private final TransactionRegistryService transactionRegistryService;
     private final PlaidRequestMapper plaidRequestMapper;
     private final PlaidSyncPublisher plaidSyncPublisher;
+    private final DeterministicIdGenerator deterministicIdGenerator;
     private final StringHasher stringHasher;
 
     public PlaidIntegrationServiceImpl(PlaidClientWrapper plaidClient,
             ConnectionService connectionService,
             AccountRegistryService accountRegistryService,
-            TransactionRegistryService transactionRegistryService,
             PlaidRequestMapper plaidRequestMapper,
             PlaidSyncPublisher plaidSyncPublisher,
+            DeterministicIdGenerator deterministicIdGenerator,
             StringHasher stringHasher) {
         this.plaidClient = plaidClient;
         this.connectionService = connectionService;
         this.accountRegistryService = accountRegistryService;
-        this.transactionRegistryService = transactionRegistryService;
         this.plaidRequestMapper = plaidRequestMapper;
         this.plaidSyncPublisher = plaidSyncPublisher;
+        this.deterministicIdGenerator = deterministicIdGenerator;
         this.stringHasher = stringHasher;
     }
 
@@ -217,43 +214,33 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
             hasMore = response.getHasMore();
         }
 
-        Map<String, AccountRegistry> accountRegistriesByExternalId = new HashMap<>();
         for (AccountBase account : accounts) {
-            UUID accountId = UUID.randomUUID();
-            AccountRegistry accountRegistry = accountRegistryService.upsertAccount(
+            UUID accountId = deterministicIdGenerator.accountId(conn.getUserId(), account.getAccountId());
+            String fingerprint = accountFingerprint(conn, account);
+            accountRegistryService.registerAccount(
                     connectionId,
-                    account.getAccountId(),
                     accountId,
-                    accountFingerprint(conn, account));
-
-            accountRegistriesByExternalId.put(account.getAccountId(), accountRegistry);
+                    fingerprint);
 
             AccountRequestDto accountRequest = plaidRequestMapper.toAccountRequest(
                     conn,
-                    accountRegistry.getAccountId(),
+                    accountId,
                     account);
             accountRequest.setSyncVersion(syncVersion);
             plaidSyncPublisher.publishAccount(accountRequest);
         }
 
         for (Transaction transaction : transactions) {
-            AccountRegistry accountRegistry = accountRegistriesByExternalId.computeIfAbsent(
+            UUID accountId = deterministicIdGenerator.accountId(conn.getUserId(), transaction.getAccountId());
+            UUID transactionId = deterministicIdGenerator.transactionId(
+                    conn.getUserId(),
                     transaction.getAccountId(),
-                    externalAccountId -> accountRegistryService.findAccount(connectionId, externalAccountId));
-
-            if (accountRegistry == null) {
-                continue;
-            }
-
-            TransactionRegistry transactionRegistry = transactionRegistryService.upsertTransaction(
-                    accountRegistry,
-                    transaction.getTransactionId(),
-                    UUID.randomUUID());
+                    transaction.getTransactionId());
 
             TransactionRequestDto transactionRequest = plaidRequestMapper.toTransactionRequest(
                     conn,
-                    transactionRegistry.getTransactionId(),
-                    accountRegistry.getAccountId(),
+                    transactionId,
+                    accountId,
                     transaction);
             transactionRequest.setSyncVersion(syncVersion);
             plaidSyncPublisher.publishTransaction(transactionRequest);

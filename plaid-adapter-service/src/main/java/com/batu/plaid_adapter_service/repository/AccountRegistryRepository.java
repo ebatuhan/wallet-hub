@@ -10,9 +10,9 @@ import com.batu.plaid_adapter_service.entity.AccountRegistry;
 
 public interface AccountRegistryRepository extends JpaRepository<AccountRegistry, UUID> {
 
-    Optional<AccountRegistry> findByConnectionIdAndExternalAccountId(UUID connectionId, String externalAccountId);
-    
-    List<AccountRegistry> findByExternalAccountIdIn(List<String> accountIds);
+    Optional<AccountRegistry> findByAccountId(UUID accountId);
+
+    Optional<AccountRegistry> findByFingerprint(String fingerprint);
 
     List<AccountRegistry> findByConnectionId(UUID connectionId);
 
