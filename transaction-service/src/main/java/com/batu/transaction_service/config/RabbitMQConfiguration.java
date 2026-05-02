@@ -20,13 +20,8 @@ public class RabbitMQConfiguration {
     }
 
     @Bean
-    TopicExchange analyticsExchange() {
+    TopicExchange walletHubExchange() {
         return new TopicExchange(MessagingTopology.EXCHANGE_NAME, true, false);
-    }
-
-    @Bean
-    Queue transactionPersistedQueue() {
-        return new Queue(MessagingTopology.TRANSACTION_PERSISTED_QUEUE, true);
     }
 
     @Bean
@@ -35,29 +30,21 @@ public class RabbitMQConfiguration {
     }
 
     @Bean
-    Queue transactionDeactivateByAccountQueue() {
-        return new Queue(MessagingTopology.TRANSACTION_DEACTIVATE_BY_ACCOUNT_QUEUE, true);
+    Queue accountRemovedQueue() {
+        return new Queue(MessagingTopology.ACCOUNT_REMOVED_TRANSACTION_QUEUE, true);
     }
 
     @Bean
-    Binding transactionPersistedBinding(Queue transactionPersistedQueue, TopicExchange analyticsExchange) {
-        return BindingBuilder.bind(transactionPersistedQueue)
-                .to(analyticsExchange)
-                .with(MessagingTopology.TRANSACTION_PERSISTED_ROUTING_KEY);
-    }
-
-    @Bean
-    Binding transactionSyncBinding(Queue transactionSyncQueue, TopicExchange analyticsExchange) {
+    Binding transactionSyncBinding(Queue transactionSyncQueue, TopicExchange walletHubExchange) {
         return BindingBuilder.bind(transactionSyncQueue)
-                .to(analyticsExchange)
+                .to(walletHubExchange)
                 .with(MessagingTopology.TRANSACTION_SYNC_ROUTING_KEY);
     }
 
     @Bean
-    Binding transactionDeactivateByAccountBinding(Queue transactionDeactivateByAccountQueue,
-            TopicExchange analyticsExchange) {
-        return BindingBuilder.bind(transactionDeactivateByAccountQueue)
-                .to(analyticsExchange)
-                .with(MessagingTopology.TRANSACTION_DEACTIVATE_BY_ACCOUNT_ROUTING_KEY);
+    Binding accountRemovedBinding(Queue accountRemovedQueue, TopicExchange walletHubExchange) {
+        return BindingBuilder.bind(accountRemovedQueue)
+                .to(walletHubExchange)
+                .with(MessagingTopology.ACCOUNT_REMOVED_ROUTING_KEY);
     }
 }

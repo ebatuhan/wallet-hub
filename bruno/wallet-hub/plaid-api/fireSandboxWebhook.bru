@@ -1,0 +1,32 @@
+meta {
+  name: fireSandboxWebhook
+  type: http
+  seq: 3
+}
+
+post {
+  url: https://sandbox.plaid.com/sandbox/item/fire_webhook
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "client_id": "{{plaidClientId}}",
+    "secret": "{{plaidSecret}}",
+    "access_token": "{{plaidAccessToken}}",
+    "webhook_type": "TRANSACTIONS",
+    "webhook_code": "SYNC_UPDATES_AVAILABLE"
+  }
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,35 @@
+meta {
+  name: chat
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/assistant/chat
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "message": "hello"
+  }
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("should return assistant message", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("message");
+    expect(body.message).to.be.a("string");
+    expect(body).to.not.have.property("conversationId");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,22 @@
+meta {
+  name: refreshConnection
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{host}}/api/plaid/connections/{{connectionId}}/refresh
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("should return 204", function() {
+    expect(res.status).to.equal(204);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

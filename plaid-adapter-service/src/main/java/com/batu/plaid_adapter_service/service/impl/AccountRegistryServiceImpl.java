@@ -22,7 +22,7 @@ public class AccountRegistryServiceImpl implements AccountRegistryService {
 
     @Override
     public boolean existsByFingerprintIn(List<String> fingerprints) {
-        return accountRegistryRepository.existsByFingerprintIn(fingerprints);
+        return accountRegistryRepository.existsByFingerprintInAndConnection_ActiveTrue(fingerprints);
     }
 
     @Override
@@ -30,11 +30,25 @@ public class AccountRegistryServiceImpl implements AccountRegistryService {
     public AccountRegistry registerAccount(UUID connectionId, UUID accountId, String fingerprint) {
         AccountRegistry existing = accountRegistryRepository.findByAccountId(accountId).orElse(null);
         if (existing != null) {
+            if (!existing.getConnectionId().equals(connectionId)
+                    && accountRegistryRepository.existsByFingerprintInAndConnection_ActiveTrueAndConnectionIdNot(
+                            List.of(fingerprint), connectionId)) {
+                throw new DuplicateConnectionException("This connection already exists. Remove the current one before continue.");
+            }
+            existing.setConnectionId(connectionId);
+            existing.setFingerprint(fingerprint);
             return existing;
         }
 
-        if (accountRegistryRepository.findByFingerprint(fingerprint).isPresent()) {
-            throw new DuplicateConnectionException("This connection already exists. Remove the current one before continue.");
+        existing = accountRegistryRepository.findByFingerprint(fingerprint).orElse(null);
+        if (existing != null) {
+            if (accountRegistryRepository.existsByFingerprintInAndConnection_ActiveTrueAndConnectionIdNot(
+                    List.of(fingerprint), connectionId)) {
+                throw new DuplicateConnectionException("This connection already exists. Remove the current one before continue.");
+            }
+            existing.setConnectionId(connectionId);
+            existing.setAccountId(accountId);
+            return existing;
         }
 
         return accountRegistryRepository.save(new AccountRegistry(connectionId, accountId, fingerprint));

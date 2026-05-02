@@ -1,0 +1,16 @@
+meta {
+  name: getAccountsByGivenIds
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/accounts/64ef24f8-54bd-4301-b10c-29eec63c334e
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

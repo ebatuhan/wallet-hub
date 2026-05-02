@@ -22,9 +22,9 @@ public interface ConnectionRepository extends JpaRepository<Connection, UUID> {
 
     Optional<Connection> findByConnectionIdAndUserId(UUID connectionId, UUID userId);
 
-    List<Connection> findByUserId(UUID userId);
+    List<Connection> findByUserIdAndActiveTrue(UUID userId);
 
-    List<Connection> findByUserIdAndInstitutionId(UUID userId, String institutionId);
+    List<Connection> findByUserIdAndInstitutionIdAndActiveTrue(UUID userId, String institutionId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

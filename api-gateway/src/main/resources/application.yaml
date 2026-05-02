@@ -20,12 +20,20 @@ spring:
               filters:
                 - StripPrefix=1
 
-            - id: consent-service-route
-              uri: ${CONSENT_SERVICE_URL:http://localhost:8092}
+            - id: plaid-adapter-service-route
+              uri: ${PLAID_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/api/plaid,/api/plaid/**
+              filters:
+                - StripPrefix=1
+
+            - id: plaid-connections-route
+              uri: ${PLAID_SERVICE_URL:http://localhost:8082}
               predicates:
                 - Path=/api/connections,/api/connections/**
               filters:
                 - StripPrefix=1
+                - PrefixPath=/plaid
 
             - id: insights-service-route
               uri: ${INSIGHTS_SERVICE_URL:http://localhost:8084}

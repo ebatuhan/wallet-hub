@@ -1,0 +1,29 @@
+meta {
+  name: gatewayUnauthorized
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/api/connections
+  body: none
+  auth: none
+}
+
+tests {
+  test("should return 401", function() {
+    expect(res.status).to.equal(401);
+  });
+
+  test("should return structured unauthorized problem", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("status", 401);
+    expect(body).to.have.property("code", "UNAUTHORIZED");
+    expect(body).to.have.property("detail");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

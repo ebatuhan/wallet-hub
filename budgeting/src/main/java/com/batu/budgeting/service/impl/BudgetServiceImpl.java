@@ -16,31 +16,26 @@ import com.batu.budgeting.client.TransactionCategoryClient;
 import com.batu.budgeting.dto.BudgetResponse;
 import com.batu.budgeting.dto.CreateBudgetRequest;
 import com.batu.budgeting.entity.Budget;
-import com.batu.budgeting.entity.ProcessedTransaction;
 import com.batu.budgeting.exception.BudgetConflictException;
 import com.batu.budgeting.exception.ResourceNotFoundException;
 import com.batu.budgeting.mapper.BudgetMapper;
 import com.batu.budgeting.repository.BudgetRepository;
-import com.batu.budgeting.repository.ProcessedTransactionRepository;
 import com.batu.budgeting.service.BudgetService;
+import com.batu.budgeting.service.input.ApplyTransactionInput;
 import com.batu.shared.dto.request.PrimaryCategoryIdsRequestDto;
 import com.batu.shared.dto.response.TransactionPrimaryCategoryDto;
-import com.batu.shared.messaging.event.TransactionPersistedEvent;
 
 @Service
 public class BudgetServiceImpl implements BudgetService {
 
     private final BudgetRepository budgetRepository;
-    private final ProcessedTransactionRepository processedTransactionRepository;
     private final BudgetMapper budgetMapper;
     private final TransactionCategoryClient transactionCategoryClient;
 
     public BudgetServiceImpl(BudgetRepository budgetRepository,
-            ProcessedTransactionRepository processedTransactionRepository,
             BudgetMapper budgetMapper,
             TransactionCategoryClient transactionCategoryClient) {
         this.budgetRepository = budgetRepository;
-        this.processedTransactionRepository = processedTransactionRepository;
         this.budgetMapper = budgetMapper;
         this.transactionCategoryClient = transactionCategoryClient;
     }
@@ -136,30 +131,26 @@ public class BudgetServiceImpl implements BudgetService {
 
     @Override
     @Transactional
-    public void applyTransactionEvent(TransactionPersistedEvent event) {
-        if (!event.isActive() || Boolean.TRUE.equals(event.getPending())) {
+    public void applyTransaction(ApplyTransactionInput input) {
+        if (!input.active() || Boolean.TRUE.equals(input.pending())) {
             return;
         }
 
-        if (event.getPrimaryCategoryId() == null || event.getAmount() == null || event.getDate() == null
-                || event.getIsoCurrencyCode() == null) {
+        if (input.primaryCategoryId() == null || input.amount() == null || input.date() == null
+                || input.isoCurrencyCode() == null) {
             return;
         }
 
-        if (event.getAmount().signum() >= 0) {
-            return;
-        }
-
-        if (processedTransactionRepository.existsById(event.getTransactionId())) {
+        if (input.amount().signum() >= 0) {
             return;
         }
 
         List<Budget> candidates = budgetRepository.findCandidates(
-                event.getUserId(),
-                event.getPrimaryCategoryId(),
-                event.getIsoCurrencyCode(),
-                event.getDate()).stream()
-                .filter(budget -> !budget.getPeriod().computeEnd(budget.getPeriodStart()).isBefore(event.getDate()))
+                input.userId(),
+                input.primaryCategoryId(),
+                input.isoCurrencyCode(),
+                input.date()).stream()
+                .filter(budget -> !budget.getPeriod().computeEnd(budget.getPeriodStart()).isBefore(input.date()))
                 .toList();
 
         if (candidates.isEmpty()) {
@@ -167,16 +158,11 @@ public class BudgetServiceImpl implements BudgetService {
         }
 
         Budget budget = candidates.getFirst();
-        BigDecimal spentAmount = event.getAmount().abs();
+        BigDecimal spentAmount = input.amount().abs();
 
         budget.setSpentAmount(budget.getSpentAmount().add(spentAmount));
         budget.setUpdatedAt(Instant.now());
         budgetRepository.save(budget);
-
-        processedTransactionRepository.save(new ProcessedTransaction(
-                event.getTransactionId(),
-                budget.getId(),
-                spentAmount));
     }
 
     private void validateNoOverlap(UUID userId, CreateBudgetRequest request) {

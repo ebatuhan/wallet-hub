@@ -1,0 +1,22 @@
+meta {
+  name: removeConnection
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{host}}/api/plaid/connections/{{connectionId}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("should return 204", function() {
+    expect(res.status).to.equal(204);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

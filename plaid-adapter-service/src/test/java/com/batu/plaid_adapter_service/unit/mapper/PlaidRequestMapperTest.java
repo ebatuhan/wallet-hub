@@ -2,7 +2,6 @@ package com.batu.plaid_adapter_service.unit.mapper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
@@ -13,8 +12,8 @@ import org.junit.jupiter.api.Test;
 
 import com.batu.plaid_adapter_service.entity.Connection;
 import com.batu.plaid_adapter_service.mapper.PlaidRequestMapper;
-import com.batu.shared.dto.request.AccountRequestDto;
-import com.batu.shared.dto.request.TransactionRequestDto;
+import com.batu.shared.messaging.event.AccountObserved;
+import com.batu.shared.messaging.event.TransactionObserved;
 import com.plaid.client.model.AccountBase;
 import com.plaid.client.model.AccountBalance;
 import com.plaid.client.model.AccountSubtype;
@@ -26,7 +25,7 @@ class PlaidRequestMapperTest {
     private final PlaidRequestMapper mapper = new PlaidRequestMapper();
 
     @Test
-    void toAccountRequest_mapsPlaidAccountFields() {
+    void toAccountObserved_mapsPlaidAccountFields() {
         Connection connection = new Connection(UUID.randomUUID(), "item-1", "access-token", "ins-1", "Test Bank");
         UUID accountId = UUID.randomUUID();
         AccountBase account = new AccountBase()
@@ -40,10 +39,11 @@ class PlaidRequestMapperTest {
                         .available(100.25)
                         .isoCurrencyCode("USD"));
 
-        AccountRequestDto request = mapper.toAccountRequest(connection, accountId, account);
+        AccountObserved request = mapper.toAccountObserved(connection, accountId, account);
 
         assertEquals(accountId, request.getAccountId());
         assertEquals(connection.getUserId(), request.getUserId());
+        assertEquals(connection.getConnectionId(), request.getConnectionId());
         assertEquals("Test Bank", request.getInstitutionName());
         assertEquals("Primary Checking", request.getAccountName());
         assertEquals("depository", request.getAccountType());
@@ -52,11 +52,10 @@ class PlaidRequestMapperTest {
         assertEquals(0, BigDecimal.valueOf(125.50).compareTo(request.getCurrentBalance()));
         assertEquals(0, BigDecimal.valueOf(100.25).compareTo(request.getAvailableBalance()));
         assertEquals("USD", request.getIsoCurrencyCode());
-        assertTrue(request.isActive());
     }
 
     @Test
-    void toTransactionRequest_mapsPlaidTransactionFields() {
+    void toTransactionObserved_mapsPlaidTransactionFields() {
         Connection connection = new Connection(UUID.randomUUID(), "item-1", "access-token", "ins-1", "Test Bank");
         UUID transactionId = UUID.randomUUID();
         UUID accountId = UUID.randomUUID();
@@ -72,7 +71,7 @@ class PlaidRequestMapperTest {
                 .paymentChannel(Transaction.PaymentChannelEnum.IN_STORE)
                 .personalFinanceCategory(new PersonalFinanceCategory().detailed("FOOD_AND_DRINK_COFFEE"));
 
-        TransactionRequestDto request = mapper.toTransactionRequest(connection, transactionId, accountId, transaction);
+        TransactionObserved request = mapper.toTransactionObserved(connection, transactionId, accountId, transaction);
 
         assertEquals(transactionId, request.getTransactionId());
         assertEquals(connection.getUserId(), request.getUserId());
@@ -88,16 +87,4 @@ class PlaidRequestMapperTest {
         assertTrue(request.isActive());
     }
 
-    @Test
-    void toDeactivateTransactionRequest_buildsInactivePayload() {
-        Connection connection = new Connection(UUID.randomUUID(), "item-1", "access-token", "ins-1", "Test Bank");
-        UUID transactionId = UUID.randomUUID();
-
-        TransactionRequestDto request = mapper.toDeactivateTransactionRequest(connection, transactionId);
-
-        assertEquals(transactionId, request.getTransactionId());
-        assertEquals(connection.getUserId(), request.getUserId());
-        assertNull(request.getAccountId());
-        assertFalse(request.isActive());
-    }
 }

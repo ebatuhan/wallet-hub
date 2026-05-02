@@ -1,0 +1,35 @@
+meta {
+  name: getPrimaryCategoriesByIds
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/transactions/categories/primary/by-ids
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "ids": [
+      "{{primaryCategoryId}}"
+    ]
+  }
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("should return primary categories", function() {
+    const body = res.getBody();
+    expect(body).to.be.an("array");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

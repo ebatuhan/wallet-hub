@@ -30,6 +30,9 @@ public class Account implements Persistable<UUID> {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
+    @Column(name = "connection_id", nullable = false)
+    private UUID connectionId;
+
     @Column(name = "institution_name", nullable = false)
     private String institutionName;
 
@@ -70,17 +73,18 @@ public class Account implements Persistable<UUID> {
     @Setter(AccessLevel.NONE)
     private Instant updatedAt;
 
-    public Account(UUID userId, String institutionName, String accountName, String accountType,
+    public Account(UUID userId, UUID connectionId, String institutionName, String accountName, String accountType,
             String accountSubtype, String accountMask, BigDecimal currentBalance, BigDecimal availableBalance,
             String isoCurrencyCode, boolean isActive) {
-        this(userId, institutionName, accountName, accountType, accountSubtype, accountMask, currentBalance,
+        this(userId, connectionId, institutionName, accountName, accountType, accountSubtype, accountMask, currentBalance,
                 availableBalance, isoCurrencyCode, isActive, 0L);
     }
 
-    public Account(UUID userId, String institutionName, String accountName, String accountType,
+    public Account(UUID userId, UUID connectionId, String institutionName, String accountName, String accountType,
             String accountSubtype, String accountMask, BigDecimal currentBalance, BigDecimal availableBalance,
             String isoCurrencyCode, boolean isActive, long syncVersion) {
         this.userId = userId;
+        this.connectionId = connectionId;
         this.institutionName = institutionName;
         this.accountName = accountName;
         this.accountType = accountType;
@@ -93,18 +97,18 @@ public class Account implements Persistable<UUID> {
         this.syncVersion = syncVersion;
     }
 
-    public Account(UUID accountId, UUID userId, String institutionName, String accountName,
+    public Account(UUID accountId, UUID userId, UUID connectionId, String institutionName, String accountName,
             String accountType, String accountSubtype, String accountMask, BigDecimal currentBalance,
             BigDecimal availableBalance, String isoCurrencyCode, boolean isActive) {
-        this(userId, institutionName, accountName, accountType, accountSubtype, accountMask, currentBalance,
+        this(userId, connectionId, institutionName, accountName, accountType, accountSubtype, accountMask, currentBalance,
                 availableBalance, isoCurrencyCode, isActive);
         this.accountId = accountId;
     }
 
-    public Account(UUID accountId, UUID userId, String institutionName, String accountName,
+    public Account(UUID accountId, UUID userId, UUID connectionId, String institutionName, String accountName,
             String accountType, String accountSubtype, String accountMask, BigDecimal currentBalance,
             BigDecimal availableBalance, String isoCurrencyCode, boolean isActive, long syncVersion) {
-        this(userId, institutionName, accountName, accountType, accountSubtype, accountMask, currentBalance,
+        this(userId, connectionId, institutionName, accountName, accountType, accountSubtype, accountMask, currentBalance,
                 availableBalance, isoCurrencyCode, isActive, syncVersion);
         this.accountId = accountId;
     }

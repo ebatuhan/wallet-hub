@@ -1,0 +1,45 @@
+meta {
+  name: exchangeConnection
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/plaid/exchange
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "publicToken": "{{plaidPublicToken}}",
+    "accounts": [
+      {
+        "id": "sample-account-id",
+        "mask": "0000",
+        "name": "Checking",
+        "subType": "checking",
+        "type": "depository"
+      }
+    ],
+    "institutionId": "ins_109508",
+    "institutionName": "First Platypus Bank"
+  }
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("should save connection id", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("connectionId");
+    bru.setVar("connectionId", body.connectionId);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

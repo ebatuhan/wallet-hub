@@ -16,5 +16,7 @@ public interface AccountRegistryRepository extends JpaRepository<AccountRegistry
 
     List<AccountRegistry> findByConnectionId(UUID connectionId);
 
-    boolean existsByFingerprintIn(List<String> fingerprints);
+    boolean existsByFingerprintInAndConnection_ActiveTrue(List<String> fingerprints);
+
+    boolean existsByFingerprintInAndConnection_ActiveTrueAndConnectionIdNot(List<String> fingerprints, UUID connectionId);
 }

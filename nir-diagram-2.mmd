@@ -1,0 +1,9 @@
+graph TD
+    user["Пользователь"] --> gateway["API Gateway"]
+    gateway --> accounts["/api/accounts -> Account Service"]
+    gateway --> transactions["/api/transactions -> Transaction Service"]
+    gateway --> provider["/api/plaid -> Financial Data Provider Adapter"]
+    gateway --> insights["/api/insights -> Insights Service"]
+    gateway --> budgets["/api/budgets -> Budgeting Service"]
+    gateway --> dashboard["/api/dashboard -> Dashboard Service"]
+    gateway --> assistant["/api/assistant -> AI Assistant Service"]

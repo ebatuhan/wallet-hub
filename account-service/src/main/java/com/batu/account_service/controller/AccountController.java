@@ -8,11 +8,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -21,7 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.batu.account_service.enums.AccountSortField;
 import com.batu.account_service.service.AccountService;
 import com.batu.shared.dto.request.AccountNameRequestDto;
-import com.batu.shared.dto.request.AccountRequestDto;
 import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.shared.dto.response.AccountResponseDto;
 import com.batu.shared.dto.response.AccountSummaryResponseDto;
@@ -54,28 +51,6 @@ public class AccountController {
     @PostMapping("/batch")
     public ResponseEntity<List<AccountNameResponseDto>> getAccountsByGivenIds(@RequestBody AccountNameRequestDto request) {
         return ResponseEntity.ok(accountService.getAccountsByGivenIds(request));
-    }
-
-    @PostMapping
-    public ResponseEntity<Void> create(@RequestBody AccountRequestDto request) {
-        accountService.create(request);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PutMapping("/{accountId}")
-    public ResponseEntity<Void> update(@PathVariable UUID accountId, @RequestBody AccountRequestDto request) {
-        if (!accountId.equals(request.getAccountId())) {
-            throw new IllegalArgumentException("Account id mismatch");
-        }
-
-        accountService.update(request);
-        return ResponseEntity.noContent().build();
-    }
-
-    @DeleteMapping("/{accountId}")
-    public ResponseEntity<Void> deactivate(@PathVariable UUID accountId) {
-        accountService.deactivate(accountId);
-        return ResponseEntity.noContent().build();
     }
 
     @GetMapping

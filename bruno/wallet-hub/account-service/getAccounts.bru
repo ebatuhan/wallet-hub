@@ -1,0 +1,47 @@
+meta {
+  name: getAccounts
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/api/accounts
+  body: none
+  auth: inherit
+}
+
+params:query {
+  ~limit: 10
+  ~cursor: {{accountCursor}}
+  ~accountName: acc
+  ~accountType: credit
+  ~connectionId: {{connectionId}}
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("should return cursor response", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("data");
+    expect(body).to.have.property("hasMore");
+    expect(body).to.have.property("nextCursor");
+  });
+  
+  test("should save account cursor and first account id", function() {
+    const body = res.getBody();
+    if (body.nextCursor) {
+      bru.setVar("accountCursor", body.nextCursor);
+    }
+    if (body.data && body.data.length > 0) {
+      bru.setVar("accountId", body.data[0].accountId);
+    }
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

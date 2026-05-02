@@ -1,0 +1,45 @@
+meta {
+  name: createSandboxTransactions
+  type: http
+  seq: 2
+}
+
+post {
+  url: https://sandbox.plaid.com/sandbox/transactions/create
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+     "client_id": "{{plaidClientId}}",
+     "secret": "{{plaidSecret}}",
+     "access_token": "{{plaidAccessToken}}",
+     "transactions": [
+       {
+         "amount": 100.50,
+         "date_posted": "2026-01-07",
+         "date_transacted": "2026-01-07",
+         "description": "Tim Hortons"
+       },
+       {
+         "amount": -25.75,
+         "date_posted": "2026-01-07",
+         "date_transacted": "2026-01-07",
+         "description": "BestBuy",
+         "iso_currency_code": "CAD"
+       }
+     ]
+    }
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

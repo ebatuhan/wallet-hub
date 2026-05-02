@@ -1,0 +1,29 @@
+meta {
+  name: getTransactionSummary
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/api/dashboard/transactions/{{transactionId}}/summary
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("should return transaction dashboard summary", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("userId");
+    expect(body).to.have.property("transaction");
+    expect(body).to.have.property("account");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

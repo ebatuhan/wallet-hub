@@ -1,10 +1,10 @@
 package com.batu.transaction_service.service.impl;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Window;
@@ -13,7 +13,6 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.batu.shared.dto.request.TransactionRequestDto;
 import com.batu.shared.dto.response.CursorResponse;
 import com.batu.shared.dto.response.TransactionDto;
 import com.batu.shared.dto.response.TransactionViewResponseDto;
@@ -21,11 +20,11 @@ import com.batu.transaction_service.entity.Transaction;
 import com.batu.transaction_service.entity.TransactionDetailedCategory;
 import com.batu.transaction_service.exception.ResourceNotFoundException;
 import com.batu.transaction_service.mapper.TransactionSyncMapper;
-import com.batu.transaction_service.messaging.TransactionsPersistedDomainEvent;
 import com.batu.transaction_service.repository.TransactionRepository;
 import com.batu.transaction_service.repository.spec.TransactionSpecs;
 import com.batu.transaction_service.service.DetailedCategoryService;
 import com.batu.transaction_service.service.TransactionService;
+import com.batu.transaction_service.service.input.RecordTransactionInput;
 import com.batu.transaction_service.util.CursorUtils;
 
 @Service
@@ -34,17 +33,14 @@ public class TransactionServiceImpl implements TransactionService {
         private final TransactionRepository transactionRepository;
         private final CursorUtils cursorUtils;
         private final DetailedCategoryService detailedCategoryService;
-        private final ApplicationEventPublisher eventPublisher;
         private final TransactionSyncMapper transactionSyncMapper;
 
         public TransactionServiceImpl(TransactionRepository transactionRepository, CursorUtils cursorUtils,
                         DetailedCategoryService detailedCategoryService,
-                        ApplicationEventPublisher eventPublisher,
                         TransactionSyncMapper transactionSyncMapper) {
                 this.transactionRepository = transactionRepository;
                 this.cursorUtils = cursorUtils;
                 this.detailedCategoryService = detailedCategoryService;
-                this.eventPublisher = eventPublisher;
                 this.transactionSyncMapper = transactionSyncMapper;
         }
 
@@ -127,107 +123,67 @@ public class TransactionServiceImpl implements TransactionService {
 
         @Override
         @Transactional
-        public void create(TransactionRequestDto request) {
-                upsertFromSync(request);
-        }
+        public Optional<Transaction> recordTransaction(RecordTransactionInput input) {
+                Transaction transaction = transactionRepository.findById(input.transactionId()).orElse(null);
 
-        @Override
-        @Transactional
-        public void update(TransactionRequestDto request) {
-                Transaction transaction = transactionRepository.findByTransactionIdAndUserIdWithCategory(
-                                request.getTransactionId(),
-                                request.getUserId())
-                                .orElseThrow(() -> new ResourceNotFoundException(
-                                                "Transaction with id " + request.getTransactionId() + " not found"));
+                if (transaction != null && input.version() <= transaction.getSyncVersion()) {
+                        return Optional.empty();
+                }
 
-                if (!request.isActive()) {
-                        transaction.setActive(false);
-                        transactionRepository.save(transaction);
-                        publishPersistedEvents(List.of(transaction));
-                        return;
+                if (transaction == null && !input.active()) {
+                        return Optional.empty();
                 }
 
                 TransactionDetailedCategory detailedCategory = detailedCategoryService
-                                .getByCategoryCode(request.getDetailedCategoryCode());
+                                .getByCategoryCode(input.detailedCategoryCode());
 
-                transaction.setAccountId(request.getAccountId());
-                transaction.setAmount(request.getAmount());
-                transaction.setIsoCurrencyCode(request.getIsoCurrencyCode());
-                transaction.setTransactionName(request.getTransactionName());
-                transaction.setTransactionType(request.getTransactionType());
-                transaction.setDate(request.getDate());
-                transaction.setPending(request.getPending());
-                transaction.setPaymentChannel(request.getPaymentChannel());
-                transaction.setDetailedCategory(detailedCategory);
-                transaction.setActive(true);
-                transaction.setSyncVersion(request.getSyncVersion());
+                if (transaction == null) {
+                        transaction = new Transaction(
+                                        input.transactionId(),
+                                        input.userId(),
+                                        input.accountId(),
+                                        input.amount(),
+                                        input.isoCurrencyCode(),
+                                        input.transactionName(),
+                                        input.transactionType(),
+                                        input.date(),
+                                        input.pending(),
+                                        input.paymentChannel(),
+                                        detailedCategory,
+                                        input.active(),
+                                        input.version());
+                } else {
+                        transaction.setUserId(input.userId());
+                        transaction.setAccountId(input.accountId());
+                        transaction.setAmount(input.amount());
+                        transaction.setIsoCurrencyCode(input.isoCurrencyCode());
+                        transaction.setTransactionName(input.transactionName());
+                        transaction.setTransactionType(input.transactionType());
+                        transaction.setDate(input.date());
+                        transaction.setPending(input.pending());
+                        transaction.setPaymentChannel(input.paymentChannel());
+                        transaction.setDetailedCategory(detailedCategory);
+                        transaction.setActive(input.active());
+                        transaction.setSyncVersion(input.version());
+                }
 
-                transactionRepository.save(transaction);
-                publishPersistedEvents(List.of(transaction));
+                return Optional.of(transactionRepository.save(transaction));
         }
 
         @Override
         @Transactional
-        public void upsertFromSync(TransactionRequestDto request) {
-                TransactionDetailedCategory detailedCategory = detailedCategoryService
-                                .getByCategoryCode(request.getDetailedCategoryCode());
-
-                int changed = transactionRepository.upsertFromSync(
-                                request.getTransactionId(),
-                                request.getUserId(),
-                                request.getAccountId(),
-                                request.getAmount(),
-                                request.getIsoCurrencyCode(),
-                                request.getTransactionName(),
-                                request.getTransactionType(),
-                                request.getDate(),
-                                request.getPending(),
-                                request.getPaymentChannel(),
-                                detailedCategory.getTransactionDetailedCategoryId(),
-                                request.isActive(),
-                                request.getSyncVersion());
-
-                if (changed > 0) {
-                        transactionRepository.findByTransactionIdAndUserIdWithCategory(
-                                        request.getTransactionId(), request.getUserId())
-                                        .ifPresent(transaction -> publishPersistedEvents(List.of(transaction)));
-                }
-        }
-
-        @Override
-        @Transactional
-        public void deactivateByAccountIdFromSync(UUID accountId, long syncVersion) {
-                int changed = transactionRepository.deactivateByAccountIdFromSync(accountId, syncVersion);
-
-                if (changed > 0) {
-                        List<Transaction> transactions = transactionRepository
-                                        .findByAccountIdAndSyncVersionWithCategory(accountId, syncVersion);
-                        publishPersistedEvents(transactions);
-                }
-        }
-
-        @Override
-        @Transactional
-        public void deactivateByAccountId(UUID accountId) {
-                List<Transaction> transactions = transactionRepository.findByAccountIdAndIsActiveTrue(accountId);
-
-                if (transactions.isEmpty()) {
-                        return;
-                }
+        public List<Transaction> deactivateByAccountId(UUID accountId, long version) {
+                List<Transaction> transactions = transactionRepository.findByAccountIdAndIsActiveTrue(accountId)
+                                .stream()
+                                .filter(transaction -> version > transaction.getSyncVersion())
+                                .toList();
 
                 for (Transaction transaction : transactions) {
                         transaction.setActive(false);
+                        transaction.setSyncVersion(version);
                 }
 
-                transactionRepository.saveAll(transactions);
-                publishPersistedEvents(transactions);
-        }
-
-        private void publishPersistedEvents(List<Transaction> transactions) {
-                eventPublisher.publishEvent(new TransactionsPersistedDomainEvent(
-                                transactions.stream()
-                                                .map(transactionSyncMapper::toPersistedEvent)
-                                                .toList()));
+                return transactionRepository.saveAll(transactions);
         }
 
 }

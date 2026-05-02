@@ -1,0 +1,22 @@
+meta {
+  name: deactivateBudget
+  type: http
+  seq: 2
+}
+
+delete {
+  url: {{host}}/api/budgets
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "amount" : "500"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

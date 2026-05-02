@@ -22,20 +22,19 @@ import com.batu.plaid_adapter_service.entity.Connection;
 import com.batu.plaid_adapter_service.exception.DuplicateConnectionException;
 import com.batu.plaid_adapter_service.exception.PlaidRetryableException;
 import com.batu.plaid_adapter_service.mapper.PlaidRequestMapper;
-import com.batu.plaid_adapter_service.messaging.PlaidSyncPublisher;
+import com.batu.plaid_adapter_service.messaging.PlaidOutbox;
 import com.batu.plaid_adapter_service.service.AccountRegistryService;
 import com.batu.plaid_adapter_service.service.ConnectionService;
 import com.batu.plaid_adapter_service.service.PlaidIntegrationService;
 import com.batu.plaid_adapter_service.util.DeterministicIdGenerator;
 import com.batu.plaid_adapter_service.util.StringHasher;
-import com.batu.shared.dto.request.AccountRequestDto;
-import com.batu.shared.dto.request.AccountDeactivateRequestDto;
 import com.batu.shared.dto.request.ExchangeTokenRequestDto;
 import com.batu.shared.dto.request.LinkTokenRequestDto;
-import com.batu.shared.dto.request.TransactionRequestDto;
-import com.batu.shared.dto.request.TransactionsDeactivateByAccountRequestDto;
 import com.batu.shared.dto.response.ExchangeTokenResponseDto;
 import com.batu.shared.dto.response.LinkTokenResponseDto;
+import com.batu.shared.messaging.event.AccountObserved;
+import com.batu.shared.messaging.event.ConnectionRemoved;
+import com.batu.shared.messaging.event.TransactionObserved;
 import com.plaid.client.model.AccountBase;
 import com.plaid.client.model.ItemRemoveRequest;
 import com.plaid.client.model.ItemPublicTokenExchangeRequest;
@@ -62,7 +61,7 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
     private final ConnectionService connectionService;
     private final AccountRegistryService accountRegistryService;
     private final PlaidRequestMapper plaidRequestMapper;
-    private final PlaidSyncPublisher plaidSyncPublisher;
+    private final PlaidOutbox plaidOutbox;
     private final DeterministicIdGenerator deterministicIdGenerator;
     private final StringHasher stringHasher;
 
@@ -70,14 +69,14 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
             ConnectionService connectionService,
             AccountRegistryService accountRegistryService,
             PlaidRequestMapper plaidRequestMapper,
-            PlaidSyncPublisher plaidSyncPublisher,
+            PlaidOutbox plaidOutbox,
             DeterministicIdGenerator deterministicIdGenerator,
             StringHasher stringHasher) {
         this.plaidClient = plaidClient;
         this.connectionService = connectionService;
         this.accountRegistryService = accountRegistryService;
         this.plaidRequestMapper = plaidRequestMapper;
-        this.plaidSyncPublisher = plaidSyncPublisher;
+        this.plaidOutbox = plaidOutbox;
         this.deterministicIdGenerator = deterministicIdGenerator;
         this.stringHasher = stringHasher;
     }
@@ -160,16 +159,13 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
 
         long syncVersion = connectionService.incrementSyncVersion(connection);
 
-        for (AccountRegistry accountRegistry : accountRegistryService.findAccountsByConnection(connectionId)) {
-            plaidSyncPublisher.publishTransactionsDeactivateByAccount(
-                    new TransactionsDeactivateByAccountRequestDto(accountRegistry.getAccountId(), syncVersion));
-            plaidSyncPublisher.publishAccountDeactivate(
-                    new AccountDeactivateRequestDto(accountRegistry.getAccountId(), syncVersion));
-        }
-
         plaidClient.removeItem(new ItemRemoveRequest().accessToken(connection.getAccessToken()));
 
         connectionService.deactivate(connectionId, reason);
+        plaidOutbox.connectionRemoved(new ConnectionRemoved(
+                connection.getConnectionId(),
+                connection.getUserId(),
+                reason), syncVersion);
     }
 
     @Override
@@ -222,12 +218,11 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
                     accountId,
                     fingerprint);
 
-            AccountRequestDto accountRequest = plaidRequestMapper.toAccountRequest(
+            AccountObserved accountObserved = plaidRequestMapper.toAccountObserved(
                     conn,
                     accountId,
                     account);
-            accountRequest.setSyncVersion(syncVersion);
-            plaidSyncPublisher.publishAccount(accountRequest);
+            plaidOutbox.accountObserved(accountObserved, syncVersion);
         }
 
         for (Transaction transaction : transactions) {
@@ -237,13 +232,12 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
                     transaction.getAccountId(),
                     transaction.getTransactionId());
 
-            TransactionRequestDto transactionRequest = plaidRequestMapper.toTransactionRequest(
+            TransactionObserved transactionObserved = plaidRequestMapper.toTransactionObserved(
                     conn,
                     transactionId,
                     accountId,
                     transaction);
-            transactionRequest.setSyncVersion(syncVersion);
-            plaidSyncPublisher.publishTransaction(transactionRequest);
+            plaidOutbox.transactionObserved(transactionObserved, syncVersion);
         }
 
         connectionService.completeSync(connectionId, lastCursor);

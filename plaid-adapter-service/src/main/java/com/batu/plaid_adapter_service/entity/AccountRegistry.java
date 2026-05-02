@@ -6,7 +6,10 @@ import org.hibernate.annotations.UuidGenerator;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
@@ -32,6 +35,10 @@ public class AccountRegistry {
 
     @Column(name = "connection_id", nullable = false)
     private UUID connectionId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "connection_id", insertable = false, updatable = false)
+    private Connection connection;
 
     @Column(name = "account_id", nullable = false)
     private UUID accountId;

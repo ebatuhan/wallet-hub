@@ -20,13 +20,8 @@ public class RabbitMQConfiguration {
     }
 
     @Bean
-    TopicExchange analyticsExchange() {
+    TopicExchange walletHubExchange() {
         return new TopicExchange(MessagingTopology.EXCHANGE_NAME, true, false);
-    }
-
-    @Bean
-    Queue accountPersistedQueue() {
-        return new Queue(MessagingTopology.ACCOUNT_PERSISTED_QUEUE, true);
     }
 
     @Bean
@@ -40,23 +35,16 @@ public class RabbitMQConfiguration {
     }
 
     @Bean
-    Binding accountPersistedBinding(Queue accountPersistedQueue, TopicExchange analyticsExchange) {
-        return BindingBuilder.bind(accountPersistedQueue)
-                .to(analyticsExchange)
-                .with(MessagingTopology.ACCOUNT_PERSISTED_ROUTING_KEY);
-    }
-
-    @Bean
-    Binding accountSyncBinding(Queue accountSyncQueue, TopicExchange analyticsExchange) {
+    Binding accountSyncBinding(Queue accountSyncQueue, TopicExchange walletHubExchange) {
         return BindingBuilder.bind(accountSyncQueue)
-                .to(analyticsExchange)
+                .to(walletHubExchange)
                 .with(MessagingTopology.ACCOUNT_SYNC_ROUTING_KEY);
     }
 
     @Bean
-    Binding accountDeactivateBinding(Queue accountDeactivateQueue, TopicExchange analyticsExchange) {
+    Binding accountDeactivateBinding(Queue accountDeactivateQueue, TopicExchange walletHubExchange) {
         return BindingBuilder.bind(accountDeactivateQueue)
-                .to(analyticsExchange)
+                .to(walletHubExchange)
                 .with(MessagingTopology.ACCOUNT_DEACTIVATE_ROUTING_KEY);
     }
 }

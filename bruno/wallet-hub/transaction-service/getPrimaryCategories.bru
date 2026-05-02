@@ -1,0 +1,34 @@
+meta {
+  name: getPrimaryCategories
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/transactions/categories/primary
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("should return primary categories", function() {
+    const body = res.getBody();
+    expect(body).to.be.an("array");
+  });
+
+  test("should save first primary category id", function() {
+    const body = res.getBody();
+    if (body && body.length > 0) {
+      bru.setVar("primaryCategoryId", body[0].transactionPrimaryCategoryId);
+    }
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

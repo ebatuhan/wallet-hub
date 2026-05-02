@@ -32,12 +32,12 @@ public class ConnectionServiceImpl implements ConnectionService {
 
     @Override
     public List<Connection> readAllByUserId(UUID userId) {
-        return connectionRepository.findByUserId(userId);
+        return connectionRepository.findByUserIdAndActiveTrue(userId);
     }
 
     @Override
     public List<Connection> readAllByUserIdAndInstitutionId(UUID userId, String institutionId) {
-        return connectionRepository.findByUserIdAndInstitutionId(userId, institutionId);
+        return connectionRepository.findByUserIdAndInstitutionIdAndActiveTrue(userId, institutionId);
     }
 
     @Override

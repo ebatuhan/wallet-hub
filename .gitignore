@@ -23,7 +23,6 @@ release.properties
 *.iml
 .idea/
 .vscode/
-bruno/
 
 # OS
 .DS_Store
@@ -35,6 +34,10 @@ logs/
 
 # Docker
 *.env
+
+# Local alternative architecture prototype
+AlternativeSolution/
+my solution/
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

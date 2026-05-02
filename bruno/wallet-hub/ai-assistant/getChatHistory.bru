@@ -1,0 +1,39 @@
+meta {
+  name: getChatHistory
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/assistant/chat/history
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("should return at most 10 messages", function() {
+    const body = res.getBody();
+    expect(body).to.be.an("array");
+    expect(body.length).to.be.at.most(10);
+  });
+
+  test("messages should have role, content, and createdAt", function() {
+    const body = res.getBody();
+    for (const message of body) {
+      expect(message).to.have.property("role");
+      expect(["USER", "ASSISTANT"]).to.include(message.role);
+      expect(message).to.have.property("content");
+      expect(message.content).to.be.a("string");
+      expect(message).to.have.property("createdAt");
+    }
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

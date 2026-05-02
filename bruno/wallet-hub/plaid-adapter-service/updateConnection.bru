@@ -1,0 +1,28 @@
+meta {
+  name: updateConnection
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{host}}/api/plaid/connections/{{connectionId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "displayName": "My checking account"
+  }
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

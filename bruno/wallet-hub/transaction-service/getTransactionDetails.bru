@@ -1,0 +1,16 @@
+meta {
+  name: getTransactionDetails
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/api/transactions/7c324d76-6c6e-4d00-93e8-a5ae9b0d59b7
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

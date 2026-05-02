@@ -1,0 +1,30 @@
+meta {
+  name: listConnections
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/api/plaid/connections
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("should return connection list", function() {
+    const body = res.getBody();
+    expect(body).to.be.an("array");
+    if (body.length > 0) {
+      bru.setVar("connectionId", body[0].connectionId);
+    }
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,28 @@
+meta {
+  name: connectionNotFound
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/api/connections/00000000-0000-0000-0000-000000000000
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("should return 404", function() {
+    expect(res.status).to.equal(404);
+  });
+
+  test("should return structured not found problem", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("status", 404);
+    expect(body).to.have.property("code", "RESOURCE_NOT_FOUND");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

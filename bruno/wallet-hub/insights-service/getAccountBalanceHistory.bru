@@ -1,0 +1,21 @@
+meta {
+  name: getAccountBalanceHistory
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/api/insights/accounts/defb48b3-41a5-4d73-bcab-81120963d094/balance-history?from=1999-04-01&to=2028-04-03
+  body: none
+  auth: inherit
+}
+
+params:query {
+  from: 1999-04-01
+  to: 2028-04-03
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "wallet-hub",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

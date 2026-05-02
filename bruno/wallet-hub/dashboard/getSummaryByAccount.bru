@@ -1,0 +1,49 @@
+meta {
+  name: getSummaryByAccount
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/dashboard/accounts/{{accountId}}/summary
+  body: none
+  auth: inherit
+}
+
+params:query {
+  ~from: 2021-04-01
+  ~to: 2026-04-03
+  ~limit: 10
+  ~cursor: {{accountTransactionCursor}}
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("should return account dashboard summary", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("account");
+    expect(body).to.have.property("spending");
+    expect(body).to.have.property("transactions");
+    expect(body.transactions).to.have.property("items");
+    expect(body.transactions).to.have.property("hasMore");
+    expect(body.transactions).to.have.property("nextCursor");
+  });
+
+  test("should save account transaction cursor and first transaction id", function() {
+    const body = res.getBody();
+    if (body.transactions && body.transactions.nextCursor) {
+      bru.setVar("accountTransactionCursor", body.transactions.nextCursor);
+    }
+    if (body.transactions && body.transactions.items && body.transactions.items.length > 0) {
+      bru.setVar("transactionId", body.transactions.items[0].transactionId);
+    }
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

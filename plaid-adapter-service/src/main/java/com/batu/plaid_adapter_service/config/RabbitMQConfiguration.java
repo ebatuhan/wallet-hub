@@ -17,7 +17,7 @@ public class RabbitMQConfiguration {
     }
 
     @Bean
-    TopicExchange analyticsExchange() {
+    TopicExchange walletHubExchange() {
         return new TopicExchange(MessagingTopology.EXCHANGE_NAME, true, false);
     }
 }

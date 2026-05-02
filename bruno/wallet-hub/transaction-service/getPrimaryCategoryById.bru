@@ -1,0 +1,30 @@
+meta {
+  name: getPrimaryCategoryById
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/api/transactions/categories/primary/{{primaryCategoryId}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("should return primary category", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("transactionPrimaryCategoryId");
+    expect(body).to.have.property("categoryCode");
+    expect(body).to.have.property("displayName");
+    expect(body).to.have.property("iconUrl");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

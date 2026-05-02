@@ -1,9 +1,9 @@
 package com.batu.account_service.service.impl;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Window;
@@ -14,14 +14,12 @@ import org.springframework.stereotype.Service;
 import com.batu.account_service.entity.Account;
 import com.batu.account_service.enums.AccountSortField;
 import com.batu.account_service.exception.ResourceNotFoundException;
-import com.batu.account_service.mapper.AccountSyncMapper;
-import com.batu.account_service.messaging.AccountsPersistedDomainEvent;
 import com.batu.account_service.repository.AccountRepository;
 import com.batu.account_service.repository.specs.AccountSpecification;
 import com.batu.account_service.service.AccountService;
+import com.batu.account_service.service.input.RecordAccountInput;
 import com.batu.account_service.util.CursorUtils;
 import com.batu.shared.dto.request.AccountNameRequestDto;
-import com.batu.shared.dto.request.AccountRequestDto;
 import com.batu.shared.dto.response.AccountCurrencyTotalDto;
 import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.shared.dto.response.AccountResponseDto;
@@ -36,17 +34,11 @@ public class AccountServiceImpl implements AccountService {
 
         private final AccountRepository accountRepository;
         private final CursorUtils cursorUtils;
-        private final ApplicationEventPublisher eventPublisher;
-        private final AccountSyncMapper accountSyncMapper;
 
         public AccountServiceImpl(AccountRepository accountRepository,
-                        CursorUtils cursorUtils,
-                        ApplicationEventPublisher eventPublisher,
-                        AccountSyncMapper accountSyncMapper) {
+                        CursorUtils cursorUtils) {
                 this.accountRepository = accountRepository;
                 this.cursorUtils = cursorUtils;
-                this.eventPublisher = eventPublisher;
-                this.accountSyncMapper = accountSyncMapper;
         }
 
         @Override
@@ -102,11 +94,7 @@ public class AccountServiceImpl implements AccountService {
 
         @Override
         public AccountResponseDto getAccount(UUID accountId, Jwt principal) {
-                return getAccount(accountId, UUID.fromString(principal.getSubject()));
-        }
-
-        @Override
-        public AccountResponseDto getAccount(UUID accountId, UUID userId) {
+                UUID userId = UUID.fromString(principal.getSubject());
                 return accountRepository.findByAccountIdAndUserIdAndIsActiveTrue(accountId, userId)
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "This account is not exists, or access restricted."));
@@ -114,11 +102,7 @@ public class AccountServiceImpl implements AccountService {
 
         @Override
         public AccountSummaryResponseDto getAccountSummary(Jwt principal) {
-                return getAccountSummary(UUID.fromString(principal.getSubject()));
-        }
-
-        @Override
-        public AccountSummaryResponseDto getAccountSummary(UUID userId) {
+                UUID userId = UUID.fromString(principal.getSubject());
                 List<AccountCurrencyTotalDto> totalsByCurrency = accountRepository.summarizeActiveBalancesByCurrency(userId)
                                 .stream()
                                 .map(total -> new AccountCurrencyTotalDto(
@@ -140,83 +124,60 @@ public class AccountServiceImpl implements AccountService {
 
         @Override
         @Transactional
-        public void create(AccountRequestDto request) {
-                upsertFromSync(request);
-        }
+        public Optional<Account> recordAccount(RecordAccountInput input) {
+                Account account = accountRepository.findById(input.accountId()).orElse(null);
 
-        @Override
-        @Transactional
-        public void update(AccountRequestDto request) {
-                Account account = accountRepository.findByAccountIdAndUserId(
-                                request.getAccountId(),
-                                request.getUserId())
-                                .orElseThrow(() -> new ResourceNotFoundException(
-                                                "Account with id " + request.getAccountId() + " not found"));
-
-                account.setInstitutionName(request.getInstitutionName());
-                account.setAccountName(request.getAccountName());
-                account.setAccountType(request.getAccountType());
-                account.setAccountSubtype(request.getAccountSubtype());
-                account.setAccountMask(request.getAccountMask());
-                account.setCurrentBalance(request.getCurrentBalance());
-                account.setAvailableBalance(request.getAvailableBalance());
-                account.setIsoCurrencyCode(request.getIsoCurrencyCode());
-                account.setActive(request.isActive());
-                account.setSyncVersion(request.getSyncVersion());
-
-                accountRepository.save(account);
-                publishPersistedEvents(List.of(account));
-        }
-
-        @Override
-        @Transactional
-        public void upsertFromSync(AccountRequestDto request) {
-                int changed = accountRepository.upsertFromSync(
-                                request.getAccountId(),
-                                request.getUserId(),
-                                request.getInstitutionName(),
-                                request.getAccountName(),
-                                request.getAccountType(),
-                                request.getAccountSubtype(),
-                                request.getAccountMask(),
-                                request.getCurrentBalance(),
-                                request.getAvailableBalance(),
-                                request.getIsoCurrencyCode(),
-                                request.isActive(),
-                                request.getSyncVersion());
-
-                if (changed > 0) {
-                        accountRepository.findById(request.getAccountId()).ifPresent(account -> publishPersistedEvents(List.of(account)));
+                if (account != null && input.version() <= account.getSyncVersion()) {
+                        return Optional.empty();
                 }
-        }
 
-        @Override
-        @Transactional
-        public void deactivateFromSync(UUID accountId, long syncVersion) {
-                int changed = accountRepository.deactivateFromSync(accountId, syncVersion);
-
-                if (changed > 0) {
-                        accountRepository.findById(accountId).ifPresent(account -> publishPersistedEvents(List.of(account)));
+                if (account == null) {
+                        account = new Account(
+                                        input.accountId(),
+                                        input.userId(),
+                                        input.connectionId(),
+                                        input.institutionName(),
+                                        input.accountName(),
+                                        input.accountType(),
+                                        input.accountSubtype(),
+                                        input.accountMask(),
+                                        input.currentBalance(),
+                                        input.availableBalance(),
+                                        input.isoCurrencyCode(),
+                                        true,
+                                        input.version());
+                } else {
+                        account.setUserId(input.userId());
+                        account.setConnectionId(input.connectionId());
+                        account.setInstitutionName(input.institutionName());
+                        account.setAccountName(input.accountName());
+                        account.setAccountType(input.accountType());
+                        account.setAccountSubtype(input.accountSubtype());
+                        account.setAccountMask(input.accountMask());
+                        account.setCurrentBalance(input.currentBalance());
+                        account.setAvailableBalance(input.availableBalance());
+                        account.setIsoCurrencyCode(input.isoCurrencyCode());
+                        account.setActive(true);
+                        account.setSyncVersion(input.version());
                 }
+
+                return Optional.of(accountRepository.save(account));
         }
 
         @Override
         @Transactional
-        public void deactivate(UUID accountId) {
-                Account account = accountRepository.findById(accountId)
-                                .orElseThrow(() -> new ResourceNotFoundException(
-                                                "Account with id " + accountId + " not found"));
+        public List<Account> deactivateByConnection(UUID connectionId, long version) {
+                List<Account> accounts = accountRepository.findByConnectionIdAndIsActiveTrue(connectionId)
+                                .stream()
+                                .filter(account -> version > account.getSyncVersion())
+                                .toList();
 
-                account.setActive(false);
-                accountRepository.save(account);
-                publishPersistedEvents(List.of(account));
-        }
+                for (Account account : accounts) {
+                        account.setActive(false);
+                        account.setSyncVersion(version);
+                }
 
-        private void publishPersistedEvents(List<Account> accounts) {
-                eventPublisher.publishEvent(new AccountsPersistedDomainEvent(
-                                accounts.stream()
-                                                .map(accountSyncMapper::toPersistedEvent)
-                                                .toList()));
+                return accountRepository.saveAll(accounts);
         }
 
 }

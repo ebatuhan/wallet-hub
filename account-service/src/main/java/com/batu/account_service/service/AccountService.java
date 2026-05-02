@@ -1,13 +1,15 @@
 package com.batu.account_service.service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import com.batu.account_service.enums.AccountSortField;
-import com.batu.shared.dto.request.AccountRequestDto;
+import com.batu.account_service.entity.Account;
+import com.batu.account_service.service.input.RecordAccountInput;
 import com.batu.shared.dto.request.AccountNameRequestDto;
 import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.shared.dto.response.AccountResponseDto;
@@ -29,21 +31,11 @@ public interface AccountService {
 
     AccountResponseDto getAccount(UUID accountId, Jwt principal);
 
-    AccountResponseDto getAccount(UUID accountId, UUID userId);
-
     AccountSummaryResponseDto getAccountSummary(Jwt principal);
-
-    AccountSummaryResponseDto getAccountSummary(UUID userId);
 
     List<AccountNameResponseDto> getAccountsByGivenIds(AccountNameRequestDto request);
 
-    void create(AccountRequestDto request);
+    Optional<Account> recordAccount(RecordAccountInput input);
 
-    void update(AccountRequestDto request);
-
-    void upsertFromSync(AccountRequestDto request);
-
-    void deactivateFromSync(UUID accountId, long syncVersion);
-
-    void deactivate(UUID accountId);
+    List<Account> deactivateByConnection(UUID connectionId, long version);
 }

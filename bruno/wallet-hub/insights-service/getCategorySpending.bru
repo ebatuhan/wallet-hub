@@ -1,0 +1,21 @@
+meta {
+  name: getCategorySpending
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/api/insights/spendings?from=2021-04-01&to=2026-04-03
+  body: none
+  auth: inherit
+}
+
+params:query {
+  from: 2021-04-01
+  to: 2026-04-03
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

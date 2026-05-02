@@ -38,3 +38,11 @@ PARTITION BY toYYYYMM(date)
 ORDER BY (account_id, date);
 
 ALTER TABLE clickhouse.account_balance_history MODIFY COLUMN updated_at DateTime64(9);
+
+CREATE TABLE IF NOT EXISTS clickhouse.inbox_events
+(
+    event_id UUID,
+    processed_at DateTime64(9) DEFAULT now64(9)
+)
+ENGINE = MergeTree
+ORDER BY event_id;

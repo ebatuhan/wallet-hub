@@ -6,21 +6,22 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 import com.batu.plaid_adapter_service.entity.Connection;
-import com.batu.shared.dto.request.AccountRequestDto;
-import com.batu.shared.dto.request.TransactionRequestDto;
+import com.batu.shared.messaging.event.AccountObserved;
+import com.batu.shared.messaging.event.TransactionObserved;
 import com.plaid.client.model.AccountBase;
 import com.plaid.client.model.Transaction;
 
 @Component
 public class PlaidRequestMapper {
 
-    public AccountRequestDto toAccountRequest(Connection connection, UUID accountId, AccountBase account) {
+    public AccountObserved toAccountObserved(Connection connection, UUID accountId, AccountBase account) {
         String accountSubtype = account.getSubtype() == null ? "" : account.getSubtype().getValue();
         String accountMask = account.getMask() == null ? "" : account.getMask();
 
-        return new AccountRequestDto(
+        return new AccountObserved(
                 accountId,
                 connection.getUserId(),
+                connection.getConnectionId(),
                 connection.getInstitutionName(),
                 account.getName(),
                 account.getType().getValue(),
@@ -30,13 +31,12 @@ public class PlaidRequestMapper {
                 account.getBalances().getAvailable() == null
                         ? BigDecimal.ZERO
                         : BigDecimal.valueOf(account.getBalances().getAvailable()),
-                account.getBalances().getIsoCurrencyCode(),
-                true);
+                account.getBalances().getIsoCurrencyCode());
     }
 
-    public TransactionRequestDto toTransactionRequest(Connection connection, UUID transactionId, UUID accountId,
+    public TransactionObserved toTransactionObserved(Connection connection, UUID transactionId, UUID accountId,
             Transaction transaction) {
-        return new TransactionRequestDto(
+        return new TransactionObserved(
                 transactionId,
                 connection.getUserId(),
                 accountId,
@@ -51,21 +51,5 @@ public class PlaidRequestMapper {
                         ? "OTHER_OTHER"
                         : transaction.getPersonalFinanceCategory().getDetailed(),
                 true);
-    }
-
-    public TransactionRequestDto toDeactivateTransactionRequest(Connection connection, UUID transactionId) {
-        return new TransactionRequestDto(
-                transactionId,
-                connection.getUserId(),
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                false);
     }
 }

@@ -1,0 +1,26 @@
+meta {
+  name: createBudget
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/budgets
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "categoryId": "d2ac5c72-e47a-4eb6-82f1-6552c5101e9b",
+    "limitAmount": 500.00,
+    "isoCurrencyCode": "USD",
+    "period": "MONTHLY",
+    "periodStart": "2026-03-01"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
