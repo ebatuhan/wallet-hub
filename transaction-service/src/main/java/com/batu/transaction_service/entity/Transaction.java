@@ -65,9 +65,6 @@ public class Transaction implements Persistable<UUID> {
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 
-    @Column(name = "sync_version", nullable = false)
-    private long syncVersion;
-
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     @Setter(AccessLevel.NONE)
@@ -81,13 +78,6 @@ public class Transaction implements Persistable<UUID> {
     public Transaction(UUID userId, UUID accountId, BigDecimal amount, String isoCurrencyCode,
             String transactionName, String transactionType, LocalDate date, Boolean pending, String paymentChannel,
             TransactionDetailedCategory detailedCategory, boolean isActive) {
-        this(userId, accountId, amount, isoCurrencyCode, transactionName, transactionType, date, pending, paymentChannel,
-                detailedCategory, isActive, 0L);
-    }
-
-    public Transaction(UUID userId, UUID accountId, BigDecimal amount, String isoCurrencyCode,
-            String transactionName, String transactionType, LocalDate date, Boolean pending, String paymentChannel,
-            TransactionDetailedCategory detailedCategory, boolean isActive, long syncVersion) {
         this.userId = userId;
         this.accountId = accountId;
         this.amount = amount;
@@ -99,7 +89,6 @@ public class Transaction implements Persistable<UUID> {
         this.paymentChannel = paymentChannel;
         this.detailedCategory = detailedCategory;
         this.isActive = isActive;
-        this.syncVersion = syncVersion;
     }
 
     public Transaction(UUID transactionId, UUID userId, UUID accountId, BigDecimal amount,
@@ -107,14 +96,6 @@ public class Transaction implements Persistable<UUID> {
             String paymentChannel, TransactionDetailedCategory detailedCategory, boolean isActive) {
         this(userId, accountId, amount, isoCurrencyCode, transactionName, transactionType, date, pending,
                 paymentChannel, detailedCategory, isActive);
-        this.transactionId = transactionId;
-    }
-
-    public Transaction(UUID transactionId, UUID userId, UUID accountId, BigDecimal amount,
-            String isoCurrencyCode, String transactionName, String transactionType, LocalDate date, Boolean pending,
-            String paymentChannel, TransactionDetailedCategory detailedCategory, boolean isActive, long syncVersion) {
-        this(userId, accountId, amount, isoCurrencyCode, transactionName, transactionType, date, pending,
-                paymentChannel, detailedCategory, isActive, syncVersion);
         this.transactionId = transactionId;
     }
 

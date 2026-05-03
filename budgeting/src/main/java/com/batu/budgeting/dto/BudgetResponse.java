@@ -9,9 +9,6 @@ import com.batu.budgeting.entity.BudgetPeriod;
 public record BudgetResponse(
         UUID id,
         UUID categoryId,
-        String categoryCode,
-        String categoryDisplayName,
-        String categoryIconUrl,
         BigDecimal limitAmount,
         BigDecimal spentAmount,
         String isoCurrencyCode,

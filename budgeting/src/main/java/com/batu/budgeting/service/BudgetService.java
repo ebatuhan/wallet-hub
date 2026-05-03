@@ -7,7 +7,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 
 import com.batu.budgeting.dto.BudgetResponse;
 import com.batu.budgeting.dto.CreateBudgetRequest;
-import com.batu.budgeting.service.input.ApplyTransactionInput;
+import com.batu.shared.messaging.event.TransactionRecorded;
 
 public interface BudgetService {
     BudgetResponse createBudget(CreateBudgetRequest request, Jwt principal);
@@ -26,5 +26,5 @@ public interface BudgetService {
 
     void deactivateBudget(UUID budgetId, UUID userId);
 
-    void applyTransaction(ApplyTransactionInput input);
+    void applyTransaction(TransactionRecorded transaction);
 }

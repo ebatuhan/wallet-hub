@@ -6,19 +6,19 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 import com.batu.plaid_adapter_service.entity.Connection;
-import com.batu.shared.messaging.event.AccountObserved;
-import com.batu.shared.messaging.event.TransactionObserved;
+import com.batu.shared.dto.request.AccountUpsertRequestDto;
+import com.batu.shared.dto.request.TransactionUpsertRequestDto;
 import com.plaid.client.model.AccountBase;
 import com.plaid.client.model.Transaction;
 
 @Component
 public class PlaidRequestMapper {
 
-    public AccountObserved toAccountObserved(Connection connection, UUID accountId, AccountBase account) {
+    public AccountUpsertRequestDto toAccountUpsertRequest(Connection connection, UUID accountId, AccountBase account) {
         String accountSubtype = account.getSubtype() == null ? "" : account.getSubtype().getValue();
         String accountMask = account.getMask() == null ? "" : account.getMask();
 
-        return new AccountObserved(
+        return new AccountUpsertRequestDto(
                 accountId,
                 connection.getUserId(),
                 connection.getConnectionId(),
@@ -34,9 +34,9 @@ public class PlaidRequestMapper {
                 account.getBalances().getIsoCurrencyCode());
     }
 
-    public TransactionObserved toTransactionObserved(Connection connection, UUID transactionId, UUID accountId,
+    public TransactionUpsertRequestDto toTransactionUpsertRequest(Connection connection, UUID transactionId, UUID accountId,
             Transaction transaction) {
-        return new TransactionObserved(
+        return new TransactionUpsertRequestDto(
                 transactionId,
                 connection.getUserId(),
                 accountId,

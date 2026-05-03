@@ -38,9 +38,6 @@ public class OutboxEvent {
     @Column(name = "aggregate_id", nullable = false)
     private UUID aggregateId;
 
-    @Column(name = "aggregate_version", nullable = false)
-    private long aggregateVersion;
-
     @Column(name = "payload", nullable = false, columnDefinition = "text")
     private String payload;
 
@@ -52,13 +49,11 @@ public class OutboxEvent {
     @Column(name = "published_at")
     private Instant publishedAt;
 
-    public OutboxEvent(String routingKey, String eventType, String aggregateType, UUID aggregateId,
-            long aggregateVersion, String payload) {
+    public OutboxEvent(String routingKey, String eventType, String aggregateType, UUID aggregateId, String payload) {
         this.routingKey = routingKey;
         this.eventType = eventType;
         this.aggregateType = aggregateType;
         this.aggregateId = aggregateId;
-        this.aggregateVersion = aggregateVersion;
         this.payload = payload;
     }
 

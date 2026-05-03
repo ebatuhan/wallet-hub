@@ -1,7 +1,6 @@
 package com.batu.account_service.service.impl;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.domain.ScrollPosition;
@@ -14,18 +13,22 @@ import org.springframework.stereotype.Service;
 import com.batu.account_service.entity.Account;
 import com.batu.account_service.enums.AccountSortField;
 import com.batu.account_service.exception.ResourceNotFoundException;
+import com.batu.account_service.messaging.OutboxDomainEventPublisher;
 import com.batu.account_service.repository.AccountRepository;
 import com.batu.account_service.repository.specs.AccountSpecification;
 import com.batu.account_service.service.AccountService;
-import com.batu.account_service.service.input.RecordAccountInput;
 import com.batu.account_service.util.CursorUtils;
 import com.batu.shared.dto.request.AccountNameRequestDto;
+import com.batu.shared.dto.request.AccountUpsertRequestDto;
 import com.batu.shared.dto.response.AccountCurrencyTotalDto;
 import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.shared.dto.response.AccountResponseDto;
 import com.batu.shared.dto.response.AccountSummaryResponseDto;
+import com.batu.shared.dto.response.AccountUpsertResponseDto;
 import com.batu.shared.dto.response.AccountViewDto;
 import com.batu.shared.dto.response.CursorResponse;
+import com.batu.shared.messaging.event.AccountRecorded;
+import com.batu.shared.messaging.event.AccountRemoved;
 
 import jakarta.transaction.Transactional;
 
@@ -34,11 +37,14 @@ public class AccountServiceImpl implements AccountService {
 
         private final AccountRepository accountRepository;
         private final CursorUtils cursorUtils;
+        private final OutboxDomainEventPublisher eventPublisher;
 
         public AccountServiceImpl(AccountRepository accountRepository,
-                        CursorUtils cursorUtils) {
+                        CursorUtils cursorUtils,
+                        OutboxDomainEventPublisher eventPublisher) {
                 this.accountRepository = accountRepository;
                 this.cursorUtils = cursorUtils;
+                this.eventPublisher = eventPublisher;
         }
 
         @Override
@@ -123,61 +129,66 @@ public class AccountServiceImpl implements AccountService {
         }
 
         @Override
-        @Transactional
-        public Optional<Account> recordAccount(RecordAccountInput input) {
-                Account account = accountRepository.findById(input.accountId()).orElse(null);
-
-                if (account != null && input.version() <= account.getSyncVersion()) {
-                        return Optional.empty();
-                }
-
-                if (account == null) {
-                        account = new Account(
-                                        input.accountId(),
-                                        input.userId(),
-                                        input.connectionId(),
-                                        input.institutionName(),
-                                        input.accountName(),
-                                        input.accountType(),
-                                        input.accountSubtype(),
-                                        input.accountMask(),
-                                        input.currentBalance(),
-                                        input.availableBalance(),
-                                        input.isoCurrencyCode(),
-                                        true,
-                                        input.version());
-                } else {
-                        account.setUserId(input.userId());
-                        account.setConnectionId(input.connectionId());
-                        account.setInstitutionName(input.institutionName());
-                        account.setAccountName(input.accountName());
-                        account.setAccountType(input.accountType());
-                        account.setAccountSubtype(input.accountSubtype());
-                        account.setAccountMask(input.accountMask());
-                        account.setCurrentBalance(input.currentBalance());
-                        account.setAvailableBalance(input.availableBalance());
-                        account.setIsoCurrencyCode(input.isoCurrencyCode());
-                        account.setActive(true);
-                        account.setSyncVersion(input.version());
-                }
-
-                return Optional.of(accountRepository.save(account));
+        public List<AccountResponseDto> findAccountsByConnectionId(UUID connectionId) {
+                return accountRepository.findByConnectionIdAndIsActiveTrueOrderByCreatedAtDesc(connectionId);
         }
 
         @Override
         @Transactional
-        public List<Account> deactivateByConnection(UUID connectionId, long version) {
-                List<Account> accounts = accountRepository.findByConnectionIdAndIsActiveTrue(connectionId)
-                                .stream()
-                                .filter(account -> version > account.getSyncVersion())
-                                .toList();
+        public AccountUpsertResponseDto upsertAccount(AccountUpsertRequestDto request) {
+                Account account = accountRepository.upsertAccount(request);
+                eventPublisher.publishAccountRecorded(new AccountRecorded(
+                                account.getAccountId(),
+                                account.getUserId(),
+                                account.getConnectionId(),
+                                account.getInstitutionName(),
+                                account.getAccountName(),
+                                account.getAccountType(),
+                                account.getAccountSubtype(),
+                                account.getAccountMask(),
+                                account.getCurrentBalance(),
+                                account.getAvailableBalance(),
+                                account.getIsoCurrencyCode(),
+                                account.isActive()));
+                return toUpsertResponse(account);
+        }
+
+        @Override
+        @Transactional
+        public List<AccountUpsertResponseDto> deactivateAccountsByConnection(UUID connectionId) {
+                List<Account> accounts = accountRepository.findByConnectionIdAndIsActiveTrue(connectionId);
 
                 for (Account account : accounts) {
                         account.setActive(false);
-                        account.setSyncVersion(version);
                 }
 
-                return accountRepository.saveAll(accounts);
+                List<Account> savedAccounts = accountRepository.saveAll(accounts);
+
+                for (Account account : savedAccounts) {
+                        eventPublisher.publishAccountRemoved(new AccountRemoved(
+                                        account.getAccountId(),
+                                        account.getUserId(),
+                                        account.getConnectionId()));
+                }
+
+                return savedAccounts.stream().map(this::toUpsertResponse).toList();
         }
 
+        private AccountUpsertResponseDto toUpsertResponse(Account account) {
+                return new AccountUpsertResponseDto(
+                                account.getAccountId(),
+                                account.getUserId(),
+                                account.getConnectionId(),
+                                account.getInstitutionName(),
+                                account.getAccountName(),
+                                account.getAccountType(),
+                                account.getAccountSubtype(),
+                                account.getAccountMask(),
+                                account.getCurrentBalance(),
+                                account.getAvailableBalance(),
+                                account.getIsoCurrencyCode(),
+                                account.isActive(),
+                                account.getCreatedAt(),
+                                account.getUpdatedAt());
+        }
 }

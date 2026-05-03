@@ -11,7 +11,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 
-public interface TransactionRepository extends JpaRepository<Transaction, UUID>, JpaSpecificationExecutor<Transaction> {
+public interface TransactionRepository extends JpaRepository<Transaction, UUID>, JpaSpecificationExecutor<Transaction>, TransactionRepositoryCustom {
     Optional<Transaction> findByTransactionIdAndUserIdAndIsActiveTrue(UUID transactionId, UUID userId);
 
     List<Transaction> findByAccountIdAndIsActiveTrue(UUID accountId);

@@ -54,13 +54,6 @@ public class ConnectionServiceImpl implements ConnectionService {
         return connectionRepository.save(connection);
     }
 
-    @Override
-    @Transactional
-    public long incrementSyncVersion(Connection connection) {
-        connection.setSyncVersion(connection.getSyncVersion() + 1);
-        return connection.getSyncVersion();
-    }
-
     private Connection readById(UUID connectionId) {
         return connectionRepository.findById(connectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Connection with " + connectionId + "not found"));

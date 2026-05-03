@@ -16,25 +16,22 @@ import org.springframework.transaction.annotation.Transactional;
 
 import io.micrometer.observation.annotation.Observed;
 
+import com.batu.plaid_adapter_service.client.AccountClient;
 import com.batu.plaid_adapter_service.client.PlaidClientWrapper;
-import com.batu.plaid_adapter_service.entity.AccountRegistry;
+import com.batu.plaid_adapter_service.client.TransactionClient;
 import com.batu.plaid_adapter_service.entity.Connection;
 import com.batu.plaid_adapter_service.exception.DuplicateConnectionException;
 import com.batu.plaid_adapter_service.exception.PlaidRetryableException;
 import com.batu.plaid_adapter_service.mapper.PlaidRequestMapper;
-import com.batu.plaid_adapter_service.messaging.PlaidOutbox;
-import com.batu.plaid_adapter_service.service.AccountRegistryService;
 import com.batu.plaid_adapter_service.service.ConnectionService;
 import com.batu.plaid_adapter_service.service.PlaidIntegrationService;
 import com.batu.plaid_adapter_service.util.DeterministicIdGenerator;
-import com.batu.plaid_adapter_service.util.StringHasher;
 import com.batu.shared.dto.request.ExchangeTokenRequestDto;
 import com.batu.shared.dto.request.LinkTokenRequestDto;
+import com.batu.shared.dto.response.AccountResponseDto;
+import com.batu.shared.dto.response.AccountUpsertResponseDto;
 import com.batu.shared.dto.response.ExchangeTokenResponseDto;
 import com.batu.shared.dto.response.LinkTokenResponseDto;
-import com.batu.shared.messaging.event.AccountObserved;
-import com.batu.shared.messaging.event.ConnectionRemoved;
-import com.batu.shared.messaging.event.TransactionObserved;
 import com.plaid.client.model.AccountBase;
 import com.plaid.client.model.ItemRemoveRequest;
 import com.plaid.client.model.ItemPublicTokenExchangeRequest;
@@ -58,27 +55,24 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
     private String webhookUrl;
 
     private final PlaidClientWrapper plaidClient;
+    private final AccountClient accountClient;
+    private final TransactionClient transactionClient;
     private final ConnectionService connectionService;
-    private final AccountRegistryService accountRegistryService;
     private final PlaidRequestMapper plaidRequestMapper;
-    private final PlaidOutbox plaidOutbox;
     private final DeterministicIdGenerator deterministicIdGenerator;
-    private final StringHasher stringHasher;
 
     public PlaidIntegrationServiceImpl(PlaidClientWrapper plaidClient,
+            AccountClient accountClient,
+            TransactionClient transactionClient,
             ConnectionService connectionService,
-            AccountRegistryService accountRegistryService,
             PlaidRequestMapper plaidRequestMapper,
-            PlaidOutbox plaidOutbox,
-            DeterministicIdGenerator deterministicIdGenerator,
-            StringHasher stringHasher) {
+            DeterministicIdGenerator deterministicIdGenerator) {
         this.plaidClient = plaidClient;
+        this.accountClient = accountClient;
+        this.transactionClient = transactionClient;
         this.connectionService = connectionService;
-        this.accountRegistryService = accountRegistryService;
         this.plaidRequestMapper = plaidRequestMapper;
-        this.plaidOutbox = plaidOutbox;
         this.deterministicIdGenerator = deterministicIdGenerator;
-        this.stringHasher = stringHasher;
     }
 
     @Override
@@ -104,7 +98,7 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
     @Retryable(retryFor = PlaidRetryableException.class, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
     public ExchangeTokenResponseDto exchangeLinkToken(ExchangeTokenRequestDto exchangeTokenRequestDto, UUID userId) {
 
-        if (isExchangeTokenRequestDuplicate(exchangeTokenRequestDto)) {
+        if (isExchangeTokenRequestDuplicate(exchangeTokenRequestDto, userId)) {
             throw new DuplicateConnectionException("This connection already exists. Remove the current one before continue.");
         }
 
@@ -157,15 +151,15 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
             return;
         }
 
-        long syncVersion = connectionService.incrementSyncVersion(connection);
-
         plaidClient.removeItem(new ItemRemoveRequest().accessToken(connection.getAccessToken()));
 
+        List<AccountUpsertResponseDto> deactivatedAccounts = accountClient.deactivateAccountsByConnection(
+                connection.getConnectionId());
+        for (AccountUpsertResponseDto account : deactivatedAccounts) {
+            transactionClient.deactivateTransactionsByAccount(account.getAccountId());
+        }
+
         connectionService.deactivate(connectionId, reason);
-        plaidOutbox.connectionRemoved(new ConnectionRemoved(
-                connection.getConnectionId(),
-                connection.getUserId(),
-                reason), syncVersion);
     }
 
     @Override
@@ -179,7 +173,6 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
         }
 
         String lastCursor = conn.getLastCursor();
-        long syncVersion = connectionService.incrementSyncVersion(conn);
 
         Set<AccountBase> accounts = new HashSet<>();
         List<Transaction> transactions = new ArrayList<>();
@@ -212,17 +205,11 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
 
         for (AccountBase account : accounts) {
             UUID accountId = deterministicIdGenerator.accountId(conn.getUserId(), account.getAccountId());
-            String fingerprint = accountFingerprint(conn, account);
-            accountRegistryService.registerAccount(
-                    connectionId,
-                    accountId,
-                    fingerprint);
 
-            AccountObserved accountObserved = plaidRequestMapper.toAccountObserved(
+            accountClient.upsertAccount(plaidRequestMapper.toAccountUpsertRequest(
                     conn,
                     accountId,
-                    account);
-            plaidOutbox.accountObserved(accountObserved, syncVersion);
+                    account));
         }
 
         for (Transaction transaction : transactions) {
@@ -232,58 +219,41 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
                     transaction.getAccountId(),
                     transaction.getTransactionId());
 
-            TransactionObserved transactionObserved = plaidRequestMapper.toTransactionObserved(
+            transactionClient.upsertTransaction(plaidRequestMapper.toTransactionUpsertRequest(
                     conn,
                     transactionId,
                     accountId,
-                    transaction);
-            plaidOutbox.transactionObserved(transactionObserved, syncVersion);
+                    transaction));
         }
 
         connectionService.completeSync(connectionId, lastCursor);
 
     }
 
-    private boolean isExchangeTokenRequestDuplicate(ExchangeTokenRequestDto request) {
+    private boolean isExchangeTokenRequestDuplicate(ExchangeTokenRequestDto request, UUID userId) {
         if (request == null || request.getAccounts() == null || request.getAccounts().isEmpty()) {
             return false;
         }
 
-        String normalizedInstitutionId = request.getInstitutionId() == null
-                ? ""
-                : request.getInstitutionId().trim().toLowerCase(Locale.ROOT);
+        List<Connection> existingConnections = connectionService.readAllByUserIdAndInstitutionId(userId, request.getInstitutionId());
 
-        List<String> fingerprints = request.getAccounts().stream()
-                .map(account -> {
-                    String normalizedMask = account.getMask() == null
-                            ? ""
-                            : account.getMask().trim().toLowerCase(Locale.ROOT);
+        for (Connection connection : existingConnections) {
+            List<AccountResponseDto> existingAccounts = accountClient.findAccountsByConnectionId(connection.getConnectionId());
+            for (AccountResponseDto existingAccount : existingAccounts) {
+                boolean duplicate = request.getAccounts().stream().anyMatch(incomingAccount ->
+                        normalize(incomingAccount.getMask()).equals(normalize(existingAccount.getAccountMask()))
+                                && normalize(incomingAccount.getSubType()).equals(normalize(existingAccount.getAccountSubtype())));
+                if (duplicate) {
+                    return true;
+                }
+            }
+        }
 
-                    String normalizedSubType = account.getSubType() == null
-                            ? ""
-                            : account.getSubType().trim().toLowerCase(Locale.ROOT);
-
-                    String valueToHash = String.join("|",
-                            normalizedMask,
-                            normalizedSubType,
-                            normalizedInstitutionId
-                    );
-
-                    return stringHasher.sha256(valueToHash);
-                })
-                .toList();
-
-        return accountRegistryService.existsByFingerprintIn(fingerprints);
+        return false;
     }
 
-    private String accountFingerprint(Connection connection, AccountBase account) {
-        String normalizedMask = account.getMask() == null ? "" : account.getMask().trim().toLowerCase(Locale.ROOT);
-        String normalizedSubType = account.getSubtype() == null ? "" : account.getSubtype().getValue().trim().toLowerCase(Locale.ROOT);
-        String normalizedInstitutionId = connection.getInstitutionId() == null
-                ? ""
-                : connection.getInstitutionId().trim().toLowerCase(Locale.ROOT);
-
-        return stringHasher.sha256(String.join("|", normalizedMask, normalizedSubType, normalizedInstitutionId));
+    private String normalize(String value) {
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
     }
 
 }

@@ -29,7 +29,5 @@ public interface ConnectionService {
 
     Connection completeSync(UUID connectionId, String cursor);
 
-    long incrementSyncVersion(Connection connection);
-
     Connection deactivate(UUID connectionId, String errorCode);
 }

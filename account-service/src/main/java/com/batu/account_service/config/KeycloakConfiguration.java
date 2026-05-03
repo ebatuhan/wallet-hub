@@ -43,7 +43,6 @@ public class KeycloakConfiguration {
                         auth -> auth
                                 .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/accounts/batch").permitAll()
-                                .requestMatchers(HttpMethod.POST, "/accounts").hasAuthority(SERVICE_AUTHORITY)
                                 .requestMatchers(HttpMethod.PUT, "/accounts/*").hasAuthority(SERVICE_AUTHORITY)
                                 .requestMatchers(HttpMethod.DELETE, "/accounts/*").hasAuthority(SERVICE_AUTHORITY)
                                 .anyRequest().authenticated())

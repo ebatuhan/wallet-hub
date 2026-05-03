@@ -1,7 +1,6 @@
 package com.batu.transaction_service.service.impl;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -13,18 +12,22 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.batu.shared.dto.request.TransactionUpsertRequestDto;
 import com.batu.shared.dto.response.CursorResponse;
 import com.batu.shared.dto.response.TransactionDto;
+import com.batu.shared.dto.response.TransactionUpsertResponseDto;
 import com.batu.shared.dto.response.TransactionViewResponseDto;
+import com.batu.shared.messaging.event.TransactionRecorded;
+import com.batu.shared.messaging.event.TransactionRemoved;
 import com.batu.transaction_service.entity.Transaction;
 import com.batu.transaction_service.entity.TransactionDetailedCategory;
 import com.batu.transaction_service.exception.ResourceNotFoundException;
 import com.batu.transaction_service.mapper.TransactionSyncMapper;
+import com.batu.transaction_service.messaging.OutboxDomainEventPublisher;
 import com.batu.transaction_service.repository.TransactionRepository;
 import com.batu.transaction_service.repository.spec.TransactionSpecs;
 import com.batu.transaction_service.service.DetailedCategoryService;
 import com.batu.transaction_service.service.TransactionService;
-import com.batu.transaction_service.service.input.RecordTransactionInput;
 import com.batu.transaction_service.util.CursorUtils;
 
 @Service
@@ -34,14 +37,17 @@ public class TransactionServiceImpl implements TransactionService {
         private final CursorUtils cursorUtils;
         private final DetailedCategoryService detailedCategoryService;
         private final TransactionSyncMapper transactionSyncMapper;
+        private final OutboxDomainEventPublisher eventPublisher;
 
         public TransactionServiceImpl(TransactionRepository transactionRepository, CursorUtils cursorUtils,
                         DetailedCategoryService detailedCategoryService,
-                        TransactionSyncMapper transactionSyncMapper) {
+                        TransactionSyncMapper transactionSyncMapper,
+                        OutboxDomainEventPublisher eventPublisher) {
                 this.transactionRepository = transactionRepository;
                 this.cursorUtils = cursorUtils;
                 this.detailedCategoryService = detailedCategoryService;
                 this.transactionSyncMapper = transactionSyncMapper;
+                this.eventPublisher = eventPublisher;
         }
 
         @Override
@@ -123,67 +129,78 @@ public class TransactionServiceImpl implements TransactionService {
 
         @Override
         @Transactional
-        public Optional<Transaction> recordTransaction(RecordTransactionInput input) {
-                Transaction transaction = transactionRepository.findById(input.transactionId()).orElse(null);
-
-                if (transaction != null && input.version() <= transaction.getSyncVersion()) {
-                        return Optional.empty();
-                }
-
-                if (transaction == null && !input.active()) {
-                        return Optional.empty();
-                }
-
+        public TransactionUpsertResponseDto upsertTransaction(TransactionUpsertRequestDto request) {
                 TransactionDetailedCategory detailedCategory = detailedCategoryService
-                                .getByCategoryCode(input.detailedCategoryCode());
-
-                if (transaction == null) {
-                        transaction = new Transaction(
-                                        input.transactionId(),
-                                        input.userId(),
-                                        input.accountId(),
-                                        input.amount(),
-                                        input.isoCurrencyCode(),
-                                        input.transactionName(),
-                                        input.transactionType(),
-                                        input.date(),
-                                        input.pending(),
-                                        input.paymentChannel(),
-                                        detailedCategory,
-                                        input.active(),
-                                        input.version());
+                                .getByCategoryCode(request.getDetailedCategoryCode());
+                Transaction transaction = transactionRepository.upsertTransaction(
+                                request,
+                                detailedCategory.getTransactionDetailedCategoryId());
+                if (transaction.isActive()) {
+                        eventPublisher.publishTransactionRecorded(new TransactionRecorded(
+                                        transaction.getTransactionId(),
+                                        transaction.getUserId(),
+                                        transaction.getAccountId(),
+                                        transaction.getAmount(),
+                                        transaction.getIsoCurrencyCode(),
+                                        transaction.getTransactionName(),
+                                        transaction.getTransactionType(),
+                                        transaction.getDate(),
+                                        transaction.getPending(),
+                                        transaction.getPaymentChannel(),
+                                        detailedCategory.getTransactionPrimaryCategory().getTransactionPrimaryCategoryId(),
+                                        detailedCategory.getTransactionPrimaryCategory().getCategoryCode(),
+                                        true));
                 } else {
-                        transaction.setUserId(input.userId());
-                        transaction.setAccountId(input.accountId());
-                        transaction.setAmount(input.amount());
-                        transaction.setIsoCurrencyCode(input.isoCurrencyCode());
-                        transaction.setTransactionName(input.transactionName());
-                        transaction.setTransactionType(input.transactionType());
-                        transaction.setDate(input.date());
-                        transaction.setPending(input.pending());
-                        transaction.setPaymentChannel(input.paymentChannel());
-                        transaction.setDetailedCategory(detailedCategory);
-                        transaction.setActive(input.active());
-                        transaction.setSyncVersion(input.version());
+                        eventPublisher.publishTransactionRemoved(new TransactionRemoved(
+                                        transaction.getTransactionId(),
+                                        transaction.getUserId(),
+                                        transaction.getAccountId()));
                 }
 
-                return Optional.of(transactionRepository.save(transaction));
+                return toUpsertResponse(transaction, detailedCategory);
         }
 
         @Override
         @Transactional
-        public List<Transaction> deactivateByAccountId(UUID accountId, long version) {
-                List<Transaction> transactions = transactionRepository.findByAccountIdAndIsActiveTrue(accountId)
-                                .stream()
-                                .filter(transaction -> version > transaction.getSyncVersion())
-                                .toList();
+        public List<TransactionUpsertResponseDto> deactivateTransactionsByAccountId(UUID accountId) {
+                List<Transaction> transactions = transactionRepository.findByAccountIdAndIsActiveTrue(accountId);
 
                 for (Transaction transaction : transactions) {
                         transaction.setActive(false);
-                        transaction.setSyncVersion(version);
                 }
 
-                return transactionRepository.saveAll(transactions);
+                List<Transaction> savedTransactions = transactionRepository.saveAll(transactions);
+
+                for (Transaction transaction : savedTransactions) {
+                        eventPublisher.publishTransactionRemoved(new TransactionRemoved(
+                                        transaction.getTransactionId(),
+                                        transaction.getUserId(),
+                                        transaction.getAccountId()));
+                }
+
+                return savedTransactions.stream()
+                                .map(transaction -> toUpsertResponse(transaction, transaction.getDetailedCategory()))
+                                .toList();
+        }
+
+        private TransactionUpsertResponseDto toUpsertResponse(
+                        Transaction transaction,
+                        TransactionDetailedCategory detailedCategory) {
+                return new TransactionUpsertResponseDto(
+                                transaction.getTransactionId(),
+                                transaction.getUserId(),
+                                transaction.getAccountId(),
+                                transaction.getAmount(),
+                                transaction.getIsoCurrencyCode(),
+                                transaction.getTransactionName(),
+                                transaction.getTransactionType(),
+                                transaction.getDate(),
+                                transaction.getPending(),
+                                transaction.getPaymentChannel(),
+                                detailedCategory.getCategoryCode(),
+                                transaction.isActive(),
+                                transaction.getCreatedAt(),
+                                transaction.getUpdatedAt());
         }
 
 }

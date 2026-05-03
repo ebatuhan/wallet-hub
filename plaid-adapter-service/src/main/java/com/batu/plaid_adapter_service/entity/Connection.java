@@ -62,9 +62,6 @@ public class Connection {
     @Column(name = "last_synced_at")
     private Instant lastSyncedAt;
 
-    @Column(name = "sync_version", nullable = false, columnDefinition = "bigint default 0")
-    private long syncVersion;
-
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     @Setter(AccessLevel.NONE)

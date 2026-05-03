@@ -42,7 +42,6 @@ public class KeycloakConfiguration {
                 .authorizeHttpRequests(
                         auth -> auth
                                 .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
-                                .requestMatchers(HttpMethod.POST, "/transactions").hasAuthority(SERVICE_AUTHORITY)
                                 .requestMatchers(HttpMethod.PUT, "/transactions/*").hasAuthority(SERVICE_AUTHORITY)
                                 .requestMatchers(HttpMethod.DELETE, "/transactions/accounts/*").hasAuthority(SERVICE_AUTHORITY)
                                 .requestMatchers("/transactions/categories/primary/**").permitAll()

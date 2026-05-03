@@ -16,12 +16,14 @@ import com.batu.account_service.entity.Account;
 import com.batu.shared.dto.response.AccountNameResponseDto;
 import com.batu.shared.dto.response.AccountResponseDto;
 
-public interface AccountRepository extends JpaRepository<Account, UUID>, JpaSpecificationExecutor<Account> {
+public interface AccountRepository extends JpaRepository<Account, UUID>, JpaSpecificationExecutor<Account>, AccountRepositoryCustom {
     Optional<AccountResponseDto> findByAccountIdAndUserIdAndIsActiveTrue(UUID accountId, UUID userId);
 
     Optional<Account> findByAccountIdAndUserId(UUID accountId, UUID userId);
 
     List<Account> findByConnectionIdAndIsActiveTrue(UUID connectionId);
+
+    List<AccountResponseDto> findByConnectionIdAndIsActiveTrueOrderByCreatedAtDesc(UUID connectionId);
 
     List<Account> findAllByAccountIdIn(Collection<UUID> accountIds);
 

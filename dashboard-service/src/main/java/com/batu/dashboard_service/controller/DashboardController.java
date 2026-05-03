@@ -1,6 +1,7 @@
 package com.batu.dashboard_service.controller;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.format.annotation.DateTimeFormat;
@@ -17,6 +18,7 @@ import com.batu.dashboard_service.dto.AccountDashboardSummaryResponseDto;
 import com.batu.dashboard_service.dto.TransactionDashboardSummaryResponseDto;
 import com.batu.dashboard_service.dto.UserDashboardSummaryResponseDto;
 import com.batu.dashboard_service.service.DashboardService;
+import com.batu.shared.dto.response.BudgetResponseDto;
 
 import lombok.RequiredArgsConstructor;
 
@@ -34,6 +36,11 @@ public class DashboardController {
             @RequestParam(required = false) Integer recentLimit,
             @AuthenticationPrincipal Jwt principal) {
         return ResponseEntity.ok(dashboardService.getUserSummary(from, to, recentLimit, principal));
+    }
+
+    @GetMapping("/budgets")
+    public ResponseEntity<List<BudgetResponseDto>> getBudgets(@AuthenticationPrincipal Jwt principal) {
+        return ResponseEntity.ok(dashboardService.getBudgets(principal));
     }
 
     @GetMapping("/accounts/{accountId}/summary")

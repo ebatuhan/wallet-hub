@@ -68,7 +68,7 @@ public class DashboardServiceImpl implements DashboardService {
         IncomeSummaryResponseDto incomeResponse = insightsClient.getIncome(fromParam, toParam).getBody();
         SpendingPerCategoryResponseDto spendingResponse = insightsClient.getSpendingByCategory(fromParam, toParam).getBody();
         SpendingGraphResponseDto yearlySpendings = insightsClient.getSpendingGraph(yearlyFromParam, yearlyToParam).getBody();
-        List<BudgetResponseDto> budgets = budgetingClient.getBudgets().getBody();
+        List<BudgetResponseDto> budgets = getEnrichedBudgets();
 
         var spendingSection = new UserDashboardSummaryResponseDto.SpendingSectionDto(
                 spendingResponse == null ? java.math.BigDecimal.ZERO : spendingResponse.totalSpent(),
@@ -92,6 +92,12 @@ public class DashboardServiceImpl implements DashboardService {
                         recentTransactions == null ? null : recentTransactions.getNextCursor()),
                 spendingSection,
                 new UserDashboardSummaryResponseDto.BudgetHighlightsDto(activeBudgetCount, overBudgetCount, budgetItems));
+    }
+
+    @Override
+    @Observed(name = "dashboard.aggregate.budgets", contextualName = "dashboard aggregate budgets")
+    public List<BudgetResponseDto> getBudgets(Jwt principal) {
+        return getEnrichedBudgets();
     }
 
     @Override
@@ -166,6 +172,36 @@ public class DashboardServiceImpl implements DashboardService {
                 .map(category -> toSpendingItem(category.primaryCategoryId(), category.percentage(), category.totalAmount(),
                         categoryMetadata.get(category.primaryCategoryId())))
                 .toList();
+    }
+
+    private List<BudgetResponseDto> getEnrichedBudgets() {
+        List<BudgetResponseDto> budgets = budgetingClient.getBudgets().getBody();
+        if (budgets == null || budgets.isEmpty()) {
+            return List.of();
+        }
+
+        Map<UUID, TransactionPrimaryCategoryDto> categoryMetadata = loadCategoryMetadata(
+                budgets.stream().map(BudgetResponseDto::categoryId).collect(Collectors.toSet()));
+
+        return budgets.stream()
+                .map(budget -> enrichBudget(budget, categoryMetadata.get(budget.categoryId())))
+                .toList();
+    }
+
+    private BudgetResponseDto enrichBudget(BudgetResponseDto budget, TransactionPrimaryCategoryDto metadata) {
+        return new BudgetResponseDto(
+                budget.id(),
+                budget.categoryId(),
+                metadata == null ? null : metadata.getCategoryCode(),
+                metadata == null ? null : metadata.getDisplayName(),
+                metadata == null ? null : metadata.getIconUrl(),
+                budget.limitAmount(),
+                budget.spentAmount(),
+                budget.isoCurrencyCode(),
+                budget.period(),
+                budget.periodStart(),
+                budget.periodEnd(),
+                budget.active());
     }
 
     private Map<UUID, TransactionPrimaryCategoryDto> loadCategoryMetadata(Set<UUID> categoryIds) {

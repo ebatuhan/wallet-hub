@@ -2,17 +2,13 @@ package com.batu.budgeting.service.impl;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.batu.budgeting.client.TransactionCategoryClient;
 import com.batu.budgeting.dto.BudgetResponse;
 import com.batu.budgeting.dto.CreateBudgetRequest;
 import com.batu.budgeting.entity.Budget;
@@ -21,23 +17,18 @@ import com.batu.budgeting.exception.ResourceNotFoundException;
 import com.batu.budgeting.mapper.BudgetMapper;
 import com.batu.budgeting.repository.BudgetRepository;
 import com.batu.budgeting.service.BudgetService;
-import com.batu.budgeting.service.input.ApplyTransactionInput;
-import com.batu.shared.dto.request.PrimaryCategoryIdsRequestDto;
-import com.batu.shared.dto.response.TransactionPrimaryCategoryDto;
+import com.batu.shared.messaging.event.TransactionRecorded;
 
 @Service
 public class BudgetServiceImpl implements BudgetService {
 
     private final BudgetRepository budgetRepository;
     private final BudgetMapper budgetMapper;
-    private final TransactionCategoryClient transactionCategoryClient;
 
     public BudgetServiceImpl(BudgetRepository budgetRepository,
-            BudgetMapper budgetMapper,
-            TransactionCategoryClient transactionCategoryClient) {
+            BudgetMapper budgetMapper) {
         this.budgetRepository = budgetRepository;
         this.budgetMapper = budgetMapper;
-        this.transactionCategoryClient = transactionCategoryClient;
     }
 
     @Override
@@ -60,10 +51,7 @@ public class BudgetServiceImpl implements BudgetService {
                 request.periodStart());
 
         Budget savedBudget = budgetRepository.save(budget);
-        TransactionPrimaryCategoryDto category = transactionCategoryClient
-                .getPrimaryCategoryById(savedBudget.getCategoryId())
-                .getBody();
-        return budgetMapper.toResponse(savedBudget, category);
+        return budgetMapper.toResponse(savedBudget);
     }
 
     @Override
@@ -88,10 +76,7 @@ public class BudgetServiceImpl implements BudgetService {
         budget.setUpdatedAt(Instant.now());
 
         Budget savedBudget = budgetRepository.save(budget);
-        TransactionPrimaryCategoryDto category = transactionCategoryClient
-                .getPrimaryCategoryById(savedBudget.getCategoryId())
-                .getBody();
-        return budgetMapper.toResponse(savedBudget, category);
+        return budgetMapper.toResponse(savedBudget);
     }
 
     @Override
@@ -104,11 +89,8 @@ public class BudgetServiceImpl implements BudgetService {
     @Transactional(readOnly = true)
     public List<BudgetResponse> getBudgets(UUID userId) {
         List<Budget> budgets = budgetRepository.findByUserIdAndActiveTrue(userId);
-        Map<UUID, TransactionPrimaryCategoryDto> categoriesById = loadCategoryMetadataByIds(
-                budgets.stream().map(Budget::getCategoryId).collect(java.util.stream.Collectors.toSet()));
-
         return budgets.stream()
-                .map(budget -> budgetMapper.toResponse(budget, categoriesById.get(budget.getCategoryId())))
+                .map(budgetMapper::toResponse)
                 .toList();
     }
 
@@ -131,26 +113,26 @@ public class BudgetServiceImpl implements BudgetService {
 
     @Override
     @Transactional
-    public void applyTransaction(ApplyTransactionInput input) {
-        if (!input.active() || Boolean.TRUE.equals(input.pending())) {
+    public void applyTransaction(TransactionRecorded transaction) {
+        if (!transaction.isActive() || Boolean.TRUE.equals(transaction.getPending())) {
             return;
         }
 
-        if (input.primaryCategoryId() == null || input.amount() == null || input.date() == null
-                || input.isoCurrencyCode() == null) {
+        if (transaction.getPrimaryCategoryId() == null || transaction.getAmount() == null || transaction.getDate() == null
+                || transaction.getIsoCurrencyCode() == null) {
             return;
         }
 
-        if (input.amount().signum() >= 0) {
+        if (transaction.getAmount().signum() >= 0) {
             return;
         }
 
         List<Budget> candidates = budgetRepository.findCandidates(
-                input.userId(),
-                input.primaryCategoryId(),
-                input.isoCurrencyCode(),
-                input.date()).stream()
-                .filter(budget -> !budget.getPeriod().computeEnd(budget.getPeriodStart()).isBefore(input.date()))
+                transaction.getUserId(),
+                transaction.getPrimaryCategoryId(),
+                transaction.getIsoCurrencyCode(),
+                transaction.getDate()).stream()
+                .filter(budget -> !budget.getPeriod().computeEnd(budget.getPeriodStart()).isBefore(transaction.getDate()))
                 .toList();
 
         if (candidates.isEmpty()) {
@@ -158,7 +140,7 @@ public class BudgetServiceImpl implements BudgetService {
         }
 
         Budget budget = candidates.getFirst();
-        BigDecimal spentAmount = input.amount().abs();
+        BigDecimal spentAmount = transaction.getAmount().abs();
 
         budget.setSpentAmount(budget.getSpentAmount().add(spentAmount));
         budget.setUpdatedAt(Instant.now());
@@ -189,26 +171,6 @@ public class BudgetServiceImpl implements BudgetService {
                 throw new BudgetConflictException("Overlapping active budget exists for this category and currency");
             }
         }
-    }
-
-    private Map<UUID, TransactionPrimaryCategoryDto> loadCategoryMetadataByIds(Set<UUID> categoryIds) {
-        if (categoryIds.isEmpty()) {
-            return Map.of();
-        }
-
-        List<TransactionPrimaryCategoryDto> categories = transactionCategoryClient
-                .getPrimaryCategoriesByIds(new PrimaryCategoryIdsRequestDto(categoryIds))
-                .getBody();
-
-        if (categories == null || categories.isEmpty()) {
-            return Map.of();
-        }
-
-        Map<UUID, TransactionPrimaryCategoryDto> categoriesById = new HashMap<>();
-        for (TransactionPrimaryCategoryDto category : categories) {
-            categoriesById.put(category.getTransactionPrimaryCategoryId(), category);
-        }
-        return categoriesById;
     }
 
 }

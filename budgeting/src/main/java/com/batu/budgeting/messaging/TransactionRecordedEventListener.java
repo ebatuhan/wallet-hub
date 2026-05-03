@@ -7,7 +7,6 @@ import org.springframework.transaction.annotation.Transactional;
 import io.micrometer.observation.annotation.Observed;
 
 import com.batu.budgeting.service.BudgetService;
-import com.batu.budgeting.service.input.ApplyTransactionInput;
 import com.batu.shared.messaging.BaseEvent;
 import com.batu.shared.messaging.MessagingTopology;
 import com.batu.shared.messaging.event.TransactionRecorded;
@@ -27,18 +26,6 @@ public class TransactionRecordedEventListener {
     @Observed(name = "budgeting.consume.transaction-recorded", contextualName = "budgeting consume transaction recorded")
     @Transactional
     public void onTransactionRecorded(BaseEvent<TransactionRecorded> event) {
-        budgetingInbox.process(event, () -> budgetService.applyTransaction(toInput(event.getPayload())));
-    }
-
-    private ApplyTransactionInput toInput(TransactionRecorded transaction) {
-        return new ApplyTransactionInput(
-                transaction.getTransactionId(),
-                transaction.getUserId(),
-                transaction.getAmount(),
-                transaction.getIsoCurrencyCode(),
-                transaction.getDate(),
-                transaction.getPending(),
-                transaction.getPrimaryCategoryId(),
-                transaction.isActive());
+        budgetingInbox.process(event, () -> budgetService.applyTransaction(event.getPayload()));
     }
 }

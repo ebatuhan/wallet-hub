@@ -7,7 +7,7 @@ echo "--- Initializing Plaid Adapter Service (Dev Mode) ---"
 if [ -d "/shared" ]; then
     echo "Detected Shared Library. Installing..."
     cd /shared
-    mvn clean install -DskipTests > /dev/null 2>&1
+    mvn clean install -Dmaven.test.skip=true > /dev/null 2>&1
     if [ $? -eq 0 ]; then
         echo "Shared Library installed successfully."
     else
@@ -55,4 +55,4 @@ echo "Webhook URL: $PLAID_WEBHOOK_URL"
 echo "------------------------------------------------"
 
 echo "Starting Spring Boot Application..."
-exec mvn clean spring-boot:run -Dspring-boot.run.profiles=dev
+exec mvn clean spring-boot:run -Dspring-boot.run.profiles=dev -Dmaven.test.skip=true
