@@ -13,8 +13,6 @@ import com.batu.shared.messaging.event.AccountObserved;
 import com.batu.shared.messaging.event.AccountRecorded;
 import com.batu.shared.messaging.event.AccountRemoved;
 import com.batu.shared.messaging.event.ConnectionRemoved;
-import com.batu.shared.messaging.inbox.InboxProcessor;
-import com.batu.shared.messaging.outbox.OutboxService;
 
 @Component
 public class AccountEventHandler {
@@ -22,24 +20,24 @@ public class AccountEventHandler {
     private static final String ACCOUNT_AGGREGATE = "account";
 
     private final AccountService accountService;
-    private final InboxProcessor inboxProcessor;
-    private final OutboxService outboxService;
+    private final AccountInbox accountInbox;
+    private final AccountOutbox accountOutbox;
 
-    public AccountEventHandler(AccountService accountService, InboxProcessor inboxProcessor, OutboxService outboxService) {
+    public AccountEventHandler(AccountService accountService, AccountInbox accountInbox, AccountOutbox accountOutbox) {
         this.accountService = accountService;
-        this.inboxProcessor = inboxProcessor;
-        this.outboxService = outboxService;
+        this.accountInbox = accountInbox;
+        this.accountOutbox = accountOutbox;
     }
 
     @Transactional
     public void handleAccountObserved(BaseEvent<AccountObserved> event) {
-        inboxProcessor.process(event, () -> accountService.recordAccount(toInput(event))
+        accountInbox.process(event, () -> accountService.recordAccount(toInput(event))
                 .ifPresent(account -> saveAccountRecorded(account, event)));
     }
 
     @Transactional
     public void handleConnectionRemoved(BaseEvent<ConnectionRemoved> event) {
-        inboxProcessor.process(event, () -> accountService
+        accountInbox.process(event, () -> accountService
                 .deactivateByConnection(event.getPayload().getConnectionId(), event.getAggregateVersion())
                 .forEach(account -> saveAccountRemoved(account, event)));
     }
@@ -76,7 +74,7 @@ public class AccountEventHandler {
                 account.getIsoCurrencyCode(),
                 account.isActive());
 
-        outboxService.save(MessagingTopology.ACCOUNT_RECORDED_ROUTING_KEY, BaseEvent.causedBy(
+        accountOutbox.save(MessagingTopology.ACCOUNT_RECORDED_ROUTING_KEY, BaseEvent.causedBy(
                 EventTypes.ACCOUNT_RECORDED,
                 SOURCE,
                 ACCOUNT_AGGREGATE,
@@ -92,7 +90,7 @@ public class AccountEventHandler {
                 account.getUserId(),
                 account.getConnectionId());
 
-        outboxService.save(MessagingTopology.ACCOUNT_REMOVED_ROUTING_KEY, BaseEvent.causedBy(
+        accountOutbox.save(MessagingTopology.ACCOUNT_REMOVED_ROUTING_KEY, BaseEvent.causedBy(
                 EventTypes.ACCOUNT_REMOVED,
                 SOURCE,
                 ACCOUNT_AGGREGATE,

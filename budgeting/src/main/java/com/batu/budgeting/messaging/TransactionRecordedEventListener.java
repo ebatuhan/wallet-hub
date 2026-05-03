@@ -11,24 +11,23 @@ import com.batu.budgeting.service.input.ApplyTransactionInput;
 import com.batu.shared.messaging.BaseEvent;
 import com.batu.shared.messaging.MessagingTopology;
 import com.batu.shared.messaging.event.TransactionRecorded;
-import com.batu.shared.messaging.inbox.InboxProcessor;
 
 @Component
 public class TransactionRecordedEventListener {
 
     private final BudgetService budgetService;
-    private final InboxProcessor inboxProcessor;
+    private final BudgetingInbox budgetingInbox;
 
-    public TransactionRecordedEventListener(BudgetService budgetService, InboxProcessor inboxProcessor) {
+    public TransactionRecordedEventListener(BudgetService budgetService, BudgetingInbox budgetingInbox) {
         this.budgetService = budgetService;
-        this.inboxProcessor = inboxProcessor;
+        this.budgetingInbox = budgetingInbox;
     }
 
     @RabbitListener(queues = MessagingTopology.BUDGETING_TRANSACTION_PERSISTED_QUEUE)
     @Observed(name = "budgeting.consume.transaction-recorded", contextualName = "budgeting consume transaction recorded")
     @Transactional
     public void onTransactionRecorded(BaseEvent<TransactionRecorded> event) {
-        inboxProcessor.process(event, () -> budgetService.applyTransaction(toInput(event.getPayload())));
+        budgetingInbox.process(event, () -> budgetService.applyTransaction(toInput(event.getPayload())));
     }
 
     private ApplyTransactionInput toInput(TransactionRecorded transaction) {

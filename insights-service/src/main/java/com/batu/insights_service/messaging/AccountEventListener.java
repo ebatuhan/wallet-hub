@@ -10,23 +10,22 @@ import com.batu.insights_service.service.AccountInsightsService;
 import com.batu.shared.messaging.BaseEvent;
 import com.batu.shared.messaging.MessagingTopology;
 import com.batu.shared.messaging.event.AccountRecorded;
-import com.batu.shared.messaging.inbox.InboxProcessor;
 
 @Component
 public class AccountEventListener {
 
     private final AccountInsightsService accountInsightsService;
-    private final InboxProcessor inboxProcessor;
+    private final InsightsInbox insightsInbox;
 
-    public AccountEventListener(AccountInsightsService accountInsightsService, InboxProcessor inboxProcessor) {
+    public AccountEventListener(AccountInsightsService accountInsightsService, InsightsInbox insightsInbox) {
         this.accountInsightsService = accountInsightsService;
-        this.inboxProcessor = inboxProcessor;
+        this.insightsInbox = insightsInbox;
     }
 
     @RabbitListener(queues = MessagingTopology.ACCOUNT_PERSISTED_QUEUE)
     @Observed(name = "insights.consume.account-recorded", contextualName = "insights consume account recorded")
     public void onAccountRecorded(BaseEvent<AccountRecorded> event) {
-        inboxProcessor.process(event, () -> {
+        insightsInbox.process(event, () -> {
             AccountRecorded message = event.getPayload();
             AccountBalanceDataPointRow accountBalanceDataPointRow = new AccountBalanceDataPointRow(
                     message.getAccountId(),

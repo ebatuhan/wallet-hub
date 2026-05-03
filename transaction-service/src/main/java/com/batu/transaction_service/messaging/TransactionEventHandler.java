@@ -10,8 +10,6 @@ import com.batu.shared.messaging.event.AccountRemoved;
 import com.batu.shared.messaging.event.TransactionObserved;
 import com.batu.shared.messaging.event.TransactionRecorded;
 import com.batu.shared.messaging.event.TransactionRemoved;
-import com.batu.shared.messaging.inbox.InboxProcessor;
-import com.batu.shared.messaging.outbox.OutboxService;
 import com.batu.transaction_service.entity.Transaction;
 import com.batu.transaction_service.service.TransactionService;
 import com.batu.transaction_service.service.input.RecordTransactionInput;
@@ -22,19 +20,19 @@ public class TransactionEventHandler {
     private static final String TRANSACTION_AGGREGATE = "transaction";
 
     private final TransactionService transactionService;
-    private final InboxProcessor inboxProcessor;
-    private final OutboxService outboxService;
+    private final TransactionInbox transactionInbox;
+    private final TransactionOutbox transactionOutbox;
 
-    public TransactionEventHandler(TransactionService transactionService, InboxProcessor inboxProcessor,
-            OutboxService outboxService) {
+    public TransactionEventHandler(TransactionService transactionService, TransactionInbox transactionInbox,
+            TransactionOutbox transactionOutbox) {
         this.transactionService = transactionService;
-        this.inboxProcessor = inboxProcessor;
-        this.outboxService = outboxService;
+        this.transactionInbox = transactionInbox;
+        this.transactionOutbox = transactionOutbox;
     }
 
     @Transactional
     public void handleTransactionObserved(BaseEvent<TransactionObserved> event) {
-        inboxProcessor.process(event, () -> transactionService.recordTransaction(toInput(event))
+        transactionInbox.process(event, () -> transactionService.recordTransaction(toInput(event))
                 .ifPresent(transaction -> {
                     if (transaction.isActive()) {
                         saveTransactionRecorded(transaction, event);
@@ -46,7 +44,7 @@ public class TransactionEventHandler {
 
     @Transactional
     public void handleAccountRemoved(BaseEvent<AccountRemoved> event) {
-        inboxProcessor.process(event, () -> transactionService
+        transactionInbox.process(event, () -> transactionService
                 .deactivateByAccountId(event.getPayload().getAccountId(), event.getAggregateVersion())
                 .forEach(transaction -> saveTransactionRemoved(transaction, event)));
     }
@@ -85,7 +83,7 @@ public class TransactionEventHandler {
                 transaction.getDetailedCategory().getTransactionPrimaryCategory().getCategoryCode(),
                 transaction.isActive());
 
-        outboxService.save(MessagingTopology.TRANSACTION_RECORDED_ROUTING_KEY, BaseEvent.causedBy(
+        transactionOutbox.save(MessagingTopology.TRANSACTION_RECORDED_ROUTING_KEY, BaseEvent.causedBy(
                 EventTypes.TRANSACTION_RECORDED,
                 SOURCE,
                 TRANSACTION_AGGREGATE,
@@ -101,7 +99,7 @@ public class TransactionEventHandler {
                 transaction.getUserId(),
                 transaction.getAccountId());
 
-        outboxService.save(MessagingTopology.TRANSACTION_REMOVED_ROUTING_KEY, BaseEvent.causedBy(
+        transactionOutbox.save(MessagingTopology.TRANSACTION_REMOVED_ROUTING_KEY, BaseEvent.causedBy(
                 EventTypes.TRANSACTION_REMOVED,
                 SOURCE,
                 TRANSACTION_AGGREGATE,

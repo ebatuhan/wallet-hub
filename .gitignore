@@ -39,6 +39,14 @@ logs/
 AlternativeSolution/
 my solution/
 
+# Local API client collections and notes
+bruno/
+currency-notes.md
+logging.md
+nir.md
+nir-diagram-*.mmd
+*.pdf
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 

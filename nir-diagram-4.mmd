@@ -1,9 +1,0 @@
-graph TD
-    user["Пользователь"] --> assistant["AI Assistant Service"]
-    assistant --> memory[(PostgreSQL: история диалогов)]
-    assistant --> dashboard["Dashboard Service"]
-    assistant --> budgeting["Budgeting Service"]
-    assistant --> transaction["Transaction Service"]
-    assistant --> llm["Ollama / большая языковая модель"]
-    dashboard --> account["Account Service"]
-    dashboard --> insights["Insights Service"]

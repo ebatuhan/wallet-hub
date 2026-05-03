@@ -12,22 +12,21 @@ import com.batu.insights_service.service.TransactionInsightsService;
 import com.batu.shared.messaging.BaseEvent;
 import com.batu.shared.messaging.MessagingTopology;
 import com.batu.shared.messaging.event.TransactionRecorded;
-import com.batu.shared.messaging.inbox.InboxProcessor;
 
 @Component
 public class TransactionEventListener {
     private final TransactionInsightsService transactionInsightsService;
-    private final InboxProcessor inboxProcessor;
+    private final InsightsInbox insightsInbox;
 
-    public TransactionEventListener(TransactionInsightsService transactionInsightsService, InboxProcessor inboxProcessor) {
+    public TransactionEventListener(TransactionInsightsService transactionInsightsService, InsightsInbox insightsInbox) {
         this.transactionInsightsService = transactionInsightsService;
-        this.inboxProcessor = inboxProcessor;
+        this.insightsInbox = insightsInbox;
     }
 
     @RabbitListener(queues=MessagingTopology.TRANSACTION_PERSISTED_QUEUE)
     @Observed(name = "insights.consume.transaction-recorded", contextualName = "insights consume transaction recorded")
     public void onTransactionRecorded(BaseEvent<TransactionRecorded> event){
-        inboxProcessor.process(event, () -> {
+        insightsInbox.process(event, () -> {
             TransactionRecorded message = event.getPayload();
             boolean isOutflow = message.getAmount().signum() < 0;
 
