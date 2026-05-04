@@ -9,15 +9,21 @@ import org.springframework.ai.chat.client.advisor.ToolCallAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.ChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
+import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.ollama.api.OllamaChatOptions;
+import org.springframework.ai.tool.execution.ToolExecutionException;
+import org.springframework.ai.tool.execution.ToolExecutionExceptionProcessor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 
 import com.batu.ai_assistant.advisor.PromptGuardAdvisor;
 import com.batu.ai_assistant.tools.BudgetTools;
 import com.batu.ai_assistant.tools.DashboardTools;
 import com.batu.ai_assistant.tools.LookupTools;
+
+import feign.FeignException;
 
 @Configuration
 public class SpringAIConfiguration {
@@ -26,13 +32,14 @@ public class SpringAIConfiguration {
     ChatMemory chatMemory(ChatMemoryRepository chatMemoryRepository) {
         return MessageWindowChatMemory.builder()
                 .chatMemoryRepository(chatMemoryRepository)
-                .maxMessages(10)
+                .maxMessages(100)
                 .build();
     }
 
     @Bean
     ChatClient assistantChatClient(ChatClient.Builder chatClientBuilder,
             ChatMemory chatMemory,
+            ToolCallingManager toolCallingManager,
             PromptGuardAdvisor promptGuardAdvisor,
             DashboardTools dashboardTools,
             BudgetTools budgetTools,
@@ -42,17 +49,21 @@ public class SpringAIConfiguration {
                 .defaultTools(dashboardTools, budgetTools, lookupTools)
                 .defaultAdvisors(
                         promptGuardAdvisor,
-                        
-                        ToolCallAdvisor.builder().conversationHistoryEnabled(true).build(),
-        
-                        MessageChatMemoryAdvisor.builder(chatMemory).build())
+                        ToolCallAdvisor.builder()
+                                .toolCallingManager(toolCallingManager)
+                                .advisorOrder(Ordered.HIGHEST_PRECEDENCE + 300)
+                                .conversationHistoryEnabled(false)
+                                .build(),
+                        MessageChatMemoryAdvisor.builder(chatMemory)
+                                .order(Ordered.HIGHEST_PRECEDENCE + 1000)
+                                .build())
                 .build();
     }
 
     @Bean
     ChatClient guardChatClient(ChatClient.Builder chatClientBuilder,
             @Value("${assistant.guard.model:${spring.ai.ollama.chat.options.model:}}") String guardModel,
-            @Value("${assistant.ollama.keep-alive:30m}") String keepAlive) {
+            @Value("${spring.ai.ollama.chat.options.keep-alive:${assistant.ollama.keep-alive:30m}}") String keepAlive) {
         return chatClientBuilder
                 .defaultSystem(guardSystemPrompt())
                 .defaultOptions(OllamaChatOptions.builder()
@@ -63,6 +74,13 @@ public class SpringAIConfiguration {
                         .seed(7)
                         .build())
                 .build();
+    }
+
+    @Bean
+    ToolExecutionExceptionProcessor toolExecutionExceptionProcessor() {
+        return exception -> """
+                {"success":false,"errorType":"%s","message":"%s","tool":"%s"}
+                """.formatted(errorType(exception), jsonEscape(safeMessage(exception)), jsonEscape(toolName(exception)));
     }
 
     private String systemPrompt() {
@@ -82,7 +100,39 @@ public class SpringAIConfiguration {
                 + "If currency is missing, you may use the user's only currency if dashboard totals show exactly one currency; otherwise ask one follow-up question. "
                 + "Never expose internal UUIDs in final answers. "
                 + "Do not say a budget was created, updated, or deactivated unless the tool returned success. "
+                + "Tool responses are structured. If success is false, explain the short message and ask for missing or corrected information instead of retrying blindly. "
                 + "The current system supports category budgets, not savings-goal entities.";
+    }
+
+    private String errorType(ToolExecutionException exception) {
+        Throwable cause = exception.getCause();
+        return cause == null ? "TOOL_ERROR" : cause.getClass().getSimpleName();
+    }
+
+    private String safeMessage(ToolExecutionException exception) {
+        Throwable cause = exception.getCause();
+        if (cause instanceof FeignException feignException) {
+            return "The downstream service returned HTTP " + feignException.status() + ".";
+        }
+        if (cause instanceof IllegalArgumentException) {
+            return "The tool received invalid input.";
+        }
+        String message = cause == null ? exception.getMessage() : cause.getMessage();
+        if (message == null || message.isBlank()) {
+            return "The tool could not complete the request.";
+        }
+        return message.lines().findFirst().orElse("The tool could not complete the request.");
+    }
+
+    private String toolName(ToolExecutionException exception) {
+        return exception.getToolDefinition() == null ? "unknown" : exception.getToolDefinition().name();
+    }
+
+    private String jsonEscape(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private String guardSystemPrompt() {

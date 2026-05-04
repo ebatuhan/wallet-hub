@@ -3,7 +3,7 @@ CLICKHOUSE_USER=clickhouse
 CLICKHOUSE_PASSWORD=clickhouse
 
 KEYCLOAK_SERVER_URL=http://keycloak:8080
-KEYCLOAK_ISSUER_URL=http://192.168.1.49:8080
+KEYCLOAK_ISSUER_URL=http://localhost:8080
 
 
 SPRING_DATASOURCE_URL=jdbc:clickhouse://clickhouse-insights:8123/clickhouse

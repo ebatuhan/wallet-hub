@@ -16,6 +16,8 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
 
   ai:
+    model:
+      chat: ollama
     retry:
       max-attempts: ${SPRING_AI_RETRY_MAX_ATTEMPTS:3}
       on-client-errors: false
@@ -25,12 +27,21 @@ spring:
         multiplier: ${SPRING_AI_RETRY_MULTIPLIER:2}
         max-interval: ${SPRING_AI_RETRY_MAX_INTERVAL:3s}
     ollama:
-      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      base-url: ${OLLAMA_BASE_URL:http://host.docker.internal:11434}
       init:
-        pull-model-strategy: never
+        pull-model-strategy: ${OLLAMA_PULL_MODEL_STRATEGY:when_missing}
+        timeout: ${OLLAMA_PULL_TIMEOUT:10m}
+        max-retries: ${OLLAMA_PULL_MAX_RETRIES:1}
+        embedding:
+          include: ${OLLAMA_INIT_EMBEDDING_INCLUDE:false}
       chat:
         options:
           model: ${OLLAMA_MODEL:}
+          keep-alive: ${OLLAMA_KEEP_ALIVE:30m}
+          num-ctx: ${OLLAMA_NUM_CTX:8192}
+          num-predict: ${OLLAMA_NUM_PREDICT:2048}
+          temperature: ${OLLAMA_TEMPERATURE:0.2}
+          seed: ${OLLAMA_SEED:7}
 
   security:
     oauth2:
@@ -45,13 +56,13 @@ spring:
         enabled: true
 
   jpa:
-    show-sql: true
+    show-sql: false
+    open-in-view: false
     hibernate:
       ddl-auto: none
     properties:
       hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
 
 logging:
   pattern:
@@ -62,11 +73,14 @@ logging:
     org.springframework.web.reactive.function.client: DEBUG
     reactor.netty.http.client: DEBUG
     reactor.netty.transport: DEBUG
+    org.hibernate: WARN
+    org.hibernate.orm: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN
 assistant:
   guard:
     model: ${OLLAMA_GUARD_MODEL:${OLLAMA_MODEL}}
   ollama:
-    keep-alive: ${OLLAMA_KEEP_ALIVE:30m}
     thinking-mode: ${OLLAMA_THINKING_MODE:ENABLED}
 
 server:

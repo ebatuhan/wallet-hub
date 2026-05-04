@@ -25,6 +25,7 @@ import com.batu.ai_assistant.exception.ModelNotConfiguredException;
 import com.batu.ai_assistant.repository.ConversationRepository;
 import com.batu.ai_assistant.repository.MessageRepository;
 import com.batu.ai_assistant.service.AIAssistantService;
+import com.batu.ai_assistant.tools.ToolContextKeys;
 
 @Service
 public class AIAssistantServiceImpl implements AIAssistantService {
@@ -33,19 +34,31 @@ public class AIAssistantServiceImpl implements AIAssistantService {
     private final String modelName;
     private final String keepAlive;
     private final String thinkingMode;
+    private final Integer numCtx;
+    private final Integer numPredict;
+    private final Double temperature;
+    private final Integer seed;
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
 
     public AIAssistantServiceImpl(ChatClient assistantChatClient,
             @Value("${spring.ai.ollama.chat.options.model:}") String modelName,
-            @Value("${assistant.ollama.keep-alive:30m}") String keepAlive,
+            @Value("${spring.ai.ollama.chat.options.keep-alive:${assistant.ollama.keep-alive:30m}}") String keepAlive,
             @Value("${assistant.ollama.thinking-mode:ENABLED}") String thinkingMode,
+            @Value("${spring.ai.ollama.chat.options.num-ctx:#{null}}") Integer numCtx,
+            @Value("${spring.ai.ollama.chat.options.num-predict:#{null}}") Integer numPredict,
+            @Value("${spring.ai.ollama.chat.options.temperature:0.2}") Double temperature,
+            @Value("${spring.ai.ollama.chat.options.seed:7}") Integer seed,
             ConversationRepository conversationRepository,
             MessageRepository messageRepository) {
         this.chatClient = assistantChatClient;
         this.modelName = modelName;
         this.keepAlive = keepAlive;
         this.thinkingMode = thinkingMode;
+        this.numCtx = numCtx;
+        this.numPredict = numPredict;
+        this.temperature = temperature;
+        this.seed = seed;
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
     }
@@ -65,7 +78,9 @@ public class AIAssistantServiceImpl implements AIAssistantService {
                 .advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, conversation.getId().toString()))
                 .user(wrapUserPrompt(request.message()))
                 .options(runtimeOptions())
-                .toolContext(Map.of("userId", principal.getSubject()))
+                .toolContext(Map.of(
+                        "userId", principal.getSubject(),
+                        ToolContextKeys.AUTHORIZATION, "Bearer " + principal.getTokenValue()))
                 .call()
                 .content();
 
@@ -104,8 +119,15 @@ public class AIAssistantServiceImpl implements AIAssistantService {
         OllamaChatOptions.Builder builder = OllamaChatOptions.builder()
                 .model(modelName)
                 .keepAlive(keepAlive)
-                .temperature(0.2)
-                .seed(7);
+                .temperature(temperature)
+                .seed(seed);
+
+        if (numCtx != null) {
+            builder.numCtx(numCtx);
+        }
+        if (numPredict != null) {
+            builder.numPredict(numPredict);
+        }
 
         String normalizedThinkingMode = thinkingMode == null ? "DISABLED" : thinkingMode.trim().toUpperCase();
 

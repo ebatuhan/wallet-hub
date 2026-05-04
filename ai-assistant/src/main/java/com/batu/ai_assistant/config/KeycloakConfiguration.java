@@ -4,9 +4,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
 
-import feign.RequestInterceptor;
-import jakarta.servlet.http.HttpServletRequest;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
@@ -21,8 +18,6 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.batu.ai_assistant.util.KeycloakRoleConverter;
 import com.batu.ai_assistant.util.KeycloakScopeConverter;
@@ -69,21 +64,5 @@ public class KeycloakConfiguration {
         };
         converter.setJwtGrantedAuthoritiesConverter(combinedConverter);
         return converter;
-    }
-
-    @Bean
-    RequestInterceptor forwardAuthorizationHeader() {
-        return template -> {
-            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            if (attributes == null) {
-                return;
-            }
-
-            HttpServletRequest request = attributes.getRequest();
-            String authorization = request.getHeader("Authorization");
-            if (authorization != null && !authorization.isBlank()) {
-                template.header("Authorization", authorization);
-            }
-        };
     }
 }

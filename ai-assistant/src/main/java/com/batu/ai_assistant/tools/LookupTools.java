@@ -24,7 +24,17 @@ public class LookupTools {
             MEDICAL → doctor, pharmacy, hospital, medicine. \
             ENTERTAINMENT → cinema, games, streaming, events. \
             PERSONAL_CARE → salon, gym, cosmetics.""")
-    public java.util.List<TransactionPrimaryCategoryDto> getAllPrimaryCategories(ToolContext toolContext) {
-        return transactionCategoryClient.getAllPrimaryCategories().getBody();
+    public ToolResponse<java.util.List<TransactionPrimaryCategoryDto>> getAllPrimaryCategories(ToolContext toolContext) {
+        String authorization = authorization(toolContext);
+        if (authorization == null) {
+            return ToolResponse.failure("Cannot read categories because the caller authorization is unavailable.");
+        }
+        return ToolResponse.success("Primary categories loaded.",
+                transactionCategoryClient.getAllPrimaryCategories(authorization).getBody());
+    }
+
+    private String authorization(ToolContext toolContext) {
+        Object value = toolContext.getContext().get(ToolContextKeys.AUTHORIZATION);
+        return value instanceof String authorization && !authorization.isBlank() ? authorization : null;
     }
 }

@@ -210,8 +210,6 @@ services:
       dockerfile: ai-assistant/Dockerfile
     container_name: ai-assistant-service
     env_file: config/.ai-assistant
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     ports:
       - "${AI_ASSISTANT_SERVICE_PORT}:8091"
     volumes:
@@ -221,6 +219,20 @@ services:
     depends_on:
       postgres-ai-assistant:
         condition: service_healthy
+      ollama:
+        condition: service_healthy
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
 
   clickhouse-insights:
     image: clickhouse/clickhouse-server:26.2
@@ -299,3 +311,4 @@ volumes:
   maven-repo:
   rabbitmq-data:
   clickhouse-insights-data:
+  ollama-data:
