@@ -26,20 +26,20 @@ tests {
     const body = res.getBody();
     expect(body).to.have.property("account");
     expect(body).to.have.property("spending");
-    expect(body.spending).to.have.property("currencies");
-    expect(body.spending.currencies).to.be.an("array");
-    expect(body.spending).to.have.property("graph");
+    expect(body.spending).to.have.property("categoryBreakdownByCurrency");
+    expect(body.spending.categoryBreakdownByCurrency).to.be.an("array");
+    expect(body.spending).to.have.property("trendByCurrency");
     expect(body).to.have.property("transactions");
     expect(body.transactions).to.have.property("items");
     expect(body.transactions).to.have.property("hasMore");
     expect(body.transactions).to.have.property("nextCursor");
 
-    if (body.spending.currencies.length > 0) {
-      const currency = body.spending.currencies[0];
+    if (body.spending.categoryBreakdownByCurrency.length > 0) {
+      const currency = body.spending.categoryBreakdownByCurrency[0];
       expect(currency).to.have.property("isoCurrencyCode");
       expect(currency).to.have.property("totalSpent");
-      expect(currency).to.have.property("categories");
-      expect(currency.categories).to.be.an("array");
+      expect(currency).to.have.property("categoryBreakdown");
+      expect(currency.categoryBreakdown).to.be.an("array");
     }
   });
 

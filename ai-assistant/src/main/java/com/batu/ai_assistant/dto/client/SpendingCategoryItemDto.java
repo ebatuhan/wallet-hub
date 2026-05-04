@@ -8,6 +8,6 @@ public record SpendingCategoryItemDto(
         String primaryCategoryCode,
         String primaryCategoryDisplayName,
         String primaryCategoryIconUrl,
-        BigDecimal percentage,
-        BigDecimal totalAmount
+        BigDecimal percentageOfCurrencySpending,
+        BigDecimal amountSpent
 ) {}

@@ -18,21 +18,21 @@ tests {
   test("should return dashboard spending grouped by currency", function() {
     const body = res.getBody();
     expect(body).to.have.property("spending");
-    expect(body.spending).to.have.property("currencies");
-    expect(body.spending.currencies).to.be.an("array");
-    expect(body.spending).to.have.property("yearlySpendings");
+    expect(body.spending).to.have.property("categoryBreakdownByCurrency");
+    expect(body.spending.categoryBreakdownByCurrency).to.be.an("array");
+    expect(body.spending).to.have.property("yearlyTrendByCurrency");
 
-    if (body.spending.currencies.length > 0) {
-      const currency = body.spending.currencies[0];
+    if (body.spending.categoryBreakdownByCurrency.length > 0) {
+      const currency = body.spending.categoryBreakdownByCurrency[0];
       expect(currency).to.have.property("isoCurrencyCode");
       expect(currency).to.have.property("totalSpent");
-      expect(currency).to.have.property("categories");
-      expect(currency.categories).to.be.an("array");
+      expect(currency).to.have.property("categoryBreakdown");
+      expect(currency.categoryBreakdown).to.be.an("array");
     }
 
-    if (body.spending.yearlySpendings) {
-      expect(body.spending.yearlySpendings).to.have.property("series");
-      expect(body.spending.yearlySpendings.series).to.be.an("array");
+    if (body.spending.yearlyTrendByCurrency) {
+      expect(body.spending.yearlyTrendByCurrency).to.have.property("seriesByCurrency");
+      expect(body.spending.yearlyTrendByCurrency.seriesByCurrency).to.be.an("array");
     }
   });
 }

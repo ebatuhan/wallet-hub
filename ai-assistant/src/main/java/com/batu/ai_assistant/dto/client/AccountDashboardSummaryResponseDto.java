@@ -23,10 +23,8 @@ public record AccountDashboardSummaryResponseDto(
             String accountSubtype, String accountMask, BigDecimal currentBalance, BigDecimal availableBalance,
             String isoCurrencyCode) {}
 
-    public record BalancePointDto(LocalDate date, BigDecimal balance) {}
-
-    public record SpendingSectionDto(List<UserDashboardSummaryResponseDto.SpendingCurrencyGroupDto> currencies,
-            SpendingGraphResponseDto graph) {}
+    public record SpendingSectionDto(List<UserDashboardSummaryResponseDto.SpendingCurrencyGroupDto> categoryBreakdownByCurrency,
+            SpendingGraphResponseDto trendByCurrency) {}
 
     public record RecentTransactionsDto(List<TransactionViewResponseDto> items, boolean hasMore, String nextCursor) {}
 }

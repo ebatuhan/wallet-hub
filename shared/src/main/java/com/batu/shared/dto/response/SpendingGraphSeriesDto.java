@@ -4,5 +4,5 @@ import java.util.List;
 
 public record SpendingGraphSeriesDto(
         String isoCurrencyCode,
-        List<SpendingGraphPointDto> points) {
+        List<SpendingGraphPointDto> spendingPoints) {
 }

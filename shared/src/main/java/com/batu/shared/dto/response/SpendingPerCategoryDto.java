@@ -5,6 +5,6 @@ import java.util.UUID;
 
 public record SpendingPerCategoryDto(
         UUID primaryCategoryId,
-        BigDecimal percentage,
-        BigDecimal totalAmount) {
+        BigDecimal percentageOfCurrencySpending,
+        BigDecimal amountSpent) {
 }

@@ -28,21 +28,21 @@ tests {
   test("should return spending grouped by currency", function() {
     const body = res.getBody();
     expect(body).to.have.property("userId");
-    expect(body).to.have.property("currencies");
-    expect(body.currencies).to.be.an("array");
+    expect(body).to.have.property("spendingByCurrency");
+    expect(body.spendingByCurrency).to.be.an("array");
 
-    if (body.currencies.length > 0) {
-      const currency = body.currencies[0];
+    if (body.spendingByCurrency.length > 0) {
+      const currency = body.spendingByCurrency[0];
       expect(currency).to.have.property("isoCurrencyCode");
       expect(currency).to.have.property("totalSpent");
-      expect(currency).to.have.property("categories");
-      expect(currency.categories).to.be.an("array");
+      expect(currency).to.have.property("categoryBreakdown");
+      expect(currency.categoryBreakdown).to.be.an("array");
 
-      if (currency.categories.length > 0) {
-        const category = currency.categories[0];
+      if (currency.categoryBreakdown.length > 0) {
+        const category = currency.categoryBreakdown[0];
         expect(category).to.have.property("primaryCategoryId");
-        expect(category).to.have.property("percentage");
-        expect(category).to.have.property("totalAmount");
+        expect(category).to.have.property("percentageOfCurrencySpending");
+        expect(category).to.have.property("amountSpent");
       }
     }
   });

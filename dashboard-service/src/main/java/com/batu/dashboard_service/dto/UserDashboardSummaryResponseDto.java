@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.UUID;
 
 import com.batu.shared.dto.response.AccountSummaryResponseDto;
-import com.batu.shared.dto.response.BudgetResponseDto;
 import com.batu.shared.dto.response.IncomeTotalByCurrencyDto;
 import com.batu.shared.dto.response.SpendingGraphResponseDto;
 import com.batu.shared.dto.response.TransactionViewResponseDto;
@@ -16,8 +15,7 @@ public record UserDashboardSummaryResponseDto(
         AccountSummaryResponseDto accounts,
         IncomeSectionDto income,
         RecentTransactionsDto recentTransactions,
-        SpendingSectionDto spending,
-        BudgetHighlightsDto budgets
+        SpendingSectionDto spending
 ) {
     public record PeriodDto(LocalDate from, LocalDate to) {}
 
@@ -25,11 +23,9 @@ public record UserDashboardSummaryResponseDto(
 
     public record IncomeSectionDto(List<IncomeTotalByCurrencyDto> totalsByCurrency) {}
 
-    public record SpendingSectionDto(List<SpendingCurrencyGroupDto> currencies,
-            SpendingGraphResponseDto yearlySpendings) {}
+    public record SpendingSectionDto(List<SpendingCurrencyGroupDto> categoryBreakdownByCurrency,
+            SpendingGraphResponseDto yearlyTrendByCurrency) {}
 
     public record SpendingCurrencyGroupDto(String isoCurrencyCode, java.math.BigDecimal totalSpent,
-            List<SpendingCategoryItemDto> categories) {}
-
-    public record BudgetHighlightsDto(long activeBudgetCount, long overBudgetCount, List<BudgetResponseDto> items) {}
+            List<SpendingCategoryItemDto> categoryBreakdown) {}
 }

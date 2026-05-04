@@ -10,5 +10,5 @@ public record SpendingGraphResponseDto(
         String groupBy,
         LocalDate from,
         LocalDate to,
-        List<SpendingGraphSeriesDto> series) {
+        List<SpendingGraphSeriesDto> seriesByCurrency) {
 }

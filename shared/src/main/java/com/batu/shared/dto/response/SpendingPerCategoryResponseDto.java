@@ -5,5 +5,5 @@ import java.util.UUID;
 
 public record SpendingPerCategoryResponseDto(
         UUID userId,
-        List<SpendingCurrencyGroupDto> currencies) {
+        List<SpendingCurrencyGroupDto> spendingByCurrency) {
 }

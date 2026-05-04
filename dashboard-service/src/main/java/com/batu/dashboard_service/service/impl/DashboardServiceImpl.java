@@ -67,17 +67,11 @@ public class DashboardServiceImpl implements DashboardService {
                 .getBody();
         IncomeSummaryResponseDto incomeResponse = insightsClient.getIncome(fromParam, toParam).getBody();
         SpendingPerCategoryResponseDto spendingResponse = insightsClient.getSpendingByCategory(fromParam, toParam).getBody();
-        SpendingGraphResponseDto yearlySpendings = insightsClient.getSpendingGraph(yearlyFromParam, yearlyToParam).getBody();
-        List<BudgetResponseDto> budgets = getEnrichedBudgets();
+        SpendingGraphResponseDto yearlyTrendByCurrency = insightsClient.getSpendingGraph(yearlyFromParam, yearlyToParam).getBody();
 
         var spendingSection = new UserDashboardSummaryResponseDto.SpendingSectionDto(
-                enrichSpendingGroups(spendingResponse == null ? List.of() : spendingResponse.currencies()),
-                yearlySpendings);
-
-        List<BudgetResponseDto> budgetItems = budgets == null ? List.of() : budgets.stream().limit(3).toList();
-        long activeBudgetCount = budgets == null ? 0 : budgets.size();
-        long overBudgetCount = budgets == null ? 0
-                : budgets.stream().filter(budget -> budget.spentAmount().compareTo(budget.limitAmount()) > 0).count();
+                enrichSpendingGroups(spendingResponse == null ? List.of() : spendingResponse.spendingByCurrency()),
+                yearlyTrendByCurrency);
 
         return new UserDashboardSummaryResponseDto(
                 userId,
@@ -89,8 +83,7 @@ public class DashboardServiceImpl implements DashboardService {
                         recentTransactions == null ? List.of() : recentTransactions.getData(),
                         recentTransactions != null && recentTransactions.isHasMore(),
                         recentTransactions == null ? null : recentTransactions.getNextCursor()),
-                spendingSection,
-                new UserDashboardSummaryResponseDto.BudgetHighlightsDto(activeBudgetCount, overBudgetCount, budgetItems));
+                spendingSection);
     }
 
     @Override
@@ -122,7 +115,7 @@ public class DashboardServiceImpl implements DashboardService {
                 .getBody();
 
         var spendingSection = new AccountDashboardSummaryResponseDto.SpendingSectionDto(
-                enrichSpendingGroups(spendingResponse == null ? List.of() : spendingResponse.currencies()),
+                enrichSpendingGroups(spendingResponse == null ? List.of() : spendingResponse.spendingByCurrency()),
                 spendingGraph);
 
         return new AccountDashboardSummaryResponseDto(
@@ -155,7 +148,7 @@ public class DashboardServiceImpl implements DashboardService {
     private List<UserDashboardSummaryResponseDto.SpendingCurrencyGroupDto> enrichSpendingGroups(
             List<SpendingCurrencyGroupDto> groups) {
         Set<UUID> categoryIds = groups.stream()
-                .flatMap(group -> group.categories().stream())
+                .flatMap(group -> group.categoryBreakdown().stream())
                 .map(SpendingPerCategoryDto::primaryCategoryId)
                 .collect(Collectors.toSet());
         Map<UUID, TransactionPrimaryCategoryDto> categoryMetadata = loadCategoryMetadata(categoryIds);
@@ -164,24 +157,14 @@ public class DashboardServiceImpl implements DashboardService {
                 .map(group -> new UserDashboardSummaryResponseDto.SpendingCurrencyGroupDto(
                         group.isoCurrencyCode(),
                         group.totalSpent(),
-                        enrichSpending(group.categories(), categoryMetadata)))
+                        enrichSpending(group.categoryBreakdown(), categoryMetadata)))
                 .toList();
     }
 
     private List<SpendingCategoryItemDto> enrichSpending(List<SpendingPerCategoryDto> categories,
             Map<UUID, TransactionPrimaryCategoryDto> categoryMetadata) {
         return categories.stream()
-                .map(category -> toSpendingItem(category.primaryCategoryId(), category.percentage(), category.totalAmount(),
-                        categoryMetadata.get(category.primaryCategoryId())))
-                .toList();
-    }
-
-    private List<SpendingCategoryItemDto> enrichSpending(List<SpendingPerCategoryDto> categories) {
-        Map<UUID, TransactionPrimaryCategoryDto> categoryMetadata = loadCategoryMetadata(
-                categories.stream().map(SpendingPerCategoryDto::primaryCategoryId).collect(Collectors.toSet()));
-
-        return categories.stream()
-                .map(category -> toSpendingItem(category.primaryCategoryId(), category.percentage(), category.totalAmount(),
+                .map(category -> toSpendingItem(category.primaryCategoryId(), category.percentageOfCurrencySpending(), category.amountSpent(),
                         categoryMetadata.get(category.primaryCategoryId())))
                 .toList();
     }

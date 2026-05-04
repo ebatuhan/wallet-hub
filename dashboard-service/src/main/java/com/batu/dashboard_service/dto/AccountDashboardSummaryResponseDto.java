@@ -17,6 +17,6 @@ public record AccountDashboardSummaryResponseDto(
         SpendingSectionDto spending,
         UserDashboardSummaryResponseDto.RecentTransactionsDto transactions
 ) {
-    public record SpendingSectionDto(List<UserDashboardSummaryResponseDto.SpendingCurrencyGroupDto> currencies,
-            SpendingGraphResponseDto graph) {}
+    public record SpendingSectionDto(List<UserDashboardSummaryResponseDto.SpendingCurrencyGroupDto> categoryBreakdownByCurrency,
+            SpendingGraphResponseDto trendByCurrency) {}
 }

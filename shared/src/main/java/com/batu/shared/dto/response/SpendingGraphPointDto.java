@@ -5,5 +5,5 @@ import java.time.LocalDate;
 
 public record SpendingGraphPointDto(
         LocalDate bucket,
-        BigDecimal totalAmount) {
+        BigDecimal amountSpent) {
 }
