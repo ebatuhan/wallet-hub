@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
-import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
@@ -30,12 +29,8 @@ public class BudgetTools {
             Call this proactively whenever the user asks about budgets or before suggesting new ones \
             to avoid duplicating an already existing budget."""
     )
-    public ToolResponse<java.util.List<BudgetResponseDto>> getBudgets(ToolContext toolContext) {
-        String authorization = authorization(toolContext);
-        if (authorization == null) {
-            return ToolResponse.failure("Cannot read budgets because the caller authorization is unavailable.");
-        }
-        return ToolResponse.success("Active enriched budgets loaded.", dashboardClient.getBudgets(authorization).getBody());
+    public ToolResponse<java.util.List<BudgetResponseDto>> getBudgets() {
+        return ToolResponse.success("Active enriched budgets loaded.", dashboardClient.getBudgets().getBody());
     }
 
     @Tool(
@@ -48,28 +43,18 @@ public class BudgetTools {
             Only call this after the user has explicitly confirmed they want the budget created."""
     )
     public ToolResponse<BudgetResponseDto> createBudget(
-            @ToolParam(description = "Internal category ID resolved from get_all_primary_categories. Never ask the user for this.") String categoryId,
+            @ToolParam(description = "Internal category ID resolved from get_all_primary_categories. Never ask the user for this.") UUID categoryId,
             @ToolParam(description = "The budget spending limit as a number.") BigDecimal limitAmount,
             @ToolParam(description = "Three-letter ISO currency code, e.g. USD or EUR.") String isoCurrencyCode,
             @ToolParam(required = false, description = "Budget period. Default: MONTHLY.") String period,
-            @ToolParam(required = false, description = "Budget start date in yyyy-MM-dd format. Default: first day of the current month.") String periodStart,
-            ToolContext toolContext) {
-        String authorization = authorization(toolContext);
-        if (authorization == null) {
-            return ToolResponse.failure("Cannot create the budget because the caller authorization is unavailable.");
-        }
-        UUID resolvedCategoryId = parseUuid(categoryId);
-        if (resolvedCategoryId == null) {
-            return ToolResponse.failure("The categoryId is invalid. Call get_all_primary_categories and use an exact returned category ID.");
-        }
+            @ToolParam(required = false, description = "Budget start date in yyyy-MM-dd format. Default: first day of the current month.") String periodStart) {
         LocalDate resolvedPeriodStart = parsePeriodStart(periodStart);
         if (resolvedPeriodStart == null) {
             return ToolResponse.failure("The periodStart must use yyyy-MM-dd format, or be omitted for the current month.");
         }
         BudgetResponseDto budget = budgetingClient.createBudget(
-                authorization,
                 new CreateBudgetRequestDto(
-                        resolvedCategoryId,
+                        categoryId,
                         limitAmount,
                         isoCurrencyCode,
                         normalizePeriod(period),
@@ -88,34 +73,20 @@ public class BudgetTools {
             Only call this after the user has explicitly confirmed they want the change applied."""
     )
     public ToolResponse<BudgetResponseDto> updateBudget(
-            @ToolParam(description = "The ID of the budget to update.") String budgetId,
-            @ToolParam(description = "Internal category ID resolved from get_all_primary_categories. Never ask the user for this.") String categoryId,
+            @ToolParam(description = "The ID of the budget to update.") UUID budgetId,
+            @ToolParam(description = "Internal category ID resolved from get_all_primary_categories. Never ask the user for this.") UUID categoryId,
             @ToolParam(description = "The new budget spending limit as a number.") BigDecimal limitAmount,
             @ToolParam(description = "Three-letter ISO currency code, e.g. USD or EUR.") String isoCurrencyCode,
             @ToolParam(required = false, description = "Budget period. Default: MONTHLY.") String period,
-            @ToolParam(required = false, description = "Budget start date in yyyy-MM-dd format. Default: first day of the current month.") String periodStart,
-            ToolContext toolContext) {
-        String authorization = authorization(toolContext);
-        if (authorization == null) {
-            return ToolResponse.failure("Cannot update the budget because the caller authorization is unavailable.");
-        }
-        UUID resolvedBudgetId = parseUuid(budgetId);
-        UUID resolvedCategoryId = parseUuid(categoryId);
-        if (resolvedBudgetId == null) {
-            return ToolResponse.failure("The budgetId is invalid. Call get_budgets and use an exact returned budget ID.");
-        }
-        if (resolvedCategoryId == null) {
-            return ToolResponse.failure("The categoryId is invalid. Call get_all_primary_categories and use an exact returned category ID.");
-        }
+            @ToolParam(required = false, description = "Budget start date in yyyy-MM-dd format. Default: first day of the current month.") String periodStart) {
         LocalDate resolvedPeriodStart = parsePeriodStart(periodStart);
         if (resolvedPeriodStart == null) {
             return ToolResponse.failure("The periodStart must use yyyy-MM-dd format, or be omitted for the current month.");
         }
         BudgetResponseDto budget = budgetingClient.updateBudget(
-                authorization,
-                resolvedBudgetId,
+                budgetId,
                 new CreateBudgetRequestDto(
-                        resolvedCategoryId,
+                        categoryId,
                         limitAmount,
                         isoCurrencyCode,
                         normalizePeriod(period),
@@ -131,23 +102,9 @@ public class BudgetTools {
             Only call this after the user has explicitly confirmed they want the budget removed."""
     )
     public ToolResponse<Void> deactivateBudget(
-            @ToolParam(description = "The ID of the budget to deactivate.") String budgetId,
-            ToolContext toolContext) {
-        String authorization = authorization(toolContext);
-        if (authorization == null) {
-            return ToolResponse.failure("Cannot deactivate the budget because the caller authorization is unavailable.");
-        }
-        UUID resolvedBudgetId = parseUuid(budgetId);
-        if (resolvedBudgetId == null) {
-            return ToolResponse.failure("The budgetId is invalid. Call get_budgets and use an exact returned budget ID.");
-        }
-        budgetingClient.deactivateBudget(authorization, resolvedBudgetId);
+            @ToolParam(description = "The ID of the budget to deactivate.") UUID budgetId) {
+        budgetingClient.deactivateBudget(budgetId);
         return ToolResponse.success("Budget deactivated.", null);
-    }
-
-    private String authorization(ToolContext toolContext) {
-        Object value = toolContext.getContext().get(ToolContextKeys.AUTHORIZATION);
-        return value instanceof String authorization && !authorization.isBlank() ? authorization : null;
     }
 
     private String normalizePeriod(String period) {
@@ -165,14 +122,4 @@ public class BudgetTools {
         }
     }
 
-    private UUID parseUuid(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            return UUID.fromString(value);
-        } catch (RuntimeException ex) {
-            return null;
-        }
-    }
 }

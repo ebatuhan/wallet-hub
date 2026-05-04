@@ -2,7 +2,6 @@ package com.batu.ai_assistant.service.impl;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.ai.chat.client.ChatClient;
@@ -25,7 +24,6 @@ import com.batu.ai_assistant.exception.ModelNotConfiguredException;
 import com.batu.ai_assistant.repository.ConversationRepository;
 import com.batu.ai_assistant.repository.MessageRepository;
 import com.batu.ai_assistant.service.AIAssistantService;
-import com.batu.ai_assistant.tools.ToolContextKeys;
 
 @Service
 public class AIAssistantServiceImpl implements AIAssistantService {
@@ -78,9 +76,6 @@ public class AIAssistantServiceImpl implements AIAssistantService {
                 .advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, conversation.getId().toString()))
                 .user(wrapUserPrompt(request.message()))
                 .options(runtimeOptions())
-                .toolContext(Map.of(
-                        "userId", principal.getSubject(),
-                        ToolContextKeys.AUTHORIZATION, "Bearer " + principal.getTokenValue()))
                 .call()
                 .content();
 

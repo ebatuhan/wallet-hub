@@ -1,6 +1,5 @@
 package com.batu.ai_assistant.tools;
 
-import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
@@ -29,13 +28,8 @@ public class DashboardTools {
     )
     public ToolResponse<UserDashboardSummaryResponseDto> getDashboardSummary(
             @ToolParam(required = false, description = "Start date in yyyy-MM-dd format. Omit to use the first day of the current month.") String from,
-            @ToolParam(required = false, description = "End date in yyyy-MM-dd format. Omit to use today's date.") String to,
-            ToolContext toolContext) {
-        String authorization = authorization(toolContext);
-        if (authorization == null) {
-            return ToolResponse.failure("Cannot read the dashboard because the caller authorization is unavailable.");
-        }
-        return ToolResponse.success("Dashboard summary loaded.", dashboardClient.getSummary(authorization, from, to).getBody());
+            @ToolParam(required = false, description = "End date in yyyy-MM-dd format. Omit to use today's date.") String to) {
+        return ToolResponse.success("Dashboard summary loaded.", dashboardClient.getSummary(from, to).getBody());
     }
 
     @Tool(
@@ -46,43 +40,17 @@ public class DashboardTools {
             When dates are omitted the current month is used automatically — do not mention this to the user."""
     )
     public ToolResponse<AccountDashboardSummaryResponseDto> getAccountDashboardSummary(
-            @ToolParam(description = "The ID of the account to summarize.") String accountId,
+            @ToolParam(description = "The ID of the account to summarize.") java.util.UUID accountId,
             @ToolParam(required = false, description = "Start date in yyyy-MM-dd format. Omit to use the first day of the current month.") String from,
             @ToolParam(required = false, description = "End date in yyyy-MM-dd format. Omit to use today's date.") String to,
             @ToolParam(required = false, description = "Maximum number of transactions to return. Omit to use the dashboard default.") Integer limit,
-            @ToolParam(required = false, description = "Pagination cursor for transactions. Omit for the first page.") String cursor,
-            ToolContext toolContext) {
-        String authorization = authorization(toolContext);
-        if (authorization == null) {
-            return ToolResponse.failure("Cannot read the account dashboard because the caller authorization is unavailable.");
-        }
-        java.util.UUID resolvedAccountId = parseUuid(accountId);
-        if (resolvedAccountId == null) {
-            return ToolResponse.failure("The accountId is invalid. Use an exact account ID returned by dashboard data.");
-        }
+            @ToolParam(required = false, description = "Pagination cursor for transactions. Omit for the first page.") String cursor) {
         return ToolResponse.success("Account dashboard summary loaded.", dashboardClient.getAccountSummary(
-                authorization,
-                resolvedAccountId,
+                accountId,
                 from,
                 to,
                 limit,
                 cursor)
                 .getBody());
-    }
-
-    private String authorization(ToolContext toolContext) {
-        Object value = toolContext.getContext().get(ToolContextKeys.AUTHORIZATION);
-        return value instanceof String authorization && !authorization.isBlank() ? authorization : null;
-    }
-
-    private java.util.UUID parseUuid(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            return java.util.UUID.fromString(value);
-        } catch (RuntimeException ex) {
-            return null;
-        }
     }
 }
