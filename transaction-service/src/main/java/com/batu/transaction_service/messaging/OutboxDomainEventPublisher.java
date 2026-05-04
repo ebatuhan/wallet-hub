@@ -12,7 +12,7 @@ import com.batu.shared.messaging.event.TransactionRemoved;
 import com.batu.transaction_service.entity.OutboxEvent;
 import com.batu.transaction_service.repository.OutboxEventRepository;
 
-import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 @Component
 public class OutboxDomainEventPublisher {
@@ -20,10 +20,11 @@ public class OutboxDomainEventPublisher {
     private static final String AGGREGATE = "transaction";
 
     private final OutboxEventRepository outboxEventRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final JsonMapper jsonMapper;
 
-    public OutboxDomainEventPublisher(OutboxEventRepository outboxEventRepository) {
+    public OutboxDomainEventPublisher(OutboxEventRepository outboxEventRepository, JsonMapper jsonMapper) {
         this.outboxEventRepository = outboxEventRepository;
+        this.jsonMapper = jsonMapper;
     }
 
     public void publishTransactionRecorded(TransactionRecorded event) {
@@ -45,7 +46,7 @@ public class OutboxDomainEventPublisher {
                     event.getEventType(),
                     event.getAggregateType(),
                     event.getAggregateId(),
-                    objectMapper.writeValueAsString(event)));
+                    jsonMapper.writeValueAsString(event)));
         } catch (Exception exception) {
             throw new IllegalStateException("Unable to persist transaction outbox event", exception);
         }

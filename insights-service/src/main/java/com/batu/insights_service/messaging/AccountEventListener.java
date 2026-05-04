@@ -7,6 +7,7 @@ import io.micrometer.observation.annotation.Observed;
 
 import com.batu.insights_service.entity.AccountBalanceDataPointRow;
 import com.batu.insights_service.service.AccountInsightsService;
+import com.batu.insights_service.service.TransactionInsightsService;
 import com.batu.shared.messaging.BaseEvent;
 import com.batu.shared.messaging.MessagingTopology;
 import com.batu.shared.messaging.event.AccountRecorded;
@@ -16,10 +17,14 @@ import com.batu.shared.messaging.event.AccountRemoved;
 public class AccountEventListener {
 
     private final AccountInsightsService accountInsightsService;
+    private final TransactionInsightsService transactionInsightsService;
     private final InsightsInbox insightsInbox;
 
-    public AccountEventListener(AccountInsightsService accountInsightsService, InsightsInbox insightsInbox) {
+    public AccountEventListener(AccountInsightsService accountInsightsService,
+            TransactionInsightsService transactionInsightsService,
+            InsightsInbox insightsInbox) {
         this.accountInsightsService = accountInsightsService;
+        this.transactionInsightsService = transactionInsightsService;
         this.insightsInbox = insightsInbox;
     }
 
@@ -42,7 +47,11 @@ public class AccountEventListener {
     @RabbitListener(queues = MessagingTopology.ACCOUNT_REMOVED_QUEUE)
     @Observed(name = "insights.consume.account-removed", contextualName = "insights consume account removed")
     public void onAccountRemoved(BaseEvent<AccountRemoved> event) {
-        insightsInbox.process(event, () -> accountInsightsService.remove(event.getPayload()));
+        insightsInbox.process(event, () -> {
+            AccountRemoved message = event.getPayload();
+            accountInsightsService.remove(message);
+            transactionInsightsService.removeAccountTransactions(message.getAccountId(), message.getUserId());
+        });
     }
 
 }

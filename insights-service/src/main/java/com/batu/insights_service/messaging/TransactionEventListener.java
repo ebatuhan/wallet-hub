@@ -1,7 +1,5 @@
 package com.batu.insights_service.messaging;
 
-import java.math.BigDecimal;
-
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
@@ -12,7 +10,6 @@ import com.batu.insights_service.service.TransactionInsightsService;
 import com.batu.shared.messaging.BaseEvent;
 import com.batu.shared.messaging.MessagingTopology;
 import com.batu.shared.messaging.event.TransactionRecorded;
-import com.batu.shared.messaging.event.TransactionRemoved;
 
 @Component
 public class TransactionEventListener {
@@ -48,11 +45,4 @@ public class TransactionEventListener {
             transactionInsightsService.save(txRow);
         });
     }
-
-    @RabbitListener(queues = MessagingTopology.TRANSACTION_REMOVED_QUEUE)
-    @Observed(name = "insights.consume.transaction-removed", contextualName = "insights consume transaction removed")
-    public void onTransactionRemoved(BaseEvent<TransactionRemoved> event) {
-        insightsInbox.process(event, () -> transactionInsightsService.remove(event.getPayload()));
-    }
-
 }

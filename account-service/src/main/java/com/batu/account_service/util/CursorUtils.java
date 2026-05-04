@@ -8,9 +8,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.KeysetScrollPosition;
 import org.springframework.data.domain.ScrollPosition;
+import org.springframework.stereotype.Component;
 
 import com.batu.account_service.exception.CursorProcessingException;
 import com.batu.account_service.exception.InvalidCursorException;
@@ -18,11 +18,12 @@ import com.batu.account_service.exception.InvalidCursorException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
+@Component
 public class CursorUtils {
 
     private final ObjectMapper objectMapper;
 
-    public CursorUtils(@Qualifier("cursorObjectMapper") ObjectMapper objectMapper) {
+    public CursorUtils(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 

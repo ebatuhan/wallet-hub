@@ -29,7 +29,6 @@ import com.batu.shared.dto.response.SpendingPerCategoryByAccountResponseDto;
 import com.batu.shared.dto.response.SpendingPerCategoryDto;
 import com.batu.shared.dto.response.SpendingPerCategoryResponseDto;
 import com.batu.shared.dto.response.SpendingGraphSeriesDto;
-import com.batu.shared.messaging.event.TransactionRemoved;
 
 import lombok.RequiredArgsConstructor;
 
@@ -136,11 +135,8 @@ public class TransactionInsightsServiceImpl implements TransactionInsightsServic
     }
 
     @Override
-    public void remove(TransactionRemoved transactionRemoved) {
-        transactionInsightsRepository.deleteByTransaction(
-                transactionRemoved.getTransactionId(),
-                transactionRemoved.getUserId(),
-                transactionRemoved.getAccountId());
+    public void removeAccountTransactions(UUID accountId, UUID userId) {
+        transactionInsightsRepository.deleteByAccount(accountId, userId);
     }
 
     private void validateDateRange(Date from, Date to) {

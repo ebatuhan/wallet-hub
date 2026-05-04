@@ -39,20 +39,6 @@ public class RabbitMQConfiguration {
     }
 
     @Bean
-    Queue transactionRemovedQueue() {
-        return new Queue(MessagingTopology.TRANSACTION_REMOVED_QUEUE, true);
-    }
-
-    @Bean
-    Binding transactionRemovedBinding(Queue transactionRemovedQueue,
-                                      TopicExchange walletHubExchange) {
-        return BindingBuilder.bind(transactionRemovedQueue)
-                .to(walletHubExchange)
-                .with(MessagingTopology.TRANSACTION_REMOVED_ROUTING_KEY);
-    }
-
-
-    @Bean
     Queue accountPersistedQueue() {
         return new Queue(MessagingTopology.ACCOUNT_PERSISTED_QUEUE, true);
     }

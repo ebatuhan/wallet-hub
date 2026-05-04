@@ -83,15 +83,14 @@ public class TransactionInsightsRepository {
                 java.sql.Timestamp.from(row.updatedAt()));
     }
 
-    public void deleteByTransaction(UUID transactionId, UUID userId, UUID accountId) {
+    public void deleteByAccount(UUID accountId, UUID userId) {
         final String sql = """
                 DELETE FROM clickhouse.transactions
-                WHERE transaction_id = ?
+                WHERE account_id = ?
                   AND user_id = ?
-                  AND account_id = ?
                 """;
 
-        jdbcTemplate.update(sql, transactionId, userId, accountId);
+        jdbcTemplate.update(sql, accountId, userId);
     }
 
     public List<SpendingCategoryAggregate> findByInterval(Date from, Date to, UUID userId) {

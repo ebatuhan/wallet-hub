@@ -12,7 +12,7 @@ import com.batu.shared.messaging.MessagingTopology;
 import com.batu.shared.messaging.event.AccountRecorded;
 import com.batu.shared.messaging.event.AccountRemoved;
 
-import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 @Component
 public class OutboxDomainEventPublisher {
@@ -20,10 +20,11 @@ public class OutboxDomainEventPublisher {
     private static final String AGGREGATE = "account";
 
     private final OutboxEventRepository outboxEventRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final JsonMapper jsonMapper;
 
-    public OutboxDomainEventPublisher(OutboxEventRepository outboxEventRepository) {
+    public OutboxDomainEventPublisher(OutboxEventRepository outboxEventRepository, JsonMapper jsonMapper) {
         this.outboxEventRepository = outboxEventRepository;
+        this.jsonMapper = jsonMapper;
     }
 
     public void publishAccountRecorded(AccountRecorded event) {
@@ -43,7 +44,7 @@ public class OutboxDomainEventPublisher {
                     event.getEventType(),
                     event.getAggregateType(),
                     event.getAggregateId(),
-                    objectMapper.writeValueAsString(event)));
+                    jsonMapper.writeValueAsString(event)));
         } catch (Exception exception) {
             throw new IllegalStateException("Unable to persist account outbox event", exception);
         }
