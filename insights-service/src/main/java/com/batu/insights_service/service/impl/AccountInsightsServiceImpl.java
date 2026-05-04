@@ -4,13 +4,13 @@ import com.batu.insights_service.entity.AccountBalanceDataPointRow;
 import com.batu.insights_service.repository.AccountInsightRepository;
 import com.batu.insights_service.service.AccountInsightsService;
 import com.batu.shared.dto.response.AccountBalanceDataPointDto;
+import com.batu.shared.messaging.event.AccountRemoved;
 
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -24,6 +24,11 @@ public class AccountInsightsServiceImpl implements AccountInsightsService {
     @Override
     public void save(AccountBalanceDataPointRow row) {
         accountInsightRepository.save(row);
+    }
+
+    @Override
+    public void remove(AccountRemoved accountRemoved) {
+        accountInsightRepository.deleteByAccount(accountRemoved.getAccountId(), accountRemoved.getUserId());
     }
 
     @Override

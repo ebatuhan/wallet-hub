@@ -4,26 +4,32 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
+import com.batu.insights_service.dto.SpendingCategoryAggregate;
+import com.batu.insights_service.dto.SpendingGraphAggregate;
 import com.batu.insights_service.entity.TransactionInsightRow;
 import com.batu.insights_service.exception.InvalidDateRangeException;
 import com.batu.insights_service.repository.TransactionInsightsRepository;
 import com.batu.insights_service.service.TransactionInsightsService;
 import com.batu.shared.dto.response.IncomeSummaryResponseDto;
+import com.batu.shared.dto.response.SpendingCurrencyGroupDto;
 import com.batu.shared.dto.response.SpendingGraphPointDto;
 import com.batu.shared.dto.response.SpendingGraphResponseDto;
-import com.batu.shared.dto.response.SpendingPerCategoryByAccountDto;
 import com.batu.shared.dto.response.SpendingPerCategoryByAccountResponseDto;
 import com.batu.shared.dto.response.SpendingPerCategoryDto;
 import com.batu.shared.dto.response.SpendingPerCategoryResponseDto;
+import com.batu.shared.dto.response.SpendingGraphSeriesDto;
+import com.batu.shared.messaging.event.TransactionRemoved;
 
 import lombok.RequiredArgsConstructor;
 
@@ -41,8 +47,8 @@ public class TransactionInsightsServiceImpl implements TransactionInsightsServic
     @Override
     public SpendingPerCategoryResponseDto getSpendingByCategory(Date from, Date to, UUID userId) {
         validateDateRange(from, to);
-        List<SpendingPerCategoryDto> categories = transactionInsightsRepository.findByInterval(from, to, userId);
-        return new SpendingPerCategoryResponseDto(userId, totalSpent(categories), categories);
+        List<SpendingCategoryAggregate> categories = transactionInsightsRepository.findByInterval(from, to, userId);
+        return new SpendingPerCategoryResponseDto(userId, groupSpendingByCurrency(categories));
     }
 
     @Override
@@ -57,13 +63,13 @@ public class TransactionInsightsServiceImpl implements TransactionInsightsServic
         LocalDate toDate = to.toLocalDate();
         GraphGranularity granularity = determineGranularity(fromDate, toDate);
 
-        List<SpendingGraphPointDto> points = fillMissingPoints(
+        List<SpendingGraphSeriesDto> series = fillMissingSeries(
                 transactionInsightsRepository.findSpendingGraphByInterval(from, to, userId, bucketExpression(granularity)),
                 fromDate,
                 toDate,
                 granularity);
 
-        return new SpendingGraphResponseDto(userId, null, granularity.name(), fromDate, toDate, points);
+        return new SpendingGraphResponseDto(userId, null, granularity.name(), fromDate, toDate, series);
     }
 
     @Override
@@ -78,7 +84,7 @@ public class TransactionInsightsServiceImpl implements TransactionInsightsServic
         LocalDate toDate = to.toLocalDate();
         GraphGranularity granularity = determineGranularity(fromDate, toDate);
 
-        List<SpendingGraphPointDto> points = fillMissingPoints(
+        List<SpendingGraphSeriesDto> series = fillMissingSeries(
                 transactionInsightsRepository.findSpendingGraphByIntervalAndAccount(
                         from,
                         to,
@@ -89,7 +95,7 @@ public class TransactionInsightsServiceImpl implements TransactionInsightsServic
                 toDate,
                 granularity);
 
-        return new SpendingGraphResponseDto(userId, accountId, granularity.name(), fromDate, toDate, points);
+        return new SpendingGraphResponseDto(userId, accountId, granularity.name(), fromDate, toDate, series);
     }
 
     @Override
@@ -102,7 +108,7 @@ public class TransactionInsightsServiceImpl implements TransactionInsightsServic
     public SpendingPerCategoryByAccountResponseDto getSpendingPerCategoryByAccount(Date from, Date to, UUID accountId,
             UUID userId) {
         validateDateRange(from, to);
-        List<SpendingPerCategoryByAccountDto> categories = transactionInsightsRepository.findByIntervalAndAccount(
+        List<SpendingCategoryAggregate> categories = transactionInsightsRepository.findByIntervalAndAccount(
                 from,
                 to,
                 userId,
@@ -110,8 +116,7 @@ public class TransactionInsightsServiceImpl implements TransactionInsightsServic
         return new SpendingPerCategoryByAccountResponseDto(
                 userId,
                 accountId,
-                totalSpentByAccount(categories),
-                categories);
+                groupSpendingByCurrency(categories));
     }
 
     @Override
@@ -130,22 +135,42 @@ public class TransactionInsightsServiceImpl implements TransactionInsightsServic
         transactionInsightsRepository.save(transactionInsightRow);
     }
 
+    @Override
+    public void remove(TransactionRemoved transactionRemoved) {
+        transactionInsightsRepository.deleteByTransaction(
+                transactionRemoved.getTransactionId(),
+                transactionRemoved.getUserId(),
+                transactionRemoved.getAccountId());
+    }
+
     private void validateDateRange(Date from, Date to) {
         if (from.after(to)) {
             throw new InvalidDateRangeException("'from' date must be before or equal to 'to' date");
         }
     }
 
-    private BigDecimal totalSpent(List<SpendingPerCategoryDto> categories) {
-        return categories.stream()
-                .map(SpendingPerCategoryDto::totalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
+    private List<SpendingCurrencyGroupDto> groupSpendingByCurrency(List<SpendingCategoryAggregate> categories) {
+        Map<String, List<SpendingCategoryAggregate>> categoriesByCurrency = categories.stream()
+                .collect(Collectors.groupingBy(
+                        SpendingCategoryAggregate::isoCurrencyCode,
+                        LinkedHashMap::new,
+                        Collectors.toList()));
 
-    private BigDecimal totalSpentByAccount(List<SpendingPerCategoryByAccountDto> categories) {
-        return categories.stream()
-                .map(SpendingPerCategoryByAccountDto::totalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        List<SpendingCurrencyGroupDto> groups = new ArrayList<>();
+        for (Map.Entry<String, List<SpendingCategoryAggregate>> entry : categoriesByCurrency.entrySet()) {
+            List<SpendingPerCategoryDto> categoryDtos = entry.getValue().stream()
+                    .map(category -> new SpendingPerCategoryDto(
+                            category.primaryCategoryId(),
+                            category.percentage(),
+                            category.totalAmount()))
+                    .toList();
+            BigDecimal totalSpent = entry.getValue().stream()
+                    .map(SpendingCategoryAggregate::totalAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            groups.add(new SpendingCurrencyGroupDto(entry.getKey(), totalSpent, categoryDtos));
+        }
+
+        return groups;
     }
 
     private GraphGranularity determineGranularity(LocalDate from, LocalDate to) {
@@ -167,12 +192,32 @@ public class TransactionInsightsServiceImpl implements TransactionInsightsServic
         };
     }
 
-    private List<SpendingGraphPointDto> fillMissingPoints(List<SpendingGraphPointDto> points,
+    private List<SpendingGraphSeriesDto> fillMissingSeries(List<SpendingGraphAggregate> points,
+            LocalDate from,
+            LocalDate to,
+            GraphGranularity granularity) {
+        Map<String, List<SpendingGraphAggregate>> pointsByCurrency = points.stream()
+                .collect(Collectors.groupingBy(
+                        SpendingGraphAggregate::isoCurrencyCode,
+                        LinkedHashMap::new,
+                        Collectors.toList()));
+
+        return pointsByCurrency.entrySet().stream()
+                .map(entry -> new SpendingGraphSeriesDto(
+                        entry.getKey(),
+                        fillMissingPoints(entry.getValue(), from, to, granularity)))
+                .sorted(Comparator.comparing(SpendingGraphSeriesDto::isoCurrencyCode))
+                .toList();
+    }
+
+    private List<SpendingGraphPointDto> fillMissingPoints(List<SpendingGraphAggregate> points,
             LocalDate from,
             LocalDate to,
             GraphGranularity granularity) {
         Map<LocalDate, SpendingGraphPointDto> pointsByBucket = points.stream()
-                .collect(Collectors.toMap(SpendingGraphPointDto::bucket, Function.identity()));
+                .collect(Collectors.toMap(
+                        SpendingGraphAggregate::bucket,
+                        point -> new SpendingGraphPointDto(point.bucket(), point.totalAmount())));
 
         LocalDate bucket = alignBucket(from, granularity);
         LocalDate endBucket = alignBucket(to, granularity);

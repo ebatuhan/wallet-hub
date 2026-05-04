@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 import com.batu.shared.dto.response.AccountBalanceDataPointDto;
+import com.batu.shared.dto.response.SpendingGraphResponseDto;
 import com.batu.shared.dto.response.TransactionViewResponseDto;
 
 public record AccountDashboardSummaryResponseDto(
@@ -24,7 +25,8 @@ public record AccountDashboardSummaryResponseDto(
 
     public record BalancePointDto(LocalDate date, BigDecimal balance) {}
 
-    public record SpendingSectionDto(List<SpendingCategoryItemDto> categories) {}
+    public record SpendingSectionDto(List<UserDashboardSummaryResponseDto.SpendingCurrencyGroupDto> currencies,
+            SpendingGraphResponseDto graph) {}
 
     public record RecentTransactionsDto(List<TransactionViewResponseDto> items, boolean hasMore, String nextCursor) {}
 }

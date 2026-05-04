@@ -10,6 +10,7 @@ import com.batu.insights_service.service.AccountInsightsService;
 import com.batu.shared.messaging.BaseEvent;
 import com.batu.shared.messaging.MessagingTopology;
 import com.batu.shared.messaging.event.AccountRecorded;
+import com.batu.shared.messaging.event.AccountRemoved;
 
 @Component
 public class AccountEventListener {
@@ -36,6 +37,12 @@ public class AccountEventListener {
 
             accountInsightsService.save(accountBalanceDataPointRow);
         });
+    }
+
+    @RabbitListener(queues = MessagingTopology.ACCOUNT_REMOVED_QUEUE)
+    @Observed(name = "insights.consume.account-removed", contextualName = "insights consume account removed")
+    public void onAccountRemoved(BaseEvent<AccountRemoved> event) {
+        insightsInbox.process(event, () -> accountInsightsService.remove(event.getPayload()));
     }
 
 }

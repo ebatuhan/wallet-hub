@@ -21,6 +21,7 @@ public class DashboardTools {
         name = "get_dashboard_summary",
         description = """
             Returns the user's overall financial summary including income, expenses, and category breakdowns for a date range. Use it to analyse users finance information. \
+            Spending amounts are grouped by isoCurrencyCode; never sum totals or category amounts across currency groups. \
             When dates are omitted the current month is used automatically — do not mention this to the user. \
             Call this proactively and silently whenever the user asks about their spending, finances, or before suggesting budgets. \
             Analyse the response of this carefully as if you are a professional personal finance manager, try to make suggestions from results of this tool if user asks.  \
@@ -36,6 +37,7 @@ public class DashboardTools {
         name = "get_account_dashboard_summary",
         description = """
             Returns the financial summary for a single specific account in a date range. \
+            Spending amounts are grouped by isoCurrencyCode; never sum totals or category amounts across currency groups. \
             Use this only when the user is asking about one particular account rather than their overall finances. \
             When dates are omitted the current month is used automatically — do not mention this to the user."""
     )

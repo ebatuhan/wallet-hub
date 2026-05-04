@@ -10,6 +10,33 @@ get {
   auth: inherit
 }
 
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("should return dashboard spending grouped by currency", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("spending");
+    expect(body.spending).to.have.property("currencies");
+    expect(body.spending.currencies).to.be.an("array");
+    expect(body.spending).to.have.property("yearlySpendings");
+
+    if (body.spending.currencies.length > 0) {
+      const currency = body.spending.currencies[0];
+      expect(currency).to.have.property("isoCurrencyCode");
+      expect(currency).to.have.property("totalSpent");
+      expect(currency).to.have.property("categories");
+      expect(currency.categories).to.be.an("array");
+    }
+
+    if (body.spending.yearlySpendings) {
+      expect(body.spending.yearlySpendings).to.have.property("series");
+      expect(body.spending.yearlySpendings.series).to.be.an("array");
+    }
+  });
+}
+
 settings {
   encodeUrl: true
   timeout: 0

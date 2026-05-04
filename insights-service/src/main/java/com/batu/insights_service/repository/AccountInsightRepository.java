@@ -41,6 +41,16 @@ public class AccountInsightRepository {
                 java.sql.Timestamp.from(java.time.Instant.now()));
     }
 
+    public void deleteByAccount(UUID accountId, UUID userId) {
+        String sql = """
+                DELETE FROM account_balance_history
+                WHERE account_id = ?
+                  AND user_id = ?
+                """;
+
+        jdbcTemplate.update(sql, accountId, userId);
+    }
+
   public List<AccountBalanceDataPointRow> getAccountBalanceHistory(
         UUID accountId,
         UUID userId,

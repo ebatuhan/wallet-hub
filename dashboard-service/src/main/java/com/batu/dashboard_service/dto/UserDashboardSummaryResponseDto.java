@@ -1,6 +1,5 @@
 package com.batu.dashboard_service.dto;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -26,8 +25,11 @@ public record UserDashboardSummaryResponseDto(
 
     public record IncomeSectionDto(List<IncomeTotalByCurrencyDto> totalsByCurrency) {}
 
-    public record SpendingSectionDto(BigDecimal totalSpent, List<SpendingCategoryItemDto> categories,
+    public record SpendingSectionDto(List<SpendingCurrencyGroupDto> currencies,
             SpendingGraphResponseDto yearlySpendings) {}
+
+    public record SpendingCurrencyGroupDto(String isoCurrencyCode, java.math.BigDecimal totalSpent,
+            List<SpendingCategoryItemDto> categories) {}
 
     public record BudgetHighlightsDto(long activeBudgetCount, long overBudgetCount, List<BudgetResponseDto> items) {}
 }

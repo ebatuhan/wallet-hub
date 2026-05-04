@@ -11,6 +11,7 @@ import com.batu.shared.dto.response.IncomeSummaryResponseDto;
 import com.batu.shared.dto.response.SpendingGraphResponseDto;
 import com.batu.shared.dto.response.SpendingPerCategoryByAccountResponseDto;
 import com.batu.shared.dto.response.SpendingPerCategoryResponseDto;
+import com.batu.shared.messaging.event.TransactionRemoved;
 
 public interface TransactionInsightsService {
     SpendingPerCategoryByAccountResponseDto getSpendingPerCategoryByAccount(Date from, Date to, UUID accountId, Jwt principal);
@@ -25,4 +26,6 @@ public interface TransactionInsightsService {
     IncomeSummaryResponseDto getIncome(Date from, Date to, UUID userId);
 
     void save(TransactionInsightRow transactionInsightRow);
+
+    void remove(TransactionRemoved transactionRemoved);
 }

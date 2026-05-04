@@ -38,6 +38,19 @@ public class RabbitMQConfiguration {
                 .with(MessagingTopology.TRANSACTION_PERSISTED_ROUTING_KEY);
     }
 
+    @Bean
+    Queue transactionRemovedQueue() {
+        return new Queue(MessagingTopology.TRANSACTION_REMOVED_QUEUE, true);
+    }
+
+    @Bean
+    Binding transactionRemovedBinding(Queue transactionRemovedQueue,
+                                      TopicExchange walletHubExchange) {
+        return BindingBuilder.bind(transactionRemovedQueue)
+                .to(walletHubExchange)
+                .with(MessagingTopology.TRANSACTION_REMOVED_ROUTING_KEY);
+    }
+
 
     @Bean
     Queue accountPersistedQueue() {
@@ -50,5 +63,18 @@ public class RabbitMQConfiguration {
         return BindingBuilder.bind(accountPersistedQueue)
                 .to(walletHubExchange)
                 .with(MessagingTopology.ACCOUNT_PERSISTED_ROUTING_KEY);
+    }
+
+    @Bean
+    Queue accountRemovedQueue() {
+        return new Queue(MessagingTopology.ACCOUNT_REMOVED_QUEUE, true);
+    }
+
+    @Bean
+    Binding accountRemovedBinding(Queue accountRemovedQueue,
+                                  TopicExchange walletHubExchange) {
+        return BindingBuilder.bind(accountRemovedQueue)
+                .to(walletHubExchange)
+                .with(MessagingTopology.ACCOUNT_REMOVED_ROUTING_KEY);
     }
 }

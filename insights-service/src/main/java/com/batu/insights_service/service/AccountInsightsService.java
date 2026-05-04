@@ -2,6 +2,7 @@ package com.batu.insights_service.service;
 
 import com.batu.insights_service.entity.AccountBalanceDataPointRow;
 import com.batu.shared.dto.response.AccountBalanceDataPointDto;
+import com.batu.shared.messaging.event.AccountRemoved;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -13,6 +14,8 @@ import org.springframework.security.oauth2.jwt.Jwt;
 public interface AccountInsightsService {
 
     void save(AccountBalanceDataPointRow row);
+
+    void remove(AccountRemoved accountRemoved);
 
     List<AccountBalanceDataPointDto> getAccountBalanceHistory(UUID accountId, LocalDate from, LocalDate to, Jwt principal);
 
