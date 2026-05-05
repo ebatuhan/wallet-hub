@@ -1,6 +1,7 @@
 package com.batu.ai_assistant.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import reactor.core.publisher.Flux;
 
 import com.batu.ai_assistant.dto.ChatRequestDTO;
 import com.batu.ai_assistant.dto.ChatResponseDTO;
@@ -33,6 +36,13 @@ public class AIAssistantController {
             @Valid @RequestBody ChatRequestDTO request,
             @AuthenticationPrincipal Jwt principal) {
         return ResponseEntity.ok(aiAssistantService.chat(request, principal));
+    }
+
+    @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> stream(
+            @Valid @RequestBody ChatRequestDTO request,
+            @AuthenticationPrincipal Jwt principal) {
+        return aiAssistantService.stream(request, principal);
     }
 
     @GetMapping("/chat/history")

@@ -27,5 +27,7 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
             java.time.Instant createdAt,
             Pageable pageable);
 
+    boolean existsByConversationAndRoleAndContent(Conversation conversation, MessageRole role, String content);
+
     void deleteByConversation(Conversation conversation);
 }

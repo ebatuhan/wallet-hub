@@ -31,6 +31,8 @@ import com.batu.ai_assistant.repository.MessageRepository;
 import com.batu.ai_assistant.service.AIAssistantService;
 import com.batu.shared.dto.response.CursorResponse;
 
+import reactor.core.publisher.Flux;
+
 @Service
 public class AIAssistantServiceImpl implements AIAssistantService {
 
@@ -70,12 +72,7 @@ public class AIAssistantServiceImpl implements AIAssistantService {
     @Override
     @Observed(name = "assistant.chat", contextualName = "assistant chat")
     public ChatResponseDTO chat(ChatRequestDTO request, Jwt principal) {
-        if (modelName == null || modelName.isBlank()) {
-            throw new ResponseStatusException(
-                    HttpStatus.SERVICE_UNAVAILABLE,
-                    "AI model is not configured yet. Add a Spring AI chat model provider later.");
-        }
-
+        requireModel();
         UUID userId = UUID.fromString(principal.getSubject());
         Conversation conversation = getOrCreateConversation(userId);
         messageRepository.save(new Message(conversation, MessageRole.USER, request.message()));
@@ -89,6 +86,26 @@ public class AIAssistantServiceImpl implements AIAssistantService {
                 .content();
 
         return new ChatResponseDTO(sanitizeAssistantResponse(response));
+    }
+
+    @Override
+    @Observed(name = "assistant.chat.stream", contextualName = "assistant chat stream")
+    public Flux<String> stream(ChatRequestDTO request, Jwt principal) {
+        requireModel();
+        UUID userId = UUID.fromString(principal.getSubject());
+        Conversation conversation = getOrCreateConversation(userId);
+        messageRepository.save(new Message(conversation, MessageRole.USER, request.message()));
+        StringBuilder responseBuilder = new StringBuilder();
+
+        return chatClient
+                .prompt()
+                .advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, conversation.getId().toString()))
+                .user(wrapUserPrompt(request.message()))
+                .options(runtimeOptions())
+                .stream()
+                .content()
+                .map(chunk -> sanitizeStreamingChunk(chunk, responseBuilder))
+                .doOnComplete(() -> completeStream(conversation, responseBuilder));
     }
 
     @Override
@@ -149,6 +166,33 @@ public class AIAssistantServiceImpl implements AIAssistantService {
                 .orElseGet(() -> conversationRepository.save(new Conversation(userId)));
     }
 
+    private void requireModel() {
+        if (modelName == null || modelName.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "AI model is not configured yet. Add a Spring AI chat model provider later.");
+        }
+    }
+
+    private String sanitizeStreamingChunk(String chunk, StringBuilder responseBuilder) {
+        if (chunk == null || chunk.isEmpty()) {
+            return "";
+        }
+
+        responseBuilder.append(chunk);
+
+        return sanitizeStreamingChunk(chunk);
+    }
+
+    private void completeStream(Conversation conversation, StringBuilder responseBuilder) {
+        String response = sanitizeAssistantResponse(responseBuilder.toString());
+
+        if (response != null && !response.isBlank()
+                && !messageRepository.existsByConversationAndRoleAndContent(conversation, MessageRole.ASSISTANT, response)) {
+            messageRepository.save(new Message(conversation, MessageRole.ASSISTANT, response));
+        }
+    }
+
     private OllamaChatOptions runtimeOptions() {
         OllamaChatOptions.Builder builder = OllamaChatOptions.builder()
                 .model(modelName)
@@ -200,6 +244,10 @@ public class AIAssistantServiceImpl implements AIAssistantService {
                 .replaceAll("\\s{2,}", " ")
                 .replace(" .", ".")
                 .trim();
+    }
+
+    private String sanitizeStreamingChunk(String chunk) {
+        return chunk.replaceAll("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", "");
     }
 
     private String encodeCursor(Instant createdAt) {

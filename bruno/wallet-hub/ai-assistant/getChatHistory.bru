@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{host}}/api/assistant/chat/history
+  url: {{host}}/api/assistant/chat/history?limit=30&cursor={{aiChatCursor}}
   body: none
   auth: inherit
 }
@@ -15,21 +15,36 @@ tests {
     expect(res.status).to.equal(200);
   });
 
-  test("should return at most 10 messages", function() {
+  test("should return cursor response", function() {
     const body = res.getBody();
-    expect(body).to.be.an("array");
-    expect(body.length).to.be.at.most(10);
+    expect(body).to.have.property("data");
+    expect(body.data).to.be.an("array");
+    expect(body).to.have.property("hasMore");
+    expect(body.hasMore).to.be.a("boolean");
+    expect(body).to.have.property("nextCursor");
+    expect(body.nextCursor === null || typeof body.nextCursor === "string").to.equal(true);
   });
 
-  test("messages should have role, content, and createdAt", function() {
+  test("should return at most 30 messages", function() {
     const body = res.getBody();
-    for (const message of body) {
+    expect(body.data.length).to.be.at.most(30);
+  });
+
+  test("messages should have id, role, content, and createdAt", function() {
+    const body = res.getBody();
+    for (const message of body.data) {
+      expect(message).to.have.property("messageId");
       expect(message).to.have.property("role");
       expect(["USER", "ASSISTANT"]).to.include(message.role);
       expect(message).to.have.property("content");
       expect(message.content).to.be.a("string");
       expect(message).to.have.property("createdAt");
     }
+  });
+
+  test("save next cursor when available", function() {
+    const body = res.getBody();
+    bru.setEnvVar("aiChatCursor", body.nextCursor ?? "");
   });
 }
 
