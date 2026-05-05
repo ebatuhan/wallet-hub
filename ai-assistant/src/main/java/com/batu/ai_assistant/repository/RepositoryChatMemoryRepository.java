@@ -1,5 +1,6 @@
 package com.batu.ai_assistant.repository;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -53,7 +54,7 @@ public class RepositoryChatMemoryRepository implements ChatMemoryRepository {
                 .orElseThrow(() -> new IllegalArgumentException("Conversation with id " + conversationId + " not found"));
 
         messageRepository.deleteByConversation(conversation);
-        List<Message> savedMessages = messages.stream()
+        List<Message> savedMessages = compactAdjacentDuplicates(messages.stream()
                 .filter(message -> message.getMessageType() == MessageType.USER
                         || message.getMessageType() == MessageType.ASSISTANT
                         || message.getMessageType() == MessageType.TOOL)
@@ -63,8 +64,28 @@ public class RepositoryChatMemoryRepository implements ChatMemoryRepository {
                         toPersistedContent(message)))
                 .filter(message -> message.getRole() != MessageRole.ASSISTANT
                         || (message.getContent() != null && !message.getContent().isBlank()))
-                .toList();
+                .toList());
         messageRepository.saveAll(savedMessages);
+    }
+
+    private List<Message> compactAdjacentDuplicates(List<Message> messages) {
+        List<Message> compacted = new ArrayList<>();
+
+        for (Message message : messages) {
+            if (!compacted.isEmpty()) {
+                Message previous = compacted.get(compacted.size() - 1);
+
+                if (previous.getRole() == message.getRole()
+                        && previous.getContent() != null
+                        && previous.getContent().equals(message.getContent())) {
+                    continue;
+                }
+            }
+
+            compacted.add(message);
+        }
+
+        return compacted;
     }
 
     @Override

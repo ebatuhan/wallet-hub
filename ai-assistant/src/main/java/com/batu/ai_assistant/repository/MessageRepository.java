@@ -21,5 +21,11 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
             List<MessageRole> roles,
             Pageable pageable);
 
+    List<Message> findByConversationAndRoleInAndCreatedAtBeforeOrderByCreatedAtDesc(
+            Conversation conversation,
+            List<MessageRole> roles,
+            java.time.Instant createdAt,
+            Pageable pageable);
+
     void deleteByConversation(Conversation conversation);
 }

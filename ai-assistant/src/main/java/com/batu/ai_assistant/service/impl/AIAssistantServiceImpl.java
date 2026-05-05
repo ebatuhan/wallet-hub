@@ -3,15 +3,20 @@ package com.batu.ai_assistant.service.impl;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.time.Instant;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import io.micrometer.observation.annotation.Observed;
 
@@ -19,11 +24,12 @@ import com.batu.ai_assistant.dto.ChatMessageResponseDTO;
 import com.batu.ai_assistant.dto.ChatRequestDTO;
 import com.batu.ai_assistant.dto.ChatResponseDTO;
 import com.batu.ai_assistant.entity.Conversation;
+import com.batu.ai_assistant.entity.Message;
 import com.batu.ai_assistant.entity.MessageRole;
-import com.batu.ai_assistant.exception.ModelNotConfiguredException;
 import com.batu.ai_assistant.repository.ConversationRepository;
 import com.batu.ai_assistant.repository.MessageRepository;
 import com.batu.ai_assistant.service.AIAssistantService;
+import com.batu.shared.dto.response.CursorResponse;
 
 @Service
 public class AIAssistantServiceImpl implements AIAssistantService {
@@ -65,11 +71,14 @@ public class AIAssistantServiceImpl implements AIAssistantService {
     @Observed(name = "assistant.chat", contextualName = "assistant chat")
     public ChatResponseDTO chat(ChatRequestDTO request, Jwt principal) {
         if (modelName == null || modelName.isBlank()) {
-            throw new ModelNotConfiguredException();
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "AI model is not configured yet. Add a Spring AI chat model provider later.");
         }
 
         UUID userId = UUID.fromString(principal.getSubject());
         Conversation conversation = getOrCreateConversation(userId);
+        messageRepository.save(new Message(conversation, MessageRole.USER, request.message()));
 
         String response = chatClient
                 .prompt()
@@ -84,25 +93,55 @@ public class AIAssistantServiceImpl implements AIAssistantService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ChatMessageResponseDTO> history(Jwt principal) {
+    public CursorResponse<ChatMessageResponseDTO> history(Integer limit, String cursor, Jwt principal) {
         UUID userId = UUID.fromString(principal.getSubject());
+        int pageSize = Math.min(Math.max(limit == null ? 30 : limit, 1), 100);
+        PageRequest pageRequest = PageRequest.of(0, pageSize + 1);
+        Instant before = decodeCursor(cursor);
 
         return conversationRepository.findByUserId(userId)
-                .map(conversation -> messageRepository
-                        .findByConversationAndRoleInOrderByCreatedAtDesc(
-                                conversation,
-                                List.of(MessageRole.USER, MessageRole.ASSISTANT),
-                                PageRequest.of(0, 10))
-                        .stream()
-                        .filter(message -> message.getRole() != MessageRole.ASSISTANT
-                                || (message.getContent() != null && !message.getContent().isBlank()))
-                        .sorted(Comparator.comparing(message -> message.getCreatedAt()))
-                        .map(message -> new ChatMessageResponseDTO(
-                                message.getRole(),
-                                message.getContent(),
-                                message.getCreatedAt()))
-                        .toList())
-                .orElseGet(List::of);
+                .map(conversation -> toHistoryResponse(conversation, before, pageRequest, pageSize))
+                .orElseGet(() -> new CursorResponse<>(List.of(), false, null));
+    }
+
+    private CursorResponse<ChatMessageResponseDTO> toHistoryResponse(
+            Conversation conversation,
+            Instant before,
+            PageRequest pageRequest,
+            int pageSize) {
+        List<Message> messages = before == null
+                ? messageRepository.findByConversationAndRoleInOrderByCreatedAtDesc(
+                        conversation,
+                        List.of(MessageRole.USER, MessageRole.ASSISTANT),
+                        pageRequest)
+                : messageRepository.findByConversationAndRoleInAndCreatedAtBeforeOrderByCreatedAtDesc(
+                        conversation,
+                        List.of(MessageRole.USER, MessageRole.ASSISTANT),
+                        before,
+                        pageRequest);
+        boolean hasMore = messages.size() > pageSize;
+        List<Message> pageMessages = messages.stream()
+                .limit(pageSize)
+                .filter(message -> message.getRole() != MessageRole.ASSISTANT
+                        || (message.getContent() != null && !message.getContent().isBlank()))
+                .sorted(Comparator.comparing(Message::getCreatedAt))
+                .toList();
+        String nextCursor = hasMore && !pageMessages.isEmpty()
+                ? encodeCursor(pageMessages.get(0).getCreatedAt())
+                : null;
+
+        return new CursorResponse<>(
+                pageMessages.stream().map(this::toMessageResponse).toList(),
+                hasMore,
+                nextCursor);
+    }
+
+    private ChatMessageResponseDTO toMessageResponse(Message message) {
+        return new ChatMessageResponseDTO(
+                message.getId(),
+                message.getRole(),
+                message.getContent(),
+                message.getCreatedAt());
     }
 
     private Conversation getOrCreateConversation(UUID userId) {
@@ -161,5 +200,22 @@ public class AIAssistantServiceImpl implements AIAssistantService {
                 .replaceAll("\\s{2,}", " ")
                 .replace(" .", ".")
                 .trim();
+    }
+
+    private String encodeCursor(Instant createdAt) {
+        return Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(createdAt.toString().getBytes(StandardCharsets.UTF_8));
+    }
+
+    private Instant decodeCursor(String cursor) {
+        if (cursor == null || cursor.isBlank()) {
+            return null;
+        }
+
+        try {
+            return Instant.parse(new String(Base64.getUrlDecoder().decode(cursor), StandardCharsets.UTF_8));
+        } catch (Exception exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid history cursor.");
+        }
     }
 }
