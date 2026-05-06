@@ -16,6 +16,7 @@ import com.batu.shared.dto.request.TransactionUpsertRequestDto;
 import com.batu.shared.dto.response.TransactionUpsertResponseDto;
 import com.batu.transaction_service.service.TransactionService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -26,7 +27,7 @@ public class TransactionInternalController {
     private final TransactionService transactionService;
 
     @PostMapping("/upsert")
-    public ResponseEntity<TransactionUpsertResponseDto> upsertTransaction(@RequestBody TransactionUpsertRequestDto request) {
+    public ResponseEntity<TransactionUpsertResponseDto> upsertTransaction(@Valid @RequestBody TransactionUpsertRequestDto request) {
         return ResponseEntity.ok(transactionService.upsertTransaction(request));
     }
 

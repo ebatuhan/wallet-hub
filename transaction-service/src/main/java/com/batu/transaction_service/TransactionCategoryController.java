@@ -15,6 +15,8 @@ import com.batu.shared.dto.request.PrimaryCategoryIdsRequestDto;
 import com.batu.shared.dto.response.TransactionPrimaryCategoryDto;
 import com.batu.transaction_service.service.PrimaryCategoryService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/transactions/categories/primary")
 public class TransactionCategoryController {
@@ -42,7 +44,7 @@ public class TransactionCategoryController {
 
     @PostMapping("/by-ids")
     public ResponseEntity<List<TransactionPrimaryCategoryDto>> getPrimaryCategoriesByIds(
-            @RequestBody PrimaryCategoryIdsRequestDto request) {
+            @Valid @RequestBody PrimaryCategoryIdsRequestDto request) {
         return ResponseEntity.ok(primaryCategoryService.getByIds(request.getIds()));
     }
 }
