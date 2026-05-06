@@ -18,6 +18,7 @@ import com.batu.shared.dto.request.AccountUpsertRequestDto;
 import com.batu.shared.dto.response.AccountResponseDto;
 import com.batu.shared.dto.response.AccountUpsertResponseDto;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -33,7 +34,7 @@ public class AccountInternalController {
     }
 
     @PostMapping("/upsert")
-    public ResponseEntity<AccountUpsertResponseDto> upsertAccount(@RequestBody AccountUpsertRequestDto request) {
+    public ResponseEntity<AccountUpsertResponseDto> upsertAccount(@Valid @RequestBody AccountUpsertRequestDto request) {
         return ResponseEntity.ok(accountService.upsertAccount(request));
     }
 

@@ -25,7 +25,7 @@ public class ScheduledOutboxRelay {
     @Scheduled(fixedDelayString = "${wallet-hub.outbox.relay-delay-ms:1000}")
     @Transactional
     public void publishPending() {
-        for (var event : outboxEventRepository.findTop100ByPublishedAtIsNullOrderByCreatedAtAsc()) {
+        for (var event : outboxEventRepository.findPendingForRelay()) {
             rabbitTemplate.send(MessagingTopology.EXCHANGE_NAME, event.getRoutingKey(), MessageBuilder
                     .withBody(event.getPayload().getBytes(StandardCharsets.UTF_8))
                     .setContentType(MessageProperties.CONTENT_TYPE_JSON)
