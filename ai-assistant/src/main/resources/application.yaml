@@ -75,8 +75,6 @@ logging:
     org.hibernate.SQL: WARN
     org.hibernate.orm.jdbc.bind: WARN
 assistant:
-  chat:
-    processing-timeout: ${ASSISTANT_CHAT_PROCESSING_TIMEOUT:90s}
   guard:
     model: ${OLLAMA_GUARD_MODEL:${OLLAMA_MODEL}}
   ollama:
