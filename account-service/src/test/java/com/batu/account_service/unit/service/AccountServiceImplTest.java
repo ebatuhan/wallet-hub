@@ -18,6 +18,10 @@ import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -40,6 +44,8 @@ import com.batu.shared.dto.request.AccountNameRequestDto;
 import com.batu.shared.dto.request.AccountUpsertRequestDto;
 import com.batu.shared.messaging.event.AccountRecorded;
 import com.batu.shared.messaging.event.AccountRemoved;
+
+import java.util.stream.Stream;
 
 @ExtendWith(MockitoExtension.class)
 class AccountServiceImplTest {
@@ -155,16 +161,30 @@ class AccountServiceImplTest {
         assertThat(response.getAvailableBalance()).isEqualByComparingTo("90.00");
     }
 
-    @Test
-    void getAccount_whenAccountDoesNotBelongToUser_shouldThrowNotFound() {
-        when(accountRepository.findByAccountIdAndUserIdAndIsActiveTrue(ACCOUNT_ID, OTHER_USER_ID))
+    @ParameterizedTest
+    @MethodSource("inaccessibleAccountCases")
+    void getAccount_whenAccountIsMissingInactiveOrForeign_shouldThrowNotFound(String caseName, UUID accountId, UUID userId) {
+        when(accountRepository.findByAccountIdAndUserIdAndIsActiveTrue(accountId, userId))
                 .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> accountService.getAccount(ACCOUNT_ID, jwt(OTHER_USER_ID)))
+        assertThatThrownBy(() -> accountService.getAccount(accountId, jwt(userId)))
                 .isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
                     assertThat(exception.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
                     assertThat(exception.getReason()).isEqualTo("This account is not exists, or access restricted.");
                 });
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "not-a-uuid", "", "a3000000-0000-0000-0000-not-a-uuid" })
+    void getAccount_whenJwtSubjectIsMalformed_shouldThrowIllegalArgumentExceptionAndNotQueryRepository(String subject) {
+        Jwt principal = Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject(subject)
+                .build();
+
+        assertThatThrownBy(() -> accountService.getAccount(ACCOUNT_ID, principal))
+                .isInstanceOf(IllegalArgumentException.class);
+        verify(accountRepository, never()).findByAccountIdAndUserIdAndIsActiveTrue(any(), any());
     }
 
     @Test
@@ -278,6 +298,16 @@ class AccountServiceImplTest {
     }
 
     @Test
+    void upsertAccount_whenRepositoryFails_shouldNotPublishRecordedEvent() {
+        AccountUpsertRequestDto request = upsertRequest(ACCOUNT_ID, USER_ID, CONNECTION_ID, "Checking");
+        RuntimeException failure = new RuntimeException("database unavailable");
+        when(accountRepository.upsertAccount(request)).thenThrow(failure);
+
+        assertThatThrownBy(() -> accountService.upsertAccount(request)).isSameAs(failure);
+        verify(eventPublisher, never()).publishAccountRecorded(any(AccountRecorded.class));
+    }
+
+    @Test
     void deactivateAccountsByConnection_whenActiveAccountsExist_shouldDeactivateSaveAndPublishRemovedEvents() {
         Account checking = account(ACCOUNT_ID, USER_ID, CONNECTION_ID, "Checking", true);
         Account savings = account(OTHER_ACCOUNT_ID, USER_ID, CONNECTION_ID, "Savings", true);
@@ -318,6 +348,13 @@ class AccountServiceImplTest {
                 .header("alg", "none")
                 .subject(userId.toString())
                 .build();
+    }
+
+    private static Stream<Arguments> inaccessibleAccountCases() {
+        return Stream.of(
+                Arguments.of("missing", ACCOUNT_ID, USER_ID),
+                Arguments.of("inactive", ACCOUNT_ID, USER_ID),
+                Arguments.of("foreign", ACCOUNT_ID, OTHER_USER_ID));
     }
 
     private Account account(UUID accountId, UUID userId, UUID connectionId, String accountName, boolean active) {

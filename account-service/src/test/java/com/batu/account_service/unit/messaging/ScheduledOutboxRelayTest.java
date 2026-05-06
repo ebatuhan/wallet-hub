@@ -1,9 +1,11 @@
 package com.batu.account_service.unit.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -42,7 +44,7 @@ class ScheduledOutboxRelayTest {
                 "account",
                 UUID.fromString("a2000000-0000-0000-0000-000000000001"),
                 "{\"eventType\":\"account.recorded.v1\"}");
-        when(outboxEventRepository.findTop100ByPublishedAtIsNullOrderByCreatedAtAsc()).thenReturn(List.of(outboxEvent));
+        when(outboxEventRepository.findPendingForRelay()).thenReturn(List.of(outboxEvent));
 
         new ScheduledOutboxRelay(outboxEventRepository, rabbitTemplate).publishPending();
 
@@ -55,7 +57,7 @@ class ScheduledOutboxRelayTest {
 
     @Test
     void publishPending_whenNoOutboxEventsExist_shouldNotPublishMessages() {
-        when(outboxEventRepository.findTop100ByPublishedAtIsNullOrderByCreatedAtAsc()).thenReturn(List.of());
+        when(outboxEventRepository.findPendingForRelay()).thenReturn(List.of());
 
         new ScheduledOutboxRelay(outboxEventRepository, rabbitTemplate).publishPending();
 
@@ -76,7 +78,7 @@ class ScheduledOutboxRelayTest {
                 "account",
                 UUID.fromString("a2000000-0000-0000-0000-000000000002"),
                 "{\"eventType\":\"AccountRemoved\"}");
-        when(outboxEventRepository.findTop100ByPublishedAtIsNullOrderByCreatedAtAsc()).thenReturn(List.of(recorded, removed));
+        when(outboxEventRepository.findPendingForRelay()).thenReturn(List.of(recorded, removed));
 
         new ScheduledOutboxRelay(outboxEventRepository, rabbitTemplate).publishPending();
 
@@ -84,6 +86,26 @@ class ScheduledOutboxRelayTest {
         verify(rabbitTemplate).send(eq(MessagingTopology.EXCHANGE_NAME), eq(MessagingTopology.ACCOUNT_REMOVED_ROUTING_KEY), org.mockito.ArgumentMatchers.any(Message.class));
         assertThat(recorded.getPublishedAt()).isNotNull();
         assertThat(removed.getPublishedAt()).isNotNull();
+    }
+
+    @Test
+    void publishPending_whenRabbitPublishFails_shouldLeaveEventUnpublished() {
+        OutboxEvent outboxEvent = new OutboxEvent(
+                MessagingTopology.ACCOUNT_RECORDED_ROUTING_KEY,
+                EventTypes.ACCOUNT_RECORDED,
+                "account",
+                UUID.fromString("a2000000-0000-0000-0000-000000000003"),
+                "{\"eventType\":\"account.recorded.v1\"}");
+        RuntimeException failure = new RuntimeException("rabbit unavailable");
+        when(outboxEventRepository.findPendingForRelay()).thenReturn(List.of(outboxEvent));
+        doThrow(failure).when(rabbitTemplate).send(
+                eq(MessagingTopology.EXCHANGE_NAME),
+                eq(MessagingTopology.ACCOUNT_RECORDED_ROUTING_KEY),
+                org.mockito.ArgumentMatchers.any(Message.class));
+
+        assertThatThrownBy(() -> new ScheduledOutboxRelay(outboxEventRepository, rabbitTemplate).publishPending())
+                .isSameAs(failure);
+        assertThat(outboxEvent.getPublishedAt()).isNull();
     }
 
     private boolean isJsonMessage(Message message) {

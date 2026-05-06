@@ -8,9 +8,14 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -35,56 +40,58 @@ class OutboxDomainEventPublisherTest {
     @Mock
     private OutboxEventRepository outboxEventRepository;
 
-    @Test
-    void publishAccountRecorded_whenSerializationSucceeds_shouldPersistOutboxEvent() {
+    @ParameterizedTest
+    @MethodSource("eventPublishCases")
+    void publish_whenSerializationSucceeds_shouldPersistOutboxEvent(
+            String caseName,
+            Consumer<OutboxDomainEventPublisher> publishAction,
+            String expectedRoutingKey,
+            String expectedEventType) {
         OutboxDomainEventPublisher publisher = new OutboxDomainEventPublisher(outboxEventRepository, new JsonMapper());
 
-        publisher.publishAccountRecorded(accountRecorded());
+        publishAction.accept(publisher);
 
         ArgumentCaptor<OutboxEvent> captor = ArgumentCaptor.forClass(OutboxEvent.class);
         verify(outboxEventRepository).save(captor.capture());
         OutboxEvent event = captor.getValue();
-        assertThat(event.getRoutingKey()).isEqualTo(MessagingTopology.ACCOUNT_RECORDED_ROUTING_KEY);
-        assertThat(event.getEventType()).isEqualTo(EventTypes.ACCOUNT_RECORDED);
+        assertThat(event.getRoutingKey()).isEqualTo(expectedRoutingKey);
+        assertThat(event.getEventType()).isEqualTo(expectedEventType);
         assertThat(event.getAggregateType()).isEqualTo("account");
         assertThat(event.getAggregateId()).isEqualTo(ACCOUNT_ID);
-        assertThat(event.getPayload()).contains(EventTypes.ACCOUNT_RECORDED, ACCOUNT_ID.toString(), USER_ID.toString());
+        assertThat(event.getPayload()).contains(expectedEventType, ACCOUNT_ID.toString(), USER_ID.toString());
     }
 
-    @Test
-    void publishAccountRemoved_whenSerializationSucceeds_shouldPersistOutboxEvent() {
-        OutboxDomainEventPublisher publisher = new OutboxDomainEventPublisher(outboxEventRepository, new JsonMapper());
-
-        publisher.publishAccountRemoved(new AccountRemoved(ACCOUNT_ID, USER_ID, CONNECTION_ID));
-
-        ArgumentCaptor<OutboxEvent> captor = ArgumentCaptor.forClass(OutboxEvent.class);
-        verify(outboxEventRepository).save(captor.capture());
-        assertThat(captor.getValue().getRoutingKey()).isEqualTo(MessagingTopology.ACCOUNT_REMOVED_ROUTING_KEY);
-        assertThat(captor.getValue().getEventType()).isEqualTo(EventTypes.ACCOUNT_REMOVED);
-        assertThat(captor.getValue().getPayload()).contains(EventTypes.ACCOUNT_REMOVED, ACCOUNT_ID.toString());
-    }
-
-    @Test
-    void publishAccountRecorded_whenRepositorySaveFails_shouldThrowIllegalStateException() {
+    @ParameterizedTest
+    @MethodSource("eventPublishCases")
+    void publish_whenRepositorySaveFails_shouldThrowIllegalStateException(
+            String caseName,
+            Consumer<OutboxDomainEventPublisher> publishAction,
+            String expectedRoutingKey,
+            String expectedEventType) {
         OutboxDomainEventPublisher publisher = new OutboxDomainEventPublisher(outboxEventRepository, new JsonMapper());
         when(outboxEventRepository.save(any(OutboxEvent.class))).thenThrow(new RuntimeException("database unavailable"));
 
-        assertThatThrownBy(() -> publisher.publishAccountRecorded(accountRecorded()))
+        assertThatThrownBy(() -> publishAction.accept(publisher))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Unable to persist account outbox event");
     }
 
-    @Test
-    void publishAccountRemoved_whenRepositorySaveFails_shouldThrowIllegalStateException() {
-        OutboxDomainEventPublisher publisher = new OutboxDomainEventPublisher(outboxEventRepository, new JsonMapper());
-        when(outboxEventRepository.save(any(OutboxEvent.class))).thenThrow(new RuntimeException("database unavailable"));
-
-        assertThatThrownBy(() -> publisher.publishAccountRemoved(new AccountRemoved(ACCOUNT_ID, USER_ID, CONNECTION_ID)))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Unable to persist account outbox event");
+    private static Stream<Arguments> eventPublishCases() {
+        return Stream.of(
+                Arguments.of(
+                        "recorded",
+                        (Consumer<OutboxDomainEventPublisher>) publisher -> publisher.publishAccountRecorded(accountRecorded()),
+                        MessagingTopology.ACCOUNT_RECORDED_ROUTING_KEY,
+                        EventTypes.ACCOUNT_RECORDED),
+                Arguments.of(
+                        "removed",
+                        (Consumer<OutboxDomainEventPublisher>) publisher -> publisher
+                                .publishAccountRemoved(new AccountRemoved(ACCOUNT_ID, USER_ID, CONNECTION_ID)),
+                        MessagingTopology.ACCOUNT_REMOVED_ROUTING_KEY,
+                        EventTypes.ACCOUNT_REMOVED));
     }
 
-    private AccountRecorded accountRecorded() {
+    private static AccountRecorded accountRecorded() {
         return new AccountRecorded(
                 ACCOUNT_ID,
                 USER_ID,

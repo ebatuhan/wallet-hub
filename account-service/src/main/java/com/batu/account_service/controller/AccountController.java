@@ -24,6 +24,7 @@ import com.batu.shared.dto.response.AccountSummaryResponseDto;
 import com.batu.shared.dto.response.AccountViewDto;
 import com.batu.shared.dto.response.CursorResponse;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +48,7 @@ public class AccountController {
     }
 
     @PostMapping("/batch")
-    public ResponseEntity<List<AccountNameResponseDto>> getAccountsByGivenIds(@RequestBody AccountNameRequestDto request) {
+    public ResponseEntity<List<AccountNameResponseDto>> getAccountsByGivenIds(@Valid @RequestBody AccountNameRequestDto request) {
         return ResponseEntity.ok(accountService.getAccountsByGivenIds(request));
     }
 
