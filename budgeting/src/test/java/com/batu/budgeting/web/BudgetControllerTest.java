@@ -20,6 +20,9 @@ import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -200,28 +203,61 @@ class BudgetControllerTest {
         verify(budgetService).getBudgets(any(Jwt.class), eq("cursor-1"), eq(20), eq(BudgetSortField.LIMIT_AMOUNT), eq(Sort.Direction.ASC));
     }
 
-    @Test
-    void getBudgets_whenLimitIsBelowMinimum_shouldReturnValidationProblemAndNotCallService() throws Exception {
+    @ParameterizedTest
+    @CsvSource({
+            "0, Limit must be at least 1",
+            "101, Limit cannot exceed 100"
+    })
+    void getBudgets_whenLimitIsOutsideAllowedBoundary_shouldReturnValidationProblemAndNotCallService(
+            String limit,
+            String expectedMessage) throws Exception {
         mockMvc.perform(get("/budgets")
                 .with(jwt().jwt(jwt -> jwt.subject(USER_ID.toString())))
-                .param("limit", "0"))
+                .param("limit", limit))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value("Request validation failed"))
-                .andExpect(jsonPath("$.errors.limit").value("Limit must be at least 1"));
+                .andExpect(jsonPath("$.errors.limit").value(expectedMessage));
 
         verify(budgetService, never()).getBudgets(any(Jwt.class), any(), any(Integer.class), any(), any());
     }
 
-    @Test
-    void getBudgets_whenLimitExceedsMaximum_shouldReturnValidationProblemAndNotCallService() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = { "1", "100" })
+    void getBudgets_whenLimitIsOnAllowedBoundary_shouldReturnCursorResponse(String limit) throws Exception {
+        CursorResponse<BudgetResponse> cursorResponse = new CursorResponse<>(List.of(response()), false, null);
+        when(budgetService.getBudgets(any(Jwt.class), any(), eq(Integer.parseInt(limit)), any(), any()))
+                .thenReturn(cursorResponse);
+
         mockMvc.perform(get("/budgets")
                 .with(jwt().jwt(jwt -> jwt.subject(USER_ID.toString())))
-                .param("limit", "101"))
+                .param("limit", limit))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].id").value(BUDGET_ID.toString()))
+                .andExpect(jsonPath("$.hasMore").value(false));
+
+        verify(budgetService).getBudgets(any(Jwt.class), any(), eq(Integer.parseInt(limit)), any(), any());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "-1.00, USD, limitAmount",
+            "0.00, USD, limitAmount",
+            "500.00, US, isoCurrencyCode",
+            "500.00, USDD, isoCurrencyCode"
+    })
+    void createBudget_whenScalarRequestBoundaryIsInvalid_shouldReturnValidationProblemAndNotCallService(
+            String limitAmount,
+            String currency,
+            String errorField) throws Exception {
+        mockMvc.perform(post("/budgets")
+                .with(jwt().jwt(jwt -> jwt.subject(USER_ID.toString())))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestJson(limitAmount, currency)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value("Request validation failed"))
-                .andExpect(jsonPath("$.errors.limit").value("Limit cannot exceed 100"));
+                .andExpect(jsonPath("$.errors." + errorField).exists());
 
-        verify(budgetService, never()).getBudgets(any(Jwt.class), any(), any(Integer.class), any(), any());
+        verify(budgetService, never()).createBudget(any(CreateBudgetRequest.class), any(Jwt.class));
     }
 
     @Test
@@ -267,14 +303,18 @@ class BudgetControllerTest {
     }
 
     private String validRequestJson() {
+        return requestJson("500.00", "USD");
+    }
+
+    private String requestJson(String limitAmount, String currency) {
         return """
                 {
                   "categoryId": "60000000-0000-0000-0000-000000000003",
-                  "limitAmount": 500.00,
-                  "isoCurrencyCode": "USD",
+                  "limitAmount": %s,
+                  "isoCurrencyCode": "%s",
                   "period": "MONTHLY",
                   "periodStart": "2026-05-01"
                 }
-                """;
+                """.formatted(limitAmount, currency);
     }
 }

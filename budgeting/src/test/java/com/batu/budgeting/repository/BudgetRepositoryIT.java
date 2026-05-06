@@ -110,6 +110,22 @@ class BudgetRepositoryIT {
     }
 
     @Test
+    void findCandidates_whenMatchingBudgetIsInactive_shouldReturnEmpty() {
+        Budget inactiveBudget = saveBudget(USER_ID, CATEGORY_ID, "USD", BudgetPeriod.MONTHLY, LocalDate.of(2026, 5, 1));
+        inactiveBudget.setActive(false);
+        budgetRepository.saveAndFlush(inactiveBudget);
+        entityManager.clear();
+
+        List<Budget> result = budgetRepository.findCandidates(
+                USER_ID,
+                CATEGORY_ID,
+                "USD",
+                LocalDate.of(2026, 5, 15));
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
     void findCandidates_whenBudgetStartsAfterTransactionDate_shouldReturnEmpty() {
         saveBudget(USER_ID, CATEGORY_ID, "USD", BudgetPeriod.MONTHLY, LocalDate.of(2026, 6, 1));
 
