@@ -9,6 +9,8 @@ import org.hibernate.annotations.UuidGenerator;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
@@ -31,6 +33,16 @@ public class Conversation {
 
     @Column(name = "user_id", nullable = false, unique = true)
     private UUID userId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private ConversationStatus status = ConversationStatus.IDLE;
+
+    @Column(name = "processing_started_at")
+    private Instant processingStartedAt;
+
+    @Column(name = "last_error", length = 500)
+    private String lastError;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

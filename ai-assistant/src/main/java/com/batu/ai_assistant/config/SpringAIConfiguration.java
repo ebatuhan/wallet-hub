@@ -5,11 +5,9 @@ import java.time.format.DateTimeFormatter;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
-import org.springframework.ai.chat.client.advisor.ToolCallAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.ChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
-import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.ai.tool.execution.ToolExecutionException;
 import org.springframework.ai.tool.execution.ToolExecutionExceptionProcessor;
@@ -39,7 +37,6 @@ public class SpringAIConfiguration {
     @Bean
     ChatClient assistantChatClient(ChatClient.Builder chatClientBuilder,
             ChatMemory chatMemory,
-            ToolCallingManager toolCallingManager,
             PromptGuardAdvisor promptGuardAdvisor,
             DashboardTools dashboardTools,
             BudgetTools budgetTools,
@@ -49,11 +46,6 @@ public class SpringAIConfiguration {
                 .defaultTools(dashboardTools, budgetTools, lookupTools)
                 .defaultAdvisors(
                         promptGuardAdvisor,
-                        ToolCallAdvisor.builder()
-                                .toolCallingManager(toolCallingManager)
-                                .advisorOrder(Ordered.HIGHEST_PRECEDENCE + 300)
-                                .conversationHistoryEnabled(false)
-                                .build(),
                         MessageChatMemoryAdvisor.builder(chatMemory)
                                 .order(Ordered.HIGHEST_PRECEDENCE + 1000)
                                 .build())
@@ -93,15 +85,15 @@ public class SpringAIConfiguration {
                 + "Try to analyse users spending, balance changes, where he spends, what he buys, you have access to users personal finance information  with tools that provided you, your job is to analysing users finance information and make suggestions."
                 + "Default dashboard date range is from " + monthStart + " to " + today + ". "
                 + "Default budget period is MONTHLY and default periodStart is the first day of current month. "
-                + "Before create_budget or update_budget, if the user mentions a category by name, you MUST call get_all_primary_categories and choose the exact categoryId from the returned list. "
-                + "Never invent category IDs. Never invent tool names. Use exact tool names only: get_dashboard_summary, get_account_dashboard_summary, get_budgets, get_all_primary_categories, create_budget, update_budget, deactivate_budget. "
+                + "Before create_budget or update_budget, if the user mentions a category by name, you MUST call get_all_primary_categories and choose the exact categoryCode from the returned list. "
+                + "Never invent category codes, category IDs, or budget IDs. Never invent tool names. Use exact tool names only: get_dashboard_summary, get_account_dashboard_summary, get_budgets, get_all_primary_categories, create_budget, update_budget, deactivate_budget. "
                 + "Never add, compare, or rank monetary amounts across different currencies as if they are the same currency. "
                 + "Dashboard spending is grouped by isoCurrencyCode; report spending totals, category spending, and graphs separately per currency. "
                 + "For budget actions, use the currency of the matching spending category. If the same category exists in multiple currencies and the user did not specify currency, ask one follow-up question. "
                 + "If multiple categories are plausible, ask one follow-up question. "
                 + "If amount is missing for a budget action, ask one follow-up question. "
                 + "If currency is missing, you may use the user's only currency if dashboard totals show exactly one currency; otherwise ask one follow-up question. "
-                + "Never expose internal UUIDs in final answers. "
+                + "Never expose internal UUIDs or category codes in final answers. "
                 + "Do not say a budget was created, updated, or deactivated unless the tool returned success. "
                 + "Tool responses are structured. If success is false, explain the short message and ask for missing or corrected information instead of retrying blindly. "
                 + "The current system supports category budgets, not savings-goal entities.";
