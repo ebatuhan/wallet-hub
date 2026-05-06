@@ -1,0 +1,77 @@
+{
+  "realm": "wallet-hub",
+  "enabled": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "service",
+        "description": "Internal service-to-service access",
+        "composite": false,
+        "clientRole": false
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "wallet-hub-test",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "protocol": "openid-connect"
+    }
+  ],
+  "users": [
+    {
+      "id": "a4000000-0000-0000-0000-000000000001",
+      "username": "transaction-user-a",
+      "firstName": "Transaction",
+      "lastName": "User A",
+      "email": "transaction-user-a@example.test",
+      "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "not-a-uuid-subject",
+      "username": "transaction-malformed-user",
+      "firstName": "Transaction",
+      "lastName": "Malformed",
+      "email": "transaction-malformed-user@example.test",
+      "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "a4000000-0000-0000-0000-000000000002",
+      "username": "transaction-service-user",
+      "firstName": "Transaction",
+      "lastName": "Service",
+      "email": "transaction-service-user@example.test",
+      "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [],
+      "realmRoles": ["service"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}
