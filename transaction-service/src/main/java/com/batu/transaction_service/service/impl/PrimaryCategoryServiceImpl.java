@@ -4,11 +4,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.batu.shared.dto.response.TransactionPrimaryCategoryDto;
 import com.batu.transaction_service.entity.TransactionPrimaryCategory;
-import com.batu.transaction_service.exception.ResourceNotFoundException;
 import com.batu.transaction_service.repository.PrimaryCategoryRepository;
 import com.batu.transaction_service.service.PrimaryCategoryService;
 
@@ -23,14 +24,16 @@ public class PrimaryCategoryServiceImpl implements PrimaryCategoryService {
     @Override
     public TransactionPrimaryCategory getByCategoryCode(String categoryCode) {
         return primaryCategoryRepository.findByCategoryCode(categoryCode)
-                .orElseThrow(() -> new ResourceNotFoundException(
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
                         "Primary category with code " + categoryCode + " not found"));
     }
 
     @Override
     public TransactionPrimaryCategory getById(UUID primaryCategoryId) {
         return primaryCategoryRepository.findById(primaryCategoryId)
-                .orElseThrow(() -> new ResourceNotFoundException(
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
                         "Primary category with id " + primaryCategoryId + " not found"));
     }
 

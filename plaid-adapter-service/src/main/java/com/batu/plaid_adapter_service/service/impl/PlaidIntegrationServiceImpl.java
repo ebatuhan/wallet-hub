@@ -9,10 +9,12 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import io.micrometer.observation.annotation.Observed;
 
@@ -20,7 +22,6 @@ import com.batu.plaid_adapter_service.client.AccountClient;
 import com.batu.plaid_adapter_service.client.PlaidClientWrapper;
 import com.batu.plaid_adapter_service.client.TransactionClient;
 import com.batu.plaid_adapter_service.entity.Connection;
-import com.batu.plaid_adapter_service.exception.DuplicateConnectionException;
 import com.batu.plaid_adapter_service.exception.PlaidRetryableException;
 import com.batu.plaid_adapter_service.mapper.PlaidRequestMapper;
 import com.batu.plaid_adapter_service.service.ConnectionService;
@@ -99,7 +100,9 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
     public ExchangeTokenResponseDto exchangeLinkToken(ExchangeTokenRequestDto exchangeTokenRequestDto, UUID userId) {
 
         if (isExchangeTokenRequestDuplicate(exchangeTokenRequestDto, userId)) {
-            throw new DuplicateConnectionException("This connection already exists. Remove the current one before continue.");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "This connection already exists. Remove the current one before continue.");
         }
 
         ItemPublicTokenExchangeResponse response = plaidClient.exchangePublicToken(

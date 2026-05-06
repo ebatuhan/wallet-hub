@@ -24,8 +24,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import com.batu.dashboard_service.util.KeycloakRoleConverter;
-import com.batu.dashboard_service.util.KeycloakScopeConverter;
+import com.batu.shared.security.KeycloakRoleConverter;
+import com.batu.shared.security.KeycloakScopeConverter;
 
 @Configuration
 @EnableMethodSecurity

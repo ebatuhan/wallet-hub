@@ -1,6 +1,8 @@
 spring:
   application:
     name: plaid-adapter-service
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
 
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5434/plaid_db}
@@ -13,10 +15,6 @@ spring:
 
   security:
     oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${KEYCLOAK_ISSUER_URL:http://localhost:8080}/realms/keycloak-realm
-          jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/certs
       client:
         registration:
           wallet-hub-internal:
@@ -40,45 +38,7 @@ spring:
         enabled: false
 
 server:
-  port: ${PLAID_SERVICE_PORT:8082}
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-  endpoint:
-    health:
-      probes:
-        enabled: true
-  metrics:
-    distribution:
-      percentiles-histogram:
-        http.server.requests: true
-  tracing:
-    sampling:
-      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
-  opentelemetry:
-    resource-attributes:
-      deployment.environment: ${DEPLOYMENT_ENVIRONMENT:local}
-    tracing:
-      export:
-        otlp:
-          endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://grafana-lgtm:4318/v1/traces}
-          transport: http
-    logging:
-      export:
-        otlp:
-          endpoint: ${OTEL_EXPORTER_OTLP_LOGS_ENDPOINT:http://grafana-lgtm:4318/v1/logs}
-  otlp:
-    metrics:
-      export:
-        url: ${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:http://grafana-lgtm:4318/v1/metrics}
-
-logging:
-  pattern:
-    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}] "
-  include-application-name: false
+  port: 8082
 
 plaid:
   api: ${PLAID_API_ID:68f013c09bda9e001fac9053}

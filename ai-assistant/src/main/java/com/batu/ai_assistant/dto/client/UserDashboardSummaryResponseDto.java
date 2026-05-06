@@ -26,7 +26,7 @@ public record UserDashboardSummaryResponseDto(
 
     public record IncomeSectionDto(List<IncomeTotalByCurrencyDto> totalsByCurrency) {}
 
-    public record RecentTransactionsDto(List<TransactionViewResponseDto> items, boolean hasMore, String nextCursor) {}
+    public record RecentTransactionsDto(List<TransactionViewResponseDto> data, boolean hasMore, String nextCursor) {}
 
     public record SpendingSectionDto(List<SpendingCurrencyGroupDto> categoryBreakdownByCurrency,
             SpendingGraphResponseDto yearlyTrendByCurrency) {}

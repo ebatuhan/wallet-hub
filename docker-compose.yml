@@ -1,4 +1,26 @@
+x-spring-environment: &spring-environment
+  KEYCLOAK_ISSUER_URL: ${KEYCLOAK_PUBLIC_URL:-http://${PUBLIC_BACKEND_HOST:-localhost}:${KEYCLOAK_PORT:-8080}}
+
 services:
+  config-service:
+    build:
+      context: .
+      dockerfile: config-service/Dockerfile
+    container_name: config-service
+    ports:
+      - "${CONFIG_SERVICE_PORT:-8888}:8888"
+    environment:
+      CONFIG_REPO_LOCATION: file:/config-repo
+    volumes:
+      - ./config-service:/app
+      - ./config-repo:/config-repo:ro
+      - ~/.m2:/root/.m2
+    healthcheck:
+      test: ["CMD-SHELL", "bash -ec '</dev/tcp/localhost/8888'"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   postgres-plaid:
     image: postgres:15
     container_name: postgres-plaid
@@ -89,6 +111,8 @@ services:
     container_name: keycloak
     command: start-dev
     env_file: config/.keycloak
+    environment:
+      KC_HOSTNAME: ${PUBLIC_BACKEND_HOST:-localhost}
     ports:
       - "${KEYCLOAK_PORT}:8080"
     volumes:
@@ -108,10 +132,16 @@ services:
       context: .
       dockerfile: plaid-adapter-service/Dockerfile
     container_name: plaid-adapter-service
-    env_file: config/.plaid-adapter
+    env_file:
+      - config/.spring-common
+      - config/.plaid-adapter
+    environment:
+      <<: *spring-environment
     ports:
       - "${PLAID_SERVICE_PORT}:8082"
     depends_on:
+      config-service:
+        condition: service_healthy
       postgres-plaid:
         condition: service_healthy
     volumes:
@@ -124,10 +154,16 @@ services:
       context: .
       dockerfile: account-service/Dockerfile
     container_name: account-service
-    env_file: config/.account
+    env_file:
+      - config/.spring-common
+      - config/.account
+    environment:
+      <<: *spring-environment
     ports:
       - "${ACCOUNT_SERVICE_PORT}:8083"
     depends_on:
+      config-service:
+        condition: service_healthy
       postgres-account:
         condition: service_healthy
       rabbitmq:
@@ -142,10 +178,16 @@ services:
       context: .
       dockerfile: transaction-service/Dockerfile
     container_name: transaction-service
-    env_file: config/.transaction-service
+    env_file:
+      - config/.spring-common
+      - config/.transaction-service
+    environment:
+      <<: *spring-environment
     ports:
       - "${TRANSACTION_SERVICE_PORT}:8086"
     depends_on:
+      config-service:
+        condition: service_healthy
       postgres-transaction:
         condition: service_healthy
       rabbitmq:
@@ -160,10 +202,16 @@ services:
       context: .
       dockerfile: insights-service/Dockerfile
     container_name: insights-service
-    env_file: config/.insights-service
+    env_file:
+      - config/.spring-common
+      - config/.insights-service
+    environment:
+      <<: *spring-environment
     ports:
       - "${INSIGHTS_SERVICE_PORT}:8084"
     depends_on:
+      config-service:
+        condition: service_healthy
       clickhouse-insights:
         condition: service_healthy
     #  rabbitmq:
@@ -178,10 +226,16 @@ services:
       context: .
       dockerfile: budgeting/Dockerfile
     container_name: budgeting-service
-    env_file: config/.budgeting
+    env_file:
+      - config/.spring-common
+      - config/.budgeting
+    environment:
+      <<: *spring-environment
     ports:
       - "${BUDGETING_SERVICE_PORT}:8089"
     depends_on:
+      config-service:
+        condition: service_healthy
       postgres-budgeting:
         condition: service_healthy
       rabbitmq:
@@ -196,9 +250,16 @@ services:
       context: .
       dockerfile: dashboard-service/Dockerfile
     container_name: dashboard-service
-    env_file: config/.dashboard
+    env_file:
+      - config/.spring-common
+      - config/.dashboard
+    environment:
+      <<: *spring-environment
     ports:
       - "${DASHBOARD_SERVICE_PORT}:8090"
+    depends_on:
+      config-service:
+        condition: service_healthy
     volumes:
       - ./dashboard-service:/app
       - ./shared:/shared
@@ -209,7 +270,11 @@ services:
       context: .
       dockerfile: ai-assistant/Dockerfile
     container_name: ai-assistant-service
-    env_file: config/.ai-assistant
+    env_file:
+      - config/.spring-common
+      - config/.ai-assistant
+    environment:
+      <<: *spring-environment
     ports:
       - "${AI_ASSISTANT_SERVICE_PORT}:8091"
     volumes:
@@ -217,6 +282,8 @@ services:
       - ./shared:/shared
       - ~/.m2:/root/.m2
     depends_on:
+      config-service:
+        condition: service_healthy
       postgres-ai-assistant:
         condition: service_healthy
       ollama:
@@ -255,7 +322,11 @@ services:
       context: .
       dockerfile: api-gateway/Dockerfile
     container_name: api-gateway
-    env_file: config/.api-gateway
+    env_file:
+      - config/.spring-common
+      - config/.api-gateway
+    environment:
+      <<: *spring-environment
     ports:
       - "${API_GATEWAY_PORT}:8085"
     volumes:
@@ -263,6 +334,8 @@ services:
       - ./shared:/shared
       - ~/.m2:/root/.m2
     depends_on:
+      config-service:
+        condition: service_healthy
       keycloak:
         condition: service_healthy
     

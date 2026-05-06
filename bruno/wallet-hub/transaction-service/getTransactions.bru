@@ -20,14 +20,14 @@ tests {
   test("should return 200", function() {
     expect(res.status).to.equal(200);
   });
-
+  
   test("should return cursor response", function() {
     const body = res.getBody();
     expect(body).to.have.property("data");
     expect(body).to.have.property("hasMore");
     expect(body).to.have.property("nextCursor");
   });
-
+  
   test("should save transaction cursor and first transaction id", function() {
     const body = res.getBody();
     if (body.nextCursor) {

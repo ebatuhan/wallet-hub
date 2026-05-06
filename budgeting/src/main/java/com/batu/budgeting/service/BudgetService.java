@@ -1,12 +1,14 @@
 package com.batu.budgeting.service;
 
-import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import com.batu.budgeting.dto.BudgetResponse;
 import com.batu.budgeting.dto.CreateBudgetRequest;
+import com.batu.budgeting.enums.BudgetSortField;
+import com.batu.shared.dto.response.CursorResponse;
 import com.batu.shared.messaging.event.TransactionRecorded;
 
 public interface BudgetService {
@@ -18,9 +20,11 @@ public interface BudgetService {
 
     BudgetResponse updateBudget(UUID budgetId, CreateBudgetRequest request, UUID userId);
 
-    List<BudgetResponse> getBudgets(Jwt principal);
+    CursorResponse<BudgetResponse> getBudgets(Jwt principal, String cursor, int limit, BudgetSortField sortBy,
+            Sort.Direction direction);
 
-    List<BudgetResponse> getBudgets(UUID userId);
+    CursorResponse<BudgetResponse> getBudgets(UUID userId, String cursor, int limit, BudgetSortField sortBy,
+            Sort.Direction direction);
 
     void deactivateBudget(UUID budgetId, Jwt principal);
 

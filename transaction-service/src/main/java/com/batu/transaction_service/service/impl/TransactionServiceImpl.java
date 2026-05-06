@@ -8,9 +8,11 @@ import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Window;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.batu.shared.dto.request.TransactionUpsertRequestDto;
 import com.batu.shared.dto.response.CursorResponse;
@@ -21,14 +23,13 @@ import com.batu.shared.messaging.event.TransactionRecorded;
 import com.batu.shared.messaging.event.TransactionRemoved;
 import com.batu.transaction_service.entity.Transaction;
 import com.batu.transaction_service.entity.TransactionDetailedCategory;
-import com.batu.transaction_service.exception.ResourceNotFoundException;
 import com.batu.transaction_service.mapper.TransactionSyncMapper;
 import com.batu.transaction_service.messaging.OutboxDomainEventPublisher;
 import com.batu.transaction_service.repository.TransactionRepository;
 import com.batu.transaction_service.repository.spec.TransactionSpecs;
 import com.batu.transaction_service.service.DetailedCategoryService;
 import com.batu.transaction_service.service.TransactionService;
-import com.batu.transaction_service.util.CursorUtils;
+import com.batu.shared.cursor.CursorUtils;
 
 @Service
 public class TransactionServiceImpl implements TransactionService {
@@ -121,7 +122,8 @@ public class TransactionServiceImpl implements TransactionService {
                 Transaction transaction = transactionRepository
                                 .findByTransactionIdAndUserIdWithCategory(transactionId, userId)
                                 .filter(Transaction::isActive)
-                                .orElseThrow(() -> new ResourceNotFoundException(
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND,
                                                 "Transaction with id " + transactionId + " not found"));
 
                 return transactionSyncMapper.toDto(transaction);

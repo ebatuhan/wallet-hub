@@ -3,10 +3,11 @@ package com.batu.plaid_adapter_service.service.impl;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.batu.plaid_adapter_service.entity.Connection;
-import com.batu.plaid_adapter_service.exception.ResourceNotFoundException;
 import com.batu.plaid_adapter_service.mapper.ConnectionMapper;
 import com.batu.plaid_adapter_service.repository.ConnectionRepository;
 import com.batu.plaid_adapter_service.service.ConnectionService;
@@ -56,14 +57,18 @@ public class ConnectionServiceImpl implements ConnectionService {
 
     private Connection readById(UUID connectionId) {
         return connectionRepository.findById(connectionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Connection with " + connectionId + "not found"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Connection with " + connectionId + "not found"));
     }
 
     @Override
     @Transactional
     public Connection readByIdForUpdate(UUID connectionId) {
         return connectionRepository.lockByConnectionId(connectionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Connection with " + connectionId + "not found"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Connection with " + connectionId + "not found"));
     }
 
     @Override
@@ -79,7 +84,9 @@ public class ConnectionServiceImpl implements ConnectionService {
     @Override
     public Connection updateById(UUID connectionId, Connection source) {
         Connection target = connectionRepository.findById(connectionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Connection with " + connectionId + "not found"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Connection with " + connectionId + "not found"));
 
         connectionMapper.updateConnectionFromSource(source, target);
 
@@ -89,13 +96,16 @@ public class ConnectionServiceImpl implements ConnectionService {
     @Override
     public Connection readByExternalId(String externalId) {
         return connectionRepository.findByExternalId(externalId)
-                .orElseThrow(() -> new ResourceNotFoundException("Connection with " + externalId + "not found"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Connection with " + externalId + "not found"));
     }
 
     @Override
     public Connection readByIdAndUserId(UUID connectionId, UUID userId) {
         return connectionRepository.findByConnectionIdAndUserId(connectionId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException(
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
                         "Connection with " + connectionId + " not found for user " + userId));
     }
 

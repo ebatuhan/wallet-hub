@@ -5,18 +5,25 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.ScrollPosition;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Window;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.batu.budgeting.dto.BudgetResponse;
 import com.batu.budgeting.dto.CreateBudgetRequest;
 import com.batu.budgeting.entity.Budget;
-import com.batu.budgeting.exception.BudgetConflictException;
-import com.batu.budgeting.exception.ResourceNotFoundException;
+import com.batu.budgeting.enums.BudgetSortField;
 import com.batu.budgeting.mapper.BudgetMapper;
 import com.batu.budgeting.repository.BudgetRepository;
 import com.batu.budgeting.service.BudgetService;
+import com.batu.shared.cursor.CursorUtils;
+import com.batu.shared.dto.response.CursorResponse;
 import com.batu.shared.messaging.event.TransactionRecorded;
 
 @Service
@@ -24,11 +31,14 @@ public class BudgetServiceImpl implements BudgetService {
 
     private final BudgetRepository budgetRepository;
     private final BudgetMapper budgetMapper;
+    private final CursorUtils cursorUtils;
 
     public BudgetServiceImpl(BudgetRepository budgetRepository,
-            BudgetMapper budgetMapper) {
+            BudgetMapper budgetMapper,
+            CursorUtils cursorUtils) {
         this.budgetRepository = budgetRepository;
         this.budgetMapper = budgetMapper;
+        this.cursorUtils = cursorUtils;
     }
 
     @Override
@@ -64,7 +74,9 @@ public class BudgetServiceImpl implements BudgetService {
     @Transactional
     public BudgetResponse updateBudget(UUID budgetId, CreateBudgetRequest request, UUID userId) {
         Budget budget = budgetRepository.findByIdAndUserId(budgetId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Budget with id " + budgetId + " not found"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Budget with id " + budgetId + " not found"));
 
         validateNoOverlap(userId, request, budgetId);
 
@@ -81,17 +93,41 @@ public class BudgetServiceImpl implements BudgetService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<BudgetResponse> getBudgets(Jwt principal) {
-        return getBudgets(UUID.fromString(principal.getSubject()));
+    public CursorResponse<BudgetResponse> getBudgets(Jwt principal, String cursor, int limit, BudgetSortField sortBy,
+            Sort.Direction direction) {
+        return getBudgets(UUID.fromString(principal.getSubject()), cursor, limit, sortBy, direction);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<BudgetResponse> getBudgets(UUID userId) {
-        List<Budget> budgets = budgetRepository.findByUserIdAndActiveTrue(userId);
-        return budgets.stream()
+    public CursorResponse<BudgetResponse> getBudgets(UUID userId, String cursor, int limit, BudgetSortField sortBy,
+            Sort.Direction direction) {
+        Sort sort = sortBy == null
+                ? Sort.by(direction, "createdAt").and(Sort.by("id"))
+                : Sort.by(direction, sortBy.getFieldName()).and(Sort.by("id"));
+
+        ScrollPosition scrollPosition = cursor != null
+                ? cursorUtils.decode(cursor)
+                : ScrollPosition.keyset();
+
+        Specification<Budget> spec = (root, query, criteriaBuilder) -> criteriaBuilder.and(
+                criteriaBuilder.equal(root.get("userId"), userId),
+                criteriaBuilder.isTrue(root.get("active")));
+
+        Window<Budget> budgets = budgetRepository.findBy(spec, query -> query
+                .sortBy(sort)
+                .limit(limit)
+                .scroll(scrollPosition));
+
+        String nextCursor = budgets.hasNext()
+                ? cursorUtils.encode(budgets.positionAt(budgets.size() - 1))
+                : null;
+
+        List<BudgetResponse> data = budgets.getContent().stream()
                 .map(budgetMapper::toResponse)
                 .toList();
+
+        return new CursorResponse<>(data, budgets.hasNext(), nextCursor);
     }
 
     @Override
@@ -104,7 +140,9 @@ public class BudgetServiceImpl implements BudgetService {
     @Transactional
     public void deactivateBudget(UUID budgetId, UUID userId) {
         Budget budget = budgetRepository.findByIdAndUserId(budgetId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Budget with id " + budgetId + " not found"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Budget with id " + budgetId + " not found"));
 
         budget.setActive(false);
         budget.setUpdatedAt(Instant.now());
@@ -168,7 +206,9 @@ public class BudgetServiceImpl implements BudgetService {
             boolean overlaps = !existingEnd.isBefore(request.periodStart()) && !newEnd.isBefore(existing.getPeriodStart());
 
             if (overlaps) {
-                throw new BudgetConflictException("Overlapping active budget exists for this category and currency");
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Overlapping active budget exists for this category and currency");
             }
         }
     }

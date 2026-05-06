@@ -5,16 +5,21 @@ meta {
 }
 
 get {
-  url: {{host}}/api/assistant/chat/history?limit=30&cursor={{aiChatCursor}}
+  url: {{host}}/api/assistant/chat/history?limit=1500
   body: none
   auth: inherit
+}
+
+params:query {
+  limit: 1500
+  ~cursor: {{aiChatCursor}}
 }
 
 tests {
   test("should return 200", function() {
     expect(res.status).to.equal(200);
   });
-
+  
   test("should return cursor response", function() {
     const body = res.getBody();
     expect(body).to.have.property("data");
@@ -23,13 +28,17 @@ tests {
     expect(body.hasMore).to.be.a("boolean");
     expect(body).to.have.property("nextCursor");
     expect(body.nextCursor === null || typeof body.nextCursor === "string").to.equal(true);
+    expect(body).to.have.property("status");
+    expect(["IDLE", "PROCESSING", "FAILED"]).to.include(body.status);
+    expect(body).to.have.property("lastError");
+    expect(body.lastError === null || typeof body.lastError === "string").to.equal(true);
   });
-
+  
   test("should return at most 30 messages", function() {
     const body = res.getBody();
     expect(body.data.length).to.be.at.most(30);
   });
-
+  
   test("messages should have id, role, content, and createdAt", function() {
     const body = res.getBody();
     for (const message of body.data) {
@@ -41,7 +50,7 @@ tests {
       expect(message).to.have.property("createdAt");
     }
   });
-
+  
   test("save next cursor when available", function() {
     const body = res.getBody();
     bru.setEnvVar("aiChatCursor", body.nextCursor ?? "");

@@ -4,8 +4,8 @@ import java.io.IOException;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 
-import com.batu.plaid_adapter_service.exception.PlaidClientException;
 import com.batu.plaid_adapter_service.exception.PlaidRetryableException;
 import com.batu.plaid_adapter_service.factory.PlaidErrorHandlerFactory;
 import com.google.gson.Gson;
@@ -79,7 +79,7 @@ public class PlaidClientWrapper {
 
         var errorBody = response.errorBody();
         if (errorBody == null) {
-            throw new PlaidClientException("Plaid returned empty error body", HttpStatus.BAD_GATEWAY);
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Plaid returned empty error body");
         }
 
         PlaidError plaidError = gson.fromJson(errorBody.string(), PlaidError.class);

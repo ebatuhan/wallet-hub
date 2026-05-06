@@ -1,13 +1,12 @@
 package com.batu.plaid_adapter_service.exception;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
-import com.batu.plaid_adapter_service.exception.AbstractApplicationException;
-
-public class PlaidRetryableException extends AbstractApplicationException{
+public class PlaidRetryableException extends ResponseStatusException {
 
     public PlaidRetryableException(String message, HttpStatus httpStatus) {
-        super("PLAID_RETRYABLE_EXCEPTION", message, httpStatus);
+        super(httpStatus, message);
     }
 
 }

@@ -26,5 +26,5 @@ public record AccountDashboardSummaryResponseDto(
     public record SpendingSectionDto(List<UserDashboardSummaryResponseDto.SpendingCurrencyGroupDto> categoryBreakdownByCurrency,
             SpendingGraphResponseDto trendByCurrency) {}
 
-    public record RecentTransactionsDto(List<TransactionViewResponseDto> items, boolean hasMore, String nextCursor) {}
+    public record RecentTransactionsDto(List<TransactionViewResponseDto> data, boolean hasMore, String nextCursor) {}
 }

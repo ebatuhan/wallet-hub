@@ -7,17 +7,18 @@ import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Window;
 import io.micrometer.observation.annotation.Observed;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.batu.account_service.entity.Account;
 import com.batu.account_service.enums.AccountSortField;
-import com.batu.account_service.exception.ResourceNotFoundException;
 import com.batu.account_service.messaging.OutboxDomainEventPublisher;
 import com.batu.account_service.repository.AccountRepository;
 import com.batu.account_service.repository.specs.AccountSpecification;
 import com.batu.account_service.service.AccountService;
-import com.batu.account_service.util.CursorUtils;
+import com.batu.shared.cursor.CursorUtils;
 import com.batu.shared.dto.request.AccountNameRequestDto;
 import com.batu.shared.dto.request.AccountUpsertRequestDto;
 import com.batu.shared.dto.response.AccountCurrencyTotalDto;
@@ -102,7 +103,9 @@ public class AccountServiceImpl implements AccountService {
         public AccountResponseDto getAccount(UUID accountId, Jwt principal) {
                 UUID userId = UUID.fromString(principal.getSubject());
                 return accountRepository.findByAccountIdAndUserIdAndIsActiveTrue(accountId, userId)
-                                .orElseThrow(() -> new ResourceNotFoundException(
+                                .map(this::toAccountResponse)
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND,
                                                 "This account is not exists, or access restricted."));
         }
 
@@ -130,7 +133,9 @@ public class AccountServiceImpl implements AccountService {
 
         @Override
         public List<AccountResponseDto> findAccountsByConnectionId(UUID connectionId) {
-                return accountRepository.findByConnectionIdAndIsActiveTrueOrderByCreatedAtDesc(connectionId);
+                return accountRepository.findByConnectionIdAndIsActiveTrueOrderByCreatedAtDesc(connectionId).stream()
+                                .map(this::toAccountResponse)
+                                .toList();
         }
 
         @Override
@@ -188,6 +193,21 @@ public class AccountServiceImpl implements AccountService {
                                 account.getAvailableBalance(),
                                 account.getIsoCurrencyCode(),
                                 account.isActive(),
+                                account.getCreatedAt(),
+                                account.getUpdatedAt());
+        }
+
+        private AccountResponseDto toAccountResponse(Account account) {
+                return new AccountResponseDto(
+                                account.getAccountId(),
+                                account.getInstitutionName(),
+                                account.getAccountName(),
+                                account.getAccountType(),
+                                account.getAccountSubtype(),
+                                account.getAccountMask(),
+                                account.getCurrentBalance(),
+                                account.getAvailableBalance(),
+                                account.getIsoCurrencyCode(),
                                 account.getCreatedAt(),
                                 account.getUpdatedAt());
         }

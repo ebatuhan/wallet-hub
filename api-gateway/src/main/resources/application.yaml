@@ -1,6 +1,8 @@
 spring:
   application:
     name: api-gateway
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
   cloud:
     gateway:
       server:
@@ -61,55 +63,10 @@ spring:
               filters:
                 - StripPrefix=1
 
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${KEYCLOAK_ISSUER_URL:http://localhost:8080}/realms/keycloak-realm
-          jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/certs
-
 wallet-hub:
   security:
     jwt:
       audience: ${WALLET_HUB_API_AUDIENCE:wallet-hub-api}
 
 server:
-  port: ${API_GATEWAY_PORT:8085}
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-  endpoint:
-    health:
-      probes:
-        enabled: true
-  metrics:
-    distribution:
-      percentiles-histogram:
-        http.server.requests: true
-  tracing:
-    sampling:
-      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
-  opentelemetry:
-    resource-attributes:
-      deployment.environment: ${DEPLOYMENT_ENVIRONMENT:local}
-    tracing:
-      export:
-        otlp:
-          endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://grafana-lgtm:4318/v1/traces}
-          transport: http
-    logging:
-      export:
-        otlp:
-          endpoint: ${OTEL_EXPORTER_OTLP_LOGS_ENDPOINT:http://grafana-lgtm:4318/v1/logs}
-  otlp:
-    metrics:
-      export:
-        url: ${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:http://grafana-lgtm:4318/v1/metrics}
-
-logging:
-  pattern:
-    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}] "
-  include-application-name: false
+  port: 8085

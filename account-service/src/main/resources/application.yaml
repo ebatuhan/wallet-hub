@@ -1,37 +1,14 @@
 spring:
   application:
     name: account-service
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
 
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5435/account_db}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     
-  rabbitmq:
-    host: ${SPRING_RABBITMQ_HOST:rabbitmq}
-    port: ${SPRING_RABBITMQ_PORT:5672}
-    username: ${SPRING_RABBITMQ_USERNAME:guest}
-    password: ${SPRING_RABBITMQ_PASSWORD:guest}
-    listener:
-      simple:
-        observation-enabled: true
-        retry:
-          enabled: true
-          initial-interval: 2s
-          max-attempts: 3
-    template:
-      observation-enabled: true
-      retry:
-        enabled: true
-        initial-interval: 2s
-
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${KEYCLOAK_ISSUER_URL:http://localhost:8080}/realms/keycloak-realm
-          jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:8080}/realms/keycloak-realm/protocol/openid-connect/certs
-
   sql:
     init:
       mode: always
@@ -49,45 +26,9 @@ spring:
       ddl-auto: none
 
 logging:
-  pattern:
-    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}] "
-  include-application-name: false
   level:
     org.hibernate.sql: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-  endpoint:
-    health:
-      probes:
-        enabled: true
-  metrics:
-    distribution:
-      percentiles-histogram:
-        http.server.requests: true
-  tracing:
-    sampling:
-      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
-  opentelemetry:
-    resource-attributes:
-      deployment.environment: ${DEPLOYMENT_ENVIRONMENT:local}
-    tracing:
-      export:
-        otlp:
-          endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://grafana-lgtm:4318/v1/traces}
-          transport: http
-    logging:
-      export:
-        otlp:
-          endpoint: ${OTEL_EXPORTER_OTLP_LOGS_ENDPOINT:http://grafana-lgtm:4318/v1/logs}
-  otlp:
-    metrics:
-      export:
-        url: ${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:http://grafana-lgtm:4318/v1/metrics}
-
 server:
-  port: ${ACCOUNT_SERVICE_PORT:8083}
+  port: 8083

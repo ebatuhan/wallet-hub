@@ -7,13 +7,13 @@ import org.springframework.ai.chat.client.advisor.api.CallAdvisor;
 import org.springframework.ai.chat.client.advisor.api.CallAdvisorChain;
 import org.springframework.ai.retry.TransientAiException;
 import org.springframework.core.Ordered;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.batu.ai_assistant.dto.PromptSafetyDecisionDTO;
 import com.batu.ai_assistant.dto.PromptSafetyDecisionType;
-import com.batu.ai_assistant.exception.ModelUnavailableException;
-import com.batu.ai_assistant.exception.PromptBlockedException;
 
 @Component
 public class PromptGuardAdvisor implements CallAdvisor {
@@ -35,14 +35,17 @@ public class PromptGuardAdvisor implements CallAdvisor {
                     .entity(PromptSafetyDecisionDTO.class);
 
             if (decision == null || decision.decision() != PromptSafetyDecisionType.ALLOW) {
-                throw new PromptBlockedException(reason(decision));
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, reason(decision));
             }
-        } catch (PromptBlockedException ex) {
+        } catch (ResponseStatusException ex) {
             throw ex;
         } catch (TransientAiException | ResourceAccessException ex) {
-            throw new ModelUnavailableException();
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "AI model is currently unavailable. Please try again later.",
+                    ex);
         } catch (Exception ex) {
-            throw new PromptBlockedException("Request blocked because prompt safety guard failed.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Request blocked because prompt safety guard failed.");
         }
 
         return chain.nextCall(request);

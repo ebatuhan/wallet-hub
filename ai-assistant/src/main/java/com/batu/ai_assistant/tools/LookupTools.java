@@ -15,9 +15,9 @@ public class LookupTools {
     private final TransactionCategoryClient transactionCategoryClient;
 
     @Tool(name = "get_all_primary_categories", description = """
-            Returns the authoritative list of primary transaction categories with their IDs. \
+            Returns the authoritative list of primary transaction categories with their categoryCode values and internal IDs. \
             Must be called internally before any budget creation or update when a category name is involved. \
-            This is an internal lookup — never surface category IDs or this process to the user. \
+            For budget tools, use the categoryCode value, not the internal ID. This is an internal lookup — never surface category IDs, category codes, or this process to the user. \
             Semantic mappings: FOOD_AND_DRINK → groceries, restaurant, cafe, market. \
             TRANSPORTATION → taxi, uber, fuel, parking, transit. \
             MEDICAL → doctor, pharmacy, hospital, medicine. \

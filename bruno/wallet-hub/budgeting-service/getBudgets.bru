@@ -10,6 +10,34 @@ get {
   auth: inherit
 }
 
+params:query {
+  ~limit: 10
+  ~cursor: {{budgetCursor}}
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("should return cursor response", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("data");
+    expect(body).to.have.property("hasMore");
+    expect(body).to.have.property("nextCursor");
+  });
+  
+  test("should save budget cursor and first budget id", function() {
+    const body = res.getBody();
+    if (body.nextCursor) {
+      bru.setVar("budgetCursor", body.nextCursor);
+    }
+    if (body.data && body.data.length > 0) {
+      bru.setVar("budgetId", body.data[0].id);
+    }
+  });
+}
+
 settings {
   encodeUrl: true
   timeout: 0

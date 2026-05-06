@@ -19,7 +19,7 @@ public record UserDashboardSummaryResponseDto(
 ) {
     public record PeriodDto(LocalDate from, LocalDate to) {}
 
-    public record RecentTransactionsDto(List<TransactionViewResponseDto> items, boolean hasMore, String nextCursor) {}
+    public record RecentTransactionsDto(List<TransactionViewResponseDto> data, boolean hasMore, String nextCursor) {}
 
     public record IncomeSectionDto(List<IncomeTotalByCurrencyDto> totalsByCurrency) {}
 

@@ -12,13 +12,14 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.batu.insights_service.dto.SpendingCategoryAggregate;
 import com.batu.insights_service.dto.SpendingGraphAggregate;
 import com.batu.insights_service.entity.TransactionInsightRow;
-import com.batu.insights_service.exception.InvalidDateRangeException;
 import com.batu.insights_service.repository.TransactionInsightsRepository;
 import com.batu.insights_service.service.TransactionInsightsService;
 import com.batu.shared.dto.response.IncomeSummaryResponseDto;
@@ -141,7 +142,7 @@ public class TransactionInsightsServiceImpl implements TransactionInsightsServic
 
     private void validateDateRange(Date from, Date to) {
         if (from.after(to)) {
-            throw new InvalidDateRangeException("'from' date must be before or equal to 'to' date");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "'from' date must be before or equal to 'to' date");
         }
     }
 

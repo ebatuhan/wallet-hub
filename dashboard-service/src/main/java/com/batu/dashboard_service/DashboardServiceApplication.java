@@ -4,8 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 
+import com.batu.dashboard_service.config.DashboardFeignConfiguration;
+
 @SpringBootApplication
-@EnableFeignClients
+@EnableFeignClients(defaultConfiguration = DashboardFeignConfiguration.class)
 public class DashboardServiceApplication {
 
 	public static void main(String[] args) {

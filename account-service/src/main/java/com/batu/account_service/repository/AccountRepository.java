@@ -14,22 +14,29 @@ import org.springframework.data.repository.query.Param;
 
 import com.batu.account_service.entity.Account;
 import com.batu.shared.dto.response.AccountNameResponseDto;
-import com.batu.shared.dto.response.AccountResponseDto;
 
 public interface AccountRepository extends JpaRepository<Account, UUID>, JpaSpecificationExecutor<Account>, AccountRepositoryCustom {
-    Optional<AccountResponseDto> findByAccountIdAndUserIdAndIsActiveTrue(UUID accountId, UUID userId);
+    Optional<Account> findByAccountIdAndUserIdAndIsActiveTrue(UUID accountId, UUID userId);
 
     Optional<Account> findByAccountIdAndUserId(UUID accountId, UUID userId);
 
     List<Account> findByConnectionIdAndIsActiveTrue(UUID connectionId);
 
-    List<AccountResponseDto> findByConnectionIdAndIsActiveTrueOrderByCreatedAtDesc(UUID connectionId);
+    List<Account> findByConnectionIdAndIsActiveTrueOrderByCreatedAtDesc(UUID connectionId);
 
     List<Account> findAllByAccountIdIn(Collection<UUID> accountIds);
 
     long countByUserIdAndIsActiveTrue(UUID userId);
 
-    List<AccountNameResponseDto> findByAccountIdIn(Set<UUID> accountIds);
+    @Query("""
+            select new com.batu.shared.dto.response.AccountNameResponseDto(
+                account.accountId,
+                account.accountName
+            )
+            from Account account
+            where account.accountId in :accountIds
+            """)
+    List<AccountNameResponseDto> findByAccountIdIn(@Param("accountIds") Set<UUID> accountIds);
 
     @Query("""
             select account.isoCurrencyCode as isoCurrencyCode,

@@ -88,8 +88,9 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     @Observed(name = "dashboard.aggregate.budgets", contextualName = "dashboard aggregate budgets")
-    public List<BudgetResponseDto> getBudgets(Jwt principal) {
-        return getEnrichedBudgets();
+    public CursorResponse<BudgetResponseDto> getBudgets(Integer limit, String cursor, String sortBy, String direction,
+            Jwt principal) {
+        return getEnrichedBudgets(limit, cursor, sortBy, direction);
     }
 
     @Override
@@ -169,18 +170,23 @@ public class DashboardServiceImpl implements DashboardService {
                 .toList();
     }
 
-    private List<BudgetResponseDto> getEnrichedBudgets() {
-        List<BudgetResponseDto> budgets = budgetingClient.getBudgets().getBody();
-        if (budgets == null || budgets.isEmpty()) {
-            return List.of();
+    private CursorResponse<BudgetResponseDto> getEnrichedBudgets(Integer limit, String cursor, String sortBy,
+            String direction) {
+        CursorResponse<BudgetResponseDto> budgetResponse = budgetingClient.getBudgets(cursor, limit, sortBy, direction).getBody();
+        if (budgetResponse == null || budgetResponse.getData().isEmpty()) {
+            return new CursorResponse<>(List.of(), false, null);
         }
+
+        List<BudgetResponseDto> budgets = budgetResponse.getData();
 
         Map<UUID, TransactionPrimaryCategoryDto> categoryMetadata = loadCategoryMetadata(
                 budgets.stream().map(BudgetResponseDto::categoryId).collect(Collectors.toSet()));
 
-        return budgets.stream()
+        List<BudgetResponseDto> enrichedBudgets = budgets.stream()
                 .map(budget -> enrichBudget(budget, categoryMetadata.get(budget.categoryId())))
                 .toList();
+
+        return new CursorResponse<>(enrichedBudgets, budgetResponse.isHasMore(), budgetResponse.getNextCursor());
     }
 
     private BudgetResponseDto enrichBudget(BudgetResponseDto budget, TransactionPrimaryCategoryDto metadata) {
