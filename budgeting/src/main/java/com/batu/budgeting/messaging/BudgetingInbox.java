@@ -1,6 +1,7 @@
 package com.batu.budgeting.messaging;
 
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.batu.budgeting.entity.InboxEvent;
 import com.batu.budgeting.repository.InboxEventRepository;
@@ -14,7 +15,10 @@ public class BudgetingInbox {
         this.inboxEventRepository = inboxEventRepository;
     }
 
+    @Transactional
     public void process(BaseEvent<?> event, Runnable handler) {
+        inboxEventRepository.lockByEventId(event.getEventId());
+
         if (inboxEventRepository.existsById(event.getEventId())) {
             return;
         }

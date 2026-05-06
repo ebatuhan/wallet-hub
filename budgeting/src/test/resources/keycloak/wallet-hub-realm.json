@@ -1,0 +1,49 @@
+{
+  "realm": "wallet-hub",
+  "enabled": true,
+  "clients": [
+    {
+      "clientId": "wallet-hub-test",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "protocol": "openid-connect"
+    }
+  ],
+  "users": [
+    {
+      "id": "b0000000-0000-0000-0000-000000000001",
+      "username": "budget-user-a",
+      "firstName": "Budget",
+      "lastName": "User A",
+      "email": "budget-user-a@example.test",
+      "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "b0000000-0000-0000-0000-000000000002",
+      "username": "budget-user-b",
+      "firstName": "Budget",
+      "lastName": "User B",
+      "email": "budget-user-b@example.test",
+      "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}
