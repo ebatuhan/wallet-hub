@@ -37,6 +37,9 @@ public class KeycloakScopeConverter implements Converter<Jwt, Collection<Granted
     }
 
     private void addScopeAuthorities(Set<GrantedAuthority> authorities, String scopeName) {
+        if (scopeName.isBlank()) {
+            return;
+        }
         authorities.add(new SimpleGrantedAuthority("SCOPE_" + scopeName));
         authorities.add(new SimpleGrantedAuthority(scopeName));
     }
