@@ -1,0 +1,130 @@
+name: Backend CI
+
+on:
+  pull_request:
+    paths:
+      - "services/**"
+      - ".github/workflows/backend-ci.yml"
+  push:
+    branches:
+      - dev
+    paths:
+      - "services/**"
+      - ".github/workflows/backend-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  shared-tests:
+    name: Shared Module Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: services/shared
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Verify shared module
+        run: mvn --batch-mode --no-transfer-progress clean verify
+
+      - name: Upload Surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-surefire-reports
+          path: services/shared/target/surefire-reports/
+          if-no-files-found: error
+
+      - name: Upload JaCoCo reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-jacoco-reports
+          path: services/shared/target/site/jacoco/
+          if-no-files-found: error
+
+  service-tests:
+    name: Service Tests (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ matrix.timeout_minutes }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: account-service
+            artifact_prefix: account-service
+            timeout_minutes: 25
+          - service: ai-assistant-service
+            artifact_prefix: ai-assistant-service
+            timeout_minutes: 20
+          - service: budgeting-service
+            artifact_prefix: budgeting-service
+            timeout_minutes: 20
+          - service: dashboard-service
+            artifact_prefix: dashboard-service
+            timeout_minutes: 20
+            reports: false
+          - service: insights-service
+            artifact_prefix: insights-service
+            timeout_minutes: 35
+          - service: plaid-adapter-service
+            artifact_prefix: plaid-adapter-service
+            timeout_minutes: 35
+          - service: transaction-service
+            artifact_prefix: transaction-service
+            timeout_minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Install shared module
+        run: mvn --batch-mode --no-transfer-progress -f services/shared/pom.xml clean install
+
+      - name: Verify service
+        run: mvn --batch-mode --no-transfer-progress -f services/${{ matrix.service }}/pom.xml clean verify
+
+      - name: Upload Surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_prefix }}-surefire-reports
+          path: services/${{ matrix.service }}/target/surefire-reports/
+          if-no-files-found: error
+
+      - name: Upload Failsafe reports
+        if: always() && matrix.reports != false
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_prefix }}-failsafe-reports
+          path: services/${{ matrix.service }}/target/failsafe-reports/
+          if-no-files-found: error
+
+      - name: Upload JaCoCo reports
+        if: always() && matrix.reports != false
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_prefix }}-jacoco-reports
+          path: |
+            services/${{ matrix.service }}/target/site/jacoco/
+            services/${{ matrix.service }}/target/site/jacoco-it/
+          if-no-files-found: error
