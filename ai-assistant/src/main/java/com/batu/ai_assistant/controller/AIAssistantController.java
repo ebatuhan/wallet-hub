@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.batu.ai_assistant.dto.ChatHistoryResponseDTO;
 import com.batu.ai_assistant.dto.ChatRequestDTO;
 import com.batu.ai_assistant.dto.ChatResponseDTO;
-import com.batu.ai_assistant.service.AIAssistantService;
+import com.batu.ai_assistant.service.ConversationService;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -23,17 +23,17 @@ import jakarta.validation.constraints.Min;
 @RequestMapping("/assistant")
 public class AIAssistantController {
 
-    private final AIAssistantService aiAssistantService;
+    private final ConversationService conversationService;
 
-    public AIAssistantController(AIAssistantService aiAssistantService) {
-        this.aiAssistantService = aiAssistantService;
+    public AIAssistantController(ConversationService conversationService) {
+        this.conversationService = conversationService;
     }
 
     @PostMapping("/chat")
     public ResponseEntity<ChatResponseDTO> chat(
             @Valid @RequestBody ChatRequestDTO request,
             @AuthenticationPrincipal Jwt principal) {
-        return ResponseEntity.ok(aiAssistantService.chat(request, principal));
+        return ResponseEntity.ok(conversationService.postMessage(request, principal));
     }
 
     @GetMapping("/chat/history")
@@ -41,6 +41,6 @@ public class AIAssistantController {
             @RequestParam(defaultValue = "30") @Min(value = 1, message = "Limit must be at least 1") @Max(value = 100, message = "Limit cannot exceed 100") int limit,
             @RequestParam(required = false) String cursor,
             @AuthenticationPrincipal Jwt principal) {
-        return ResponseEntity.ok(aiAssistantService.history(limit, cursor, principal));
+        return ResponseEntity.ok(conversationService.history(limit, cursor, principal));
     }
 }

@@ -28,7 +28,7 @@ abstract class ClickHouseRepositoryITSupport {
 
         if (!migrated) {
             ScriptUtils.executeSqlScript(defaultDataSource.getConnection(),
-                    new ClassPathResource("db/migration/V1__create_insights_projection_tables.sql"));
+                    new ClassPathResource("db/migration/clickhouse/V1__create_insights_projection_tables.sql"));
             migrated = true;
         }
 

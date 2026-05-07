@@ -30,7 +30,11 @@ public class DashboardTools {
     public ToolResponse<UserDashboardSummaryResponseDto> getDashboardSummary(
             @ToolParam(required = false, description = "Start date in yyyy-MM-dd format. Omit to use the first day of the current month.") String from,
             @ToolParam(required = false, description = "End date in yyyy-MM-dd format. Omit to use today's date.") String to) {
-        return ToolResponse.success("Dashboard summary loaded.", dashboardClient.getSummary(from, to).getBody());
+        UserDashboardSummaryResponseDto summary = dashboardClient.getSummary(from, to).getBody();
+        if (summary == null) {
+            return ToolResponse.failure("Dashboard summary unavailable.");
+        }
+        return ToolResponse.success("Dashboard summary loaded.", summary);
     }
 
     @Tool(
@@ -47,12 +51,16 @@ public class DashboardTools {
             @ToolParam(required = false, description = "End date in yyyy-MM-dd format. Omit to use today's date.") String to,
             @ToolParam(required = false, description = "Maximum number of transactions to return. Omit to use the dashboard default.") Integer limit,
             @ToolParam(required = false, description = "Pagination cursor for transactions. Omit for the first page.") String cursor) {
-        return ToolResponse.success("Account dashboard summary loaded.", dashboardClient.getAccountSummary(
+        AccountDashboardSummaryResponseDto summary = dashboardClient.getAccountSummary(
                 accountId,
                 from,
                 to,
                 limit,
                 cursor)
-                .getBody());
+                .getBody();
+        if (summary == null) {
+            return ToolResponse.failure("Account dashboard summary unavailable.");
+        }
+        return ToolResponse.success("Account dashboard summary loaded.", summary);
     }
 }

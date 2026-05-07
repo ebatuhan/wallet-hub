@@ -1,0 +1,59 @@
+name: AI Assistant Tests
+
+on:
+  pull_request:
+    paths:
+      - "ai-assistant/**"
+      - "shared/**"
+      - ".github/workflows/ai-assistant-tests.yml"
+  push:
+    branches:
+      - dev
+      - main
+    paths:
+      - "ai-assistant/**"
+      - "shared/**"
+      - ".github/workflows/ai-assistant-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test ai-assistant service
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Install shared module
+        run: mvn --batch-mode --no-transfer-progress -f shared/pom.xml clean install
+
+      - name: Verify ai-assistant service
+        run: mvn --batch-mode --no-transfer-progress -f ai-assistant/pom.xml clean verify
+
+      - name: Upload Surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-assistant-surefire-reports
+          path: ai-assistant/target/surefire-reports/
+          if-no-files-found: error
+
+      - name: Upload Failsafe reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-assistant-failsafe-reports
+          path: ai-assistant/target/failsafe-reports/
+          if-no-files-found: error
