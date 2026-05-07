@@ -6,10 +6,10 @@ auth:oauth2 {
   grant_type: password
   access_token_url: http://127.0.0.1:8080/realms/keycloak-realm/protocol/openid-connect/token
   refresh_token_url: 
-  username: tozinn02
-  password: 20Batuhan35
+  username: {{process.env.KEYCLOAK_USERNAME}}
+  password: {{process.env.KEYCLOAK_PASSWORD}}
   client_id: bruno
-  client_secret: 2nh7J4LzkqpJi15s77jw3ta6vfp6tevH
+  client_secret: {{process.env.KEYCLOAK_CLIENT_SECRET}}
   scope: openid
   credentials_placement: body
   credentials_id: credentials
