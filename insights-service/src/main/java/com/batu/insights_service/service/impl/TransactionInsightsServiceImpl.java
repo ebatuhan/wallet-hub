@@ -183,9 +183,9 @@ public class TransactionInsightsServiceImpl implements TransactionInsightsServic
 
     private String bucketExpression(GraphGranularity granularity) {
         return switch (granularity) {
-            case DAY -> "toDate(latest_date)";
-            case WEEK -> "toDate(toStartOfWeek(latest_date))";
-            case MONTH -> "toDate(toStartOfMonth(latest_date))";
+            case DAY -> "toDate(date)";
+            case WEEK -> "toDate(toStartOfWeek(date))";
+            case MONTH -> "toDate(toStartOfMonth(date))";
         };
     }
 

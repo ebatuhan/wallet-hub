@@ -24,6 +24,60 @@ ALTER TABLE clickhouse.transactions ADD COLUMN IF NOT EXISTS is_active UInt8;
 ALTER TABLE clickhouse.transactions ADD COLUMN IF NOT EXISTS updated_at DateTime64(9) DEFAULT now64(9);
 ALTER TABLE clickhouse.transactions MODIFY COLUMN updated_at DateTime64(9);
 
+CREATE TABLE IF NOT EXISTS clickhouse.spending_daily
+(
+    user_id UUID,
+    account_id UUID,
+    date Date,
+    iso_currency_code LowCardinality(String),
+    primary_category_id UUID,
+    total_amount Decimal(38, 2)
+)
+ENGINE = SummingMergeTree
+PARTITION BY toYYYYMM(date)
+ORDER BY (user_id, date, account_id, iso_currency_code, primary_category_id);
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS clickhouse.spending_daily_mv
+TO clickhouse.spending_daily
+AS
+SELECT
+    user_id,
+    account_id,
+    date,
+    iso_currency_code,
+    primary_category_id,
+    SUM(abs(amount)) AS total_amount
+FROM clickhouse.transactions
+WHERE is_active = 1
+  AND is_outflow = 1
+GROUP BY user_id, account_id, date, iso_currency_code, primary_category_id;
+
+CREATE TABLE IF NOT EXISTS clickhouse.income_daily
+(
+    user_id UUID,
+    account_id UUID,
+    date Date,
+    iso_currency_code LowCardinality(String),
+    total_income Decimal(38, 2)
+)
+ENGINE = SummingMergeTree
+PARTITION BY toYYYYMM(date)
+ORDER BY (user_id, date, account_id, iso_currency_code);
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS clickhouse.income_daily_mv
+TO clickhouse.income_daily
+AS
+SELECT
+    user_id,
+    account_id,
+    date,
+    iso_currency_code,
+    SUM(amount) AS total_income
+FROM clickhouse.transactions
+WHERE is_active = 1
+  AND is_outflow = 0
+GROUP BY user_id, account_id, date, iso_currency_code;
+
 CREATE TABLE IF NOT EXISTS clickhouse.account_balance_history
 (
     account_id UUID,
