@@ -3,19 +3,19 @@ name: Shared Module Tests
 on:
   pull_request:
     paths:
-      - "shared/**"
+      - "services/shared/**"
       - ".github/workflows/shared-tests.yml"
       - "docs/test-plans/shared-test-plan.md"
-      - "docs/test-reports/shared/**"
+      - "docs/test-reports/services/shared/**"
   push:
     branches:
       - dev
       - main
     paths:
-      - "shared/**"
+      - "services/shared/**"
       - ".github/workflows/shared-tests.yml"
       - "docs/test-plans/shared-test-plan.md"
-      - "docs/test-reports/shared/**"
+      - "docs/test-reports/services/shared/**"
   workflow_dispatch:
 
 permissions:
@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: shared
+        working-directory: services/shared
 
     steps:
       - name: Check out repository
@@ -48,5 +48,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: shared-surefire-reports
-          path: shared/target/surefire-reports/
+          path: services/shared/target/surefire-reports/
           if-no-files-found: error

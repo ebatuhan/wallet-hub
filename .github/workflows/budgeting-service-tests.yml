@@ -1,19 +1,19 @@
-name: Transaction Service Tests
+name: Budgeting Service Tests
 
 on:
   pull_request:
     paths:
-      - "services/transaction-service/**"
+      - "services/budgeting-service/**"
       - "services/shared/**"
-      - ".github/workflows/transaction-service-tests.yml"
+      - ".github/workflows/budgeting-service-tests.yml"
   push:
     branches:
       - dev
       - main
     paths:
-      - "services/transaction-service/**"
+      - "services/budgeting-service/**"
       - "services/shared/**"
-      - ".github/workflows/transaction-service-tests.yml"
+      - ".github/workflows/budgeting-service-tests.yml"
   workflow_dispatch:
 
 permissions:
@@ -21,9 +21,9 @@ permissions:
 
 jobs:
   test:
-    name: Test transaction service
+    name: Test budgeting-service
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
@@ -39,21 +39,21 @@ jobs:
       - name: Install shared module
         run: mvn --batch-mode --no-transfer-progress -f services/shared/pom.xml clean install
 
-      - name: Verify transaction service
-        run: mvn --batch-mode --no-transfer-progress -f services/transaction-service/pom.xml clean verify
+      - name: Verify budgeting-service
+        run: mvn --batch-mode --no-transfer-progress -f services/budgeting-service/pom.xml clean verify
 
       - name: Upload Surefire reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: transaction-service-surefire-reports
-          path: services/transaction-service/target/surefire-reports/
+          name: budgeting-surefire-reports
+          path: services/budgeting-service/target/surefire-reports/
           if-no-files-found: error
 
       - name: Upload Failsafe reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: transaction-service-failsafe-reports
-          path: services/transaction-service/target/failsafe-reports/
+          name: budgeting-failsafe-reports
+          path: services/budgeting-service/target/failsafe-reports/
           if-no-files-found: error

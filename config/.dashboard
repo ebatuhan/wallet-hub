@@ -1,4 +1,0 @@
-ACCOUNT_SERVICE_URL=http://account-service:8083
-TRANSACTION_SERVICE_URL=http://transaction-service:8086
-INSIGHTS_SERVICE_URL=http://insights-service:8084
-BUDGETING_SERVICE_URL=http://budgeting-service:8089

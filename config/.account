@@ -1,3 +1,0 @@
-SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-account:5432/account_db
-SPRING_DATASOURCE_USERNAME=postgres
-SPRING_DATASOURCE_PASSWORD=postgres

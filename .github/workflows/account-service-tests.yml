@@ -3,16 +3,16 @@ name: Account Service Tests
 on:
   pull_request:
     paths:
-      - "account-service/**"
-      - "shared/**"
+      - "services/account-service/**"
+      - "services/shared/**"
       - ".github/workflows/account-service-tests.yml"
   push:
     branches:
       - dev
       - main
     paths:
-      - "account-service/**"
-      - "shared/**"
+      - "services/account-service/**"
+      - "services/shared/**"
       - ".github/workflows/account-service-tests.yml"
   workflow_dispatch:
 
@@ -37,17 +37,17 @@ jobs:
           cache: maven
 
       - name: Install shared module
-        run: mvn --batch-mode --no-transfer-progress -f shared/pom.xml clean install
+        run: mvn --batch-mode --no-transfer-progress -f services/shared/pom.xml clean install
 
       - name: Verify account service
-        run: mvn --batch-mode --no-transfer-progress -f account-service/pom.xml clean verify
+        run: mvn --batch-mode --no-transfer-progress -f services/account-service/pom.xml clean verify
 
       - name: Upload Surefire reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: account-service-surefire-reports
-          path: account-service/target/surefire-reports/
+          path: services/account-service/target/surefire-reports/
           if-no-files-found: error
 
       - name: Upload Failsafe reports
@@ -55,5 +55,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: account-service-failsafe-reports
-          path: account-service/target/failsafe-reports/
+          path: services/account-service/target/failsafe-reports/
           if-no-files-found: error
