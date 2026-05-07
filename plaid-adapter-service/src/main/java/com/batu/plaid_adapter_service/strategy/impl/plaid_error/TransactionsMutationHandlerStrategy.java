@@ -12,8 +12,8 @@ import com.plaid.client.model.PlaidError;
 public class TransactionsMutationHandlerStrategy implements PlaidErrorHandlerStrategy{
 
     @Override
-    public void handle(PlaidError error) {
-        throw new PlaidRetryableException(error.getErrorMessage(), HttpStatus.BAD_GATEWAY);
+    public RuntimeException toException(PlaidError error) {
+        return new PlaidRetryableException(error.getErrorMessage(), HttpStatus.BAD_GATEWAY);
     }
 
 }

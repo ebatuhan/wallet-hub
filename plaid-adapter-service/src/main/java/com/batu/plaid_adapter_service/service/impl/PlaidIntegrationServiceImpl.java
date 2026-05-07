@@ -99,6 +99,10 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
     @Retryable(retryFor = PlaidRetryableException.class, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
     public ExchangeTokenResponseDto exchangeLinkToken(ExchangeTokenRequestDto exchangeTokenRequestDto, UUID userId) {
 
+        if (exchangeTokenRequestDto == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Exchange token request is required");
+        }
+
         if (isExchangeTokenRequestDuplicate(exchangeTokenRequestDto, userId)) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
