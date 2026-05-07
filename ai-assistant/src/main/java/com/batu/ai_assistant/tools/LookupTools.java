@@ -24,7 +24,10 @@ public class LookupTools {
             ENTERTAINMENT → cinema, games, streaming, events. \
             PERSONAL_CARE → salon, gym, cosmetics.""")
     public ToolResponse<java.util.List<TransactionPrimaryCategoryDto>> getAllPrimaryCategories() {
-        return ToolResponse.success("Primary categories loaded.",
-                transactionCategoryClient.getAllPrimaryCategories().getBody());
+        java.util.List<TransactionPrimaryCategoryDto> categories = transactionCategoryClient.getAllPrimaryCategories().getBody();
+        if (categories == null) {
+            return ToolResponse.failure("Primary categories unavailable.");
+        }
+        return ToolResponse.success("Primary categories loaded.", categories);
     }
 }

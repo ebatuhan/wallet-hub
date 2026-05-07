@@ -5,3 +5,7 @@ CLICKHOUSE_PASSWORD=clickhouse
 SPRING_DATASOURCE_URL=jdbc:clickhouse://clickhouse-insights:8123/clickhouse
 SPRING_DATASOURCE_USERNAME=clickhouse
 SPRING_DATASOURCE_PASSWORD=clickhouse
+
+INSIGHTS_INBOX_DATASOURCE_URL=jdbc:postgresql://postgres-insights-inbox:5432/insights_inbox_db
+INSIGHTS_INBOX_DATASOURCE_USERNAME=postgres
+INSIGHTS_INBOX_DATASOURCE_PASSWORD=postgres

@@ -5,6 +5,7 @@ import java.time.format.DateTimeFormatter;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.client.advisor.ToolCallAdvisor;
 import org.springframework.ai.chat.client.advisor.api.BaseAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.ChatMemoryRepository;
@@ -48,6 +49,9 @@ public class SpringAIConfiguration {
                         promptGuardAdvisor,
                         MessageChatMemoryAdvisor.builder(chatMemory)
                                 .order(BaseAdvisor.HIGHEST_PRECEDENCE + 200)
+                                .build(),
+                        ToolCallAdvisor.builder()
+                                .advisorOrder(BaseAdvisor.HIGHEST_PRECEDENCE + 300)
                                 .build())
                 .build();
     }

@@ -35,6 +35,21 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres-insights-inbox:
+    image: postgres:15
+    container_name: postgres-insights-inbox
+    env_file: config/.postgres-insights-inbox
+    ports:
+      - "${POSTGRES_INSIGHTS_INBOX_PORT}:5432"
+    volumes:
+      - postgres-insights-inbox-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+
   postgres-keycloak:
     image: postgres:15
     container_name: postgres-keycloak
@@ -214,6 +229,8 @@ services:
         condition: service_healthy
       clickhouse-insights:
         condition: service_healthy
+      postgres-insights-inbox:
+        condition: service_healthy
     #  rabbitmq:
   #      condition: service_healthy
     volumes:
@@ -381,7 +398,9 @@ volumes:
   postgres-budgeting-data:
   postgres-account-data:
   postgres-ai-assistant-data:
+  postgres-insights-inbox-data:
   maven-repo:
   rabbitmq-data:
   clickhouse-insights-data:
   ollama-data:
+  

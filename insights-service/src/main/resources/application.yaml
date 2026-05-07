@@ -1,18 +1,31 @@
 spring:
   application:
     name: insights-service
+
   config:
     import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
-  datasource: 
-    url: ${SPRING_DATASOURCE_URL:jdbc:clickhouse://localhost:8123/clickhouse}}
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:clickhouse://localhost:8123/clickhouse}
     username: ${SPRING_DATASOURCE_USERNAME:${CLICKHOUSE_USER:clickhouse}}
     password: ${SPRING_DATASOURCE_PASSWORD:${CLICKHOUSE_PASSWORD:clickhouse}}
     driver-class-name: com.clickhouse.jdbc.ClickHouseDriver
+
+  flyway:
+    enabled: true  
+    url: ${SPRING_DATASOURCE_URL:jdbc:clickhouse://localhost:8123/clickhouse}
+    user: ${SPRING_DATASOURCE_USERNAME:${CLICKHOUSE_USER:clickhouse}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${CLICKHOUSE_PASSWORD:clickhouse}}
+    driver-class-name: com.clickhouse.jdbc.ClickHouseDriver
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
 wallet-hub:
   inbox:
     datasource:
       url: ${INSIGHTS_INBOX_DATASOURCE_URL:jdbc:postgresql://localhost:5432/insights}
       username: ${INSIGHTS_INBOX_DATASOURCE_USERNAME:postgres}
       password: ${INSIGHTS_INBOX_DATASOURCE_PASSWORD:postgres}
+
 server:
   port: 8084

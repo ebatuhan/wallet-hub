@@ -36,9 +36,13 @@ public class BudgetTools {
     public ToolResponse<CursorResponse<BudgetResponseDto>> getBudgets(
             @ToolParam(required = false, description = "Maximum number of budgets to return. Default: 10.") Integer limit,
             @ToolParam(required = false, description = "Cursor from a previous budget page.") String cursor) {
+        CursorResponse<BudgetResponseDto> budgets = dashboardClient.getBudgets(limit, cursor, null, null).getBody();
+        if (budgets == null) {
+            return ToolResponse.failure("Budgets unavailable.");
+        }
         return ToolResponse.success(
                 "Active enriched budgets loaded.",
-                dashboardClient.getBudgets(limit, cursor, null, null).getBody());
+                budgets);
     }
 
     @Tool(
@@ -56,7 +60,11 @@ public class BudgetTools {
             @ToolParam(description = "Three-letter ISO currency code, e.g. USD or EUR.") String isoCurrencyCode,
             @ToolParam(required = false, description = "Budget period. Default: MONTHLY.") String period,
             @ToolParam(required = false, description = "Budget start date in yyyy-MM-dd format. Default: first day of the current month.") String periodStart) {
-        UUID categoryId = resolveCategoryId(categoryCode);
+        java.util.List<TransactionPrimaryCategoryDto> categories = loadCategories();
+        if (categories == null) {
+            return ToolResponse.failure("Primary categories unavailable.");
+        }
+        UUID categoryId = resolveCategoryId(categoryCode, categories);
         if (categoryId == null) {
             return ToolResponse.failure("Unknown budget category code. Load primary categories and use one of their categoryCode values.");
         }
@@ -72,6 +80,9 @@ public class BudgetTools {
                         normalizePeriod(period),
                         resolvedPeriodStart))
                 .getBody();
+        if (budget == null) {
+            return ToolResponse.failure("Budget was not created.");
+        }
         return ToolResponse.success("Budget created.", budget);
     }
 
@@ -95,7 +106,11 @@ public class BudgetTools {
         if (resolvedBudgetId == null) {
             return ToolResponse.failure("Invalid budget ID. Load budgets and use an ID from get_budgets.");
         }
-        UUID categoryId = resolveCategoryId(categoryCode);
+        java.util.List<TransactionPrimaryCategoryDto> categories = loadCategories();
+        if (categories == null) {
+            return ToolResponse.failure("Primary categories unavailable.");
+        }
+        UUID categoryId = resolveCategoryId(categoryCode, categories);
         if (categoryId == null) {
             return ToolResponse.failure("Unknown budget category code. Load primary categories and use one of their categoryCode values.");
         }
@@ -112,6 +127,9 @@ public class BudgetTools {
                         normalizePeriod(period),
                         resolvedPeriodStart))
                 .getBody();
+        if (budget == null) {
+            return ToolResponse.failure("Budget was not updated.");
+        }
         return ToolResponse.success("Budget updated.", budget);
     }
 
@@ -131,12 +149,16 @@ public class BudgetTools {
         return ToolResponse.success("Budget deactivated.", null);
     }
 
-    private UUID resolveCategoryId(String categoryCode) {
+    private java.util.List<TransactionPrimaryCategoryDto> loadCategories() {
+        return transactionCategoryClient.getAllPrimaryCategories().getBody();
+    }
+
+    private UUID resolveCategoryId(String categoryCode, java.util.List<TransactionPrimaryCategoryDto> categories) {
         if (categoryCode == null || categoryCode.isBlank()) {
             return null;
         }
         String normalizedCategoryCode = categoryCode.trim();
-        return transactionCategoryClient.getAllPrimaryCategories().getBody().stream()
+        return categories.stream()
                 .filter(category -> normalizedCategoryCode.equalsIgnoreCase(category.getCategoryCode()))
                 .map(TransactionPrimaryCategoryDto::getTransactionPrimaryCategoryId)
                 .findFirst()
