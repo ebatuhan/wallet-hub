@@ -171,7 +171,7 @@ services:
     container_name: account-service
     env_file:
       - config/.spring-common
-      - config/.account
+      - config/.account-service
     environment:
       <<: *spring-environment
     ports:
@@ -269,7 +269,7 @@ services:
     container_name: dashboard-service
     env_file:
       - config/.spring-common
-      - config/.dashboard
+      - config/.dashboard-service
     environment:
       <<: *spring-environment
     ports:

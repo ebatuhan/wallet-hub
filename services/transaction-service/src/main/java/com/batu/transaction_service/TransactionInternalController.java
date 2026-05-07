@@ -16,6 +16,7 @@ import com.batu.shared.dto.request.TransactionUpsertRequestDto;
 import com.batu.shared.dto.response.TransactionUpsertResponseDto;
 import com.batu.transaction_service.service.TransactionService;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -23,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/transactions/internal")
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('ROLE_service')")
+@Hidden
 public class TransactionInternalController {
     private final TransactionService transactionService;
 

@@ -18,16 +18,22 @@ import com.batu.shared.dto.response.SpendingGraphResponseDto;
 import com.batu.shared.dto.response.SpendingPerCategoryByAccountResponseDto;
 import com.batu.shared.dto.response.SpendingPerCategoryResponseDto;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/insights")
 @RequiredArgsConstructor
+@Tag(name = "Transaction Insights", description = "Spending, income, and graph insight endpoints.")
+@SecurityRequirement(name = "bearerAuth")
 public class TransactionInsightsController {
 
     private final TransactionInsightsService transactionInsightsService;
 
     @GetMapping("/spendings")
+    @Operation(summary = "Get spending by category", description = "Returns spending grouped by category for a date range.")
     public ResponseEntity<SpendingPerCategoryResponseDto> getSpendingByCategory(
             @RequestParam Date from,
             @RequestParam Date to,
@@ -36,6 +42,7 @@ public class TransactionInsightsController {
     }
 
     @GetMapping("/spendings/graph")
+    @Operation(summary = "Get spending graph", description = "Returns spending graph data for a date range.")
     public ResponseEntity<SpendingGraphResponseDto> getSpendingGraph(
             @RequestParam Date from,
             @RequestParam Date to,
@@ -44,6 +51,7 @@ public class TransactionInsightsController {
     }
 
     @GetMapping("/income")
+    @Operation(summary = "Get income summary", description = "Returns income summary data for a date range.")
     public ResponseEntity<IncomeSummaryResponseDto> getIncome(
             @RequestParam Date from,
             @RequestParam Date to,
@@ -52,6 +60,7 @@ public class TransactionInsightsController {
     }
 
     @GetMapping("/spendings/{accountId}")
+    @Operation(summary = "Get account spending by category", description = "Returns category spending for a specific account and date range.")
     public ResponseEntity<SpendingPerCategoryByAccountResponseDto> getSpendingByCategoryByAccount(
             @RequestParam Date from,
             @PathVariable UUID accountId,
@@ -61,6 +70,7 @@ public class TransactionInsightsController {
     }
 
     @GetMapping("/spendings/graph/{accountId}")
+    @Operation(summary = "Get account spending graph", description = "Returns spending graph data for a specific account and date range.")
     public ResponseEntity<SpendingGraphResponseDto> getSpendingGraphByAccount(
             @RequestParam Date from,
             @PathVariable UUID accountId,

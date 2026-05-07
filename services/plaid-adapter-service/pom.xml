@@ -18,6 +18,7 @@
     <properties>
         <java.version>21</java.version>
         <jacoco.version>0.8.13</jacoco.version>
+        <springdoc.version>3.0.3</springdoc.version>
         <spring-cloud.version>2025.1.0</spring-cloud.version>
 
     </properties>
@@ -71,6 +72,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
@@ -194,6 +200,15 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>${jacoco.version}</version>
+                <configuration>
+                    <excludes>
+                        <exclude>**/*Application.class</exclude>
+                        <exclude>**/dto/**/*.class</exclude>
+                        <exclude>**/config/*Keycloak*.class</exclude>
+                        <exclude>**/config/InstallOpenTelemetryAppender.class</exclude>
+                        <exclude>**/config/ApplicationConfiguration.class</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
                     <execution>
                         <id>prepare-agent</id>
