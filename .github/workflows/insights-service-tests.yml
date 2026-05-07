@@ -1,0 +1,59 @@
+name: Insights Service Tests
+
+on:
+  pull_request:
+    paths:
+      - "insights-service/**"
+      - "shared/**"
+      - ".github/workflows/insights-service-tests.yml"
+  push:
+    branches:
+      - dev
+      - main
+    paths:
+      - "insights-service/**"
+      - "shared/**"
+      - ".github/workflows/insights-service-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test insights service
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Install shared module
+        run: mvn --batch-mode --no-transfer-progress -f shared/pom.xml clean install
+
+      - name: Verify insights service
+        run: mvn --batch-mode --no-transfer-progress -f insights-service/pom.xml clean verify
+
+      - name: Upload Surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: insights-service-surefire-reports
+          path: insights-service/target/surefire-reports/
+          if-no-files-found: error
+
+      - name: Upload Failsafe reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: insights-service-failsafe-reports
+          path: insights-service/target/failsafe-reports/
+          if-no-files-found: error

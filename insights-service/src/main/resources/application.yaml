@@ -8,10 +8,11 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:${CLICKHOUSE_USER:clickhouse}}
     password: ${SPRING_DATASOURCE_PASSWORD:${CLICKHOUSE_PASSWORD:clickhouse}}
     driver-class-name: com.clickhouse.jdbc.ClickHouseDriver
-
-  sql:
-    init:
-      mode: always
-
+wallet-hub:
+  inbox:
+    datasource:
+      url: ${INSIGHTS_INBOX_DATASOURCE_URL:jdbc:postgresql://localhost:5432/insights}
+      username: ${INSIGHTS_INBOX_DATASOURCE_USERNAME:postgres}
+      password: ${INSIGHTS_INBOX_DATASOURCE_PASSWORD:postgres}
 server:
   port: 8084
