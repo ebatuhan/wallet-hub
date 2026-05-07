@@ -59,7 +59,14 @@ public class KeycloakGatewayConfiguration {
                 .csrf(csrf -> csrf.disable())
                 .authorizeExchange(
                         auth -> auth
-                                .pathMatchers("/actuator/health", "/actuator/prometheus").permitAll()
+                                .pathMatchers(
+                                        "/actuator/health",
+                                        "/actuator/prometheus",
+                                        "/openapi/**",
+                                        "/swagger-ui.html",
+                                        "/swagger-ui/**",
+                                        "/v3/api-docs/**")
+                                .permitAll()
                                 .anyExchange().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
                 .build();

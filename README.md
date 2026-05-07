@@ -66,7 +66,11 @@ docker compose down -v
 
 ## API Documentation
 
-Each public service exposes its own OpenAPI documentation:
+The API Gateway provides a central Swagger UI with a dropdown for each service:
+
+- Gateway Swagger UI: `http://localhost:8085/swagger-ui.html`
+
+Each public service also exposes its own OpenAPI documentation directly:
 
 - Plaid Adapter: `http://localhost:8082/swagger-ui.html`
 - Account Service: `http://localhost:8083/swagger-ui.html`

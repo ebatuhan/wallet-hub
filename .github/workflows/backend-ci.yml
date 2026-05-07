@@ -63,6 +63,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - service: api-gateway
+            artifact_prefix: api-gateway
+            timeout_minutes: 20
+            reports: false
           - service: account-service
             artifact_prefix: account-service
             timeout_minutes: 25
