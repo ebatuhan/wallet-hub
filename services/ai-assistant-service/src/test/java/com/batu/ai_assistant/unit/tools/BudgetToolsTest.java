@@ -122,6 +122,28 @@ class BudgetToolsTest {
     }
 
     @Test
+    void createBudget_whenCategoryCodeIsBlank_shouldReturnFailureAndNotCallBudgeting() {
+        when(transactionCategoryClient.getAllPrimaryCategories()).thenReturn(ResponseEntity.ok(categories()));
+
+        var response = tools().createBudget(" ", decimal("250.00"), "USD", "MONTHLY", "2026-05-01");
+
+        assertThat(response.success()).isFalse();
+        assertThat(response.message()).contains("Unknown budget category code");
+        verify(budgetingClient, never()).createBudget(any());
+    }
+
+    @Test
+    void createBudget_whenMatchedCategoryHasNullId_shouldReturnFailureAndNotCallBudgeting() {
+        when(transactionCategoryClient.getAllPrimaryCategories()).thenReturn(ResponseEntity.ok(categoriesWithNullId()));
+
+        var response = tools().createBudget("FOOD_AND_DRINK", decimal("250.00"), "USD", "MONTHLY", "2026-05-01");
+
+        assertThat(response.success()).isFalse();
+        assertThat(response.message()).contains("Unknown budget category code");
+        verify(budgetingClient, never()).createBudget(any());
+    }
+
+    @Test
     void createBudget_whenPeriodStartIsInvalid_shouldReturnFailureAndNotCallBudgeting() {
         when(transactionCategoryClient.getAllPrimaryCategories()).thenReturn(ResponseEntity.ok(categories()));
 
@@ -171,6 +193,39 @@ class BudgetToolsTest {
     }
 
     @Test
+    void updateBudget_whenCategoryLookupBodyIsNull_shouldReturnFailureAndNotCallBudgeting() {
+        when(transactionCategoryClient.getAllPrimaryCategories()).thenReturn(ResponseEntity.ok(null));
+
+        var response = tools().updateBudget(BUDGET_ID.toString(), "FOOD_AND_DRINK", decimal("300.00"), "USD", null, null);
+
+        assertThat(response.success()).isFalse();
+        assertThat(response.message()).contains("Primary categories unavailable");
+        verify(budgetingClient, never()).updateBudget(any(), any());
+    }
+
+    @Test
+    void updateBudget_whenCategoryCodeIsUnknown_shouldReturnFailureAndNotCallBudgeting() {
+        when(transactionCategoryClient.getAllPrimaryCategories()).thenReturn(ResponseEntity.ok(categories()));
+
+        var response = tools().updateBudget(BUDGET_ID.toString(), "TRAVEL", decimal("300.00"), "USD", null, null);
+
+        assertThat(response.success()).isFalse();
+        assertThat(response.message()).contains("Unknown budget category code");
+        verify(budgetingClient, never()).updateBudget(any(), any());
+    }
+
+    @Test
+    void updateBudget_whenPeriodStartIsInvalid_shouldReturnFailureAndNotCallBudgeting() {
+        when(transactionCategoryClient.getAllPrimaryCategories()).thenReturn(ResponseEntity.ok(categories()));
+
+        var response = tools().updateBudget(BUDGET_ID.toString(), "FOOD_AND_DRINK", decimal("300.00"), "USD", null, "05/01/2026");
+
+        assertThat(response.success()).isFalse();
+        assertThat(response.message()).contains("periodStart must use yyyy-MM-dd");
+        verify(budgetingClient, never()).updateBudget(any(), any());
+    }
+
+    @Test
     void deactivateBudget_whenBudgetIdIsValid_shouldDelegateDelete() {
         var response = tools().deactivateBudget(" " + BUDGET_ID + " ");
 
@@ -189,12 +244,25 @@ class BudgetToolsTest {
         verify(budgetingClient, never()).deactivateBudget(any());
     }
 
+    @Test
+    void deactivateBudget_whenBudgetIdIsBlank_shouldReturnFailureAndNotCallBudgeting() {
+        var response = tools().deactivateBudget(" ");
+
+        assertThat(response.success()).isFalse();
+        assertThat(response.message()).contains("Invalid budget ID");
+        verify(budgetingClient, never()).deactivateBudget(any());
+    }
+
     private BudgetTools tools() {
         return new BudgetTools(budgetingClient, dashboardClient, transactionCategoryClient);
     }
 
     private static List<TransactionPrimaryCategoryDto> categories() {
         return List.of(new TransactionPrimaryCategoryDto(CATEGORY_ID, "FOOD_AND_DRINK", "Food", "food.svg"));
+    }
+
+    private static List<TransactionPrimaryCategoryDto> categoriesWithNullId() {
+        return List.of(new TransactionPrimaryCategoryDto(null, "FOOD_AND_DRINK", "Food", "food.svg"));
     }
 
     private static BudgetResponseDto budget() {

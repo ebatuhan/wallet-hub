@@ -161,6 +161,7 @@ public class BudgetTools {
         return categories.stream()
                 .filter(category -> normalizedCategoryCode.equalsIgnoreCase(category.getCategoryCode()))
                 .map(TransactionPrimaryCategoryDto::getTransactionPrimaryCategoryId)
+                .filter(java.util.Objects::nonNull)
                 .findFirst()
                 .orElse(null);
     }

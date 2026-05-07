@@ -47,4 +47,13 @@ class CallerJwtFeignConfigurationTest {
 
         assertThat(template.headers()).isEqualTo(Map.of());
     }
+
+    @Test
+    void callerJwtRelayInterceptor_whenAuthenticationIsMissing_shouldLeaveHeadersUnchanged() {
+        RequestTemplate template = new RequestTemplate();
+
+        new CallerJwtFeignConfiguration().callerJwtRelayInterceptor().apply(template);
+
+        assertThat(template.headers()).isEqualTo(Map.of());
+    }
 }

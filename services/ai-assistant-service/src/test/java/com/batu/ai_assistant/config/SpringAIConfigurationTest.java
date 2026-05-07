@@ -51,6 +51,40 @@ class SpringAIConfigurationTest {
         assertThat(response).contains("\"tool\":\"unknown\"");
     }
 
+    @Test
+    void toolExecutionExceptionProcessor_whenCauseMessageIsBlank_shouldReturnGenericMessage() {
+        ToolExecutionException exception = new ToolExecutionException(toolDefinition("lookup"), new RuntimeException(" "));
+
+        String response = new SpringAIConfiguration().toolExecutionExceptionProcessor().process(exception);
+
+        assertThat(response).contains("\"errorType\":\"RuntimeException\"");
+        assertThat(response).contains("\"message\":\"The tool could not complete the request.\"");
+        assertThat(response).contains("\"tool\":\"lookup\"");
+    }
+
+    @Test
+    void toolExecutionExceptionProcessor_whenCauseMessageIsMultiline_shouldExposeOnlyFirstLine() {
+        ToolExecutionException exception = new ToolExecutionException(
+                toolDefinition("get_dashboard_summary"),
+                new RuntimeException("safe first line\ninternal second line"));
+
+        String response = new SpringAIConfiguration().toolExecutionExceptionProcessor().process(exception);
+
+        assertThat(response).contains("\"message\":\"safe first line\"");
+        assertThat(response).doesNotContain("internal second line");
+    }
+
+    @Test
+    void toolExecutionExceptionProcessor_whenMessageContainsBackslash_shouldJsonEscapeMessage() {
+        ToolExecutionException exception = new ToolExecutionException(
+                null,
+                new RuntimeException("bad \\ path"));
+
+        String response = new SpringAIConfiguration().toolExecutionExceptionProcessor().process(exception);
+
+        assertThat(response).contains("\"message\":\"bad \\\\ path\"");
+    }
+
     private static ToolDefinition toolDefinition(String name) {
         return ToolDefinition.builder()
                 .name(name)
