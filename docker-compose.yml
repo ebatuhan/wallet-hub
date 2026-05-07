@@ -5,14 +5,14 @@ services:
   config-service:
     build:
       context: .
-      dockerfile: config-service/Dockerfile
+      dockerfile: services/config-service/Dockerfile
     container_name: config-service
     ports:
       - "${CONFIG_SERVICE_PORT:-8888}:8888"
     environment:
       CONFIG_REPO_LOCATION: file:/config-repo
     volumes:
-      - ./config-service:/app
+      - ./services/config-service:/app
       - ./config-repo:/config-repo:ro
       - ~/.m2:/root/.m2
     healthcheck:
@@ -145,11 +145,11 @@ services:
   plaid-adapter-service:
     build:
       context: .
-      dockerfile: plaid-adapter-service/Dockerfile
+      dockerfile: services/plaid-adapter-service/Dockerfile
     container_name: plaid-adapter-service
     env_file:
       - config/.spring-common
-      - config/.plaid-adapter
+      - config/.plaid-adapter-service
     environment:
       <<: *spring-environment
     ports:
@@ -160,14 +160,14 @@ services:
       postgres-plaid:
         condition: service_healthy
     volumes:
-      - ./plaid-adapter-service:/app
-      - ./shared:/shared
+      - ./services/plaid-adapter-service:/app
+      - ./services/shared:/shared
       - ~/.m2:/root/.m2
 
   account-service:
     build:
       context: .
-      dockerfile: account-service/Dockerfile
+      dockerfile: services/account-service/Dockerfile
     container_name: account-service
     env_file:
       - config/.spring-common
@@ -184,14 +184,14 @@ services:
       rabbitmq:
         condition: service_healthy
     volumes:
-      - ./account-service:/app
-      - ./shared:/shared
+      - ./services/account-service:/app
+      - ./services/shared:/shared
       - ~/.m2:/root/.m2
 
   transaction-service:
     build:
       context: .
-      dockerfile: transaction-service/Dockerfile
+      dockerfile: services/transaction-service/Dockerfile
     container_name: transaction-service
     env_file:
       - config/.spring-common
@@ -208,14 +208,14 @@ services:
       rabbitmq:
         condition: service_healthy
     volumes:
-      - ./transaction-service:/app
-      - ./shared:/shared
+      - ./services/transaction-service:/app
+      - ./services/shared:/shared
       - ~/.m2:/root/.m2
 
   insights-service:
     build:
       context: .
-      dockerfile: insights-service/Dockerfile
+      dockerfile: services/insights-service/Dockerfile
     container_name: insights-service
     env_file:
       - config/.spring-common
@@ -234,18 +234,18 @@ services:
     #  rabbitmq:
   #      condition: service_healthy
     volumes:
-      - ./insights-service:/app
-      - ./shared:/shared
+      - ./services/insights-service:/app
+      - ./services/shared:/shared
       - ~/.m2:/root/.m2
 
   budgeting-service:
     build:
       context: .
-      dockerfile: budgeting/Dockerfile
+      dockerfile: services/budgeting-service/Dockerfile
     container_name: budgeting-service
     env_file:
       - config/.spring-common
-      - config/.budgeting
+      - config/.budgeting-service
     environment:
       <<: *spring-environment
     ports:
@@ -258,14 +258,14 @@ services:
       rabbitmq:
         condition: service_healthy
     volumes:
-      - ./budgeting:/app
-      - ./shared:/shared
+      - ./services/budgeting-service:/app
+      - ./services/shared:/shared
       - ~/.m2:/root/.m2
 
   dashboard-service:
     build:
       context: .
-      dockerfile: dashboard-service/Dockerfile
+      dockerfile: services/dashboard-service/Dockerfile
     container_name: dashboard-service
     env_file:
       - config/.spring-common
@@ -278,25 +278,25 @@ services:
       config-service:
         condition: service_healthy
     volumes:
-      - ./dashboard-service:/app
-      - ./shared:/shared
+      - ./services/dashboard-service:/app
+      - ./services/shared:/shared
       - ~/.m2:/root/.m2
 
   ai-assistant-service:
     build:
       context: .
-      dockerfile: ai-assistant/Dockerfile
+      dockerfile: services/ai-assistant-service/Dockerfile
     container_name: ai-assistant-service
     env_file:
       - config/.spring-common
-      - config/.ai-assistant
+      - config/.ai-assistant-service
     environment:
       <<: *spring-environment
     ports:
       - "${AI_ASSISTANT_SERVICE_PORT}:8091"
     volumes:
-      - ./ai-assistant:/app
-      - ./shared:/shared
+      - ./services/ai-assistant-service:/app
+      - ./services/shared:/shared
       - ~/.m2:/root/.m2
     depends_on:
       config-service:
@@ -337,7 +337,7 @@ services:
   api-gateway:
     build:
       context: .
-      dockerfile: api-gateway/Dockerfile
+      dockerfile: services/api-gateway/Dockerfile
     container_name: api-gateway
     env_file:
       - config/.spring-common
@@ -347,8 +347,8 @@ services:
     ports:
       - "${API_GATEWAY_PORT}:8085"
     volumes:
-      - ./api-gateway:/app
-      - ./shared:/shared
+      - ./services/api-gateway:/app
+      - ./services/shared:/shared
       - ~/.m2:/root/.m2
     depends_on:
       config-service:

@@ -1,0 +1,93 @@
+spring:
+  application:
+    name: ai-assistant-service
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5439/ai_assistant_db}
+    user: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5439/ai_assistant_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+
+  ai:
+    chat:
+      memory:
+        repository:
+          jdbc:
+            initialize-schema: ${SPRING_AI_CHAT_MEMORY_JDBC_INITIALIZE_SCHEMA:never}
+    model:
+      chat: ollama
+    retry:
+      max-attempts: ${SPRING_AI_RETRY_MAX_ATTEMPTS:3}
+      on-client-errors: false
+      on-transient-error-only: true
+      backoff:
+        initial-interval: ${SPRING_AI_RETRY_INITIAL_INTERVAL:1s}
+        multiplier: ${SPRING_AI_RETRY_MULTIPLIER:2}
+        max-interval: ${SPRING_AI_RETRY_MAX_INTERVAL:3s}
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://host.docker.internal:11434}
+      init:
+        pull-model-strategy: ${OLLAMA_PULL_MODEL_STRATEGY:when_missing}
+        timeout: ${OLLAMA_PULL_TIMEOUT:10m}
+        max-retries: ${OLLAMA_PULL_MAX_RETRIES:1}
+        embedding:
+          include: ${OLLAMA_INIT_EMBEDDING_INCLUDE:false}
+      chat:
+        options:
+          model: ${OLLAMA_MODEL:}
+          keep-alive: ${OLLAMA_KEEP_ALIVE:30m}
+          num-ctx: ${OLLAMA_NUM_CTX:8192}
+          num-predict: ${OLLAMA_NUM_PREDICT:2048}
+          temperature: ${OLLAMA_TEMPERATURE:0.2}
+          seed: ${OLLAMA_SEED:7}
+
+  cloud:
+    openfeign:
+      micrometer:
+        enabled: true
+
+  jpa:
+    show-sql: false
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: false
+
+logging:
+  level:
+    org.springframework.ai: DEBUG
+    org.springframework.web.reactive.function.client: DEBUG
+    reactor.netty.http.client: DEBUG
+    reactor.netty.transport: DEBUG
+    org.hibernate: WARN
+    org.hibernate.orm: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN
+assistant:
+  guard:
+    model: ${OLLAMA_GUARD_MODEL:${OLLAMA_MODEL}}
+  ollama:
+    thinking-mode: ${OLLAMA_THINKING_MODE:ENABLED}
+
+server:
+  port: 8091
+
+dashboardclient:
+  url: ${DASHBOARD_SERVICE_URL:http://localhost:8090}/dashboard
+
+budgetingclient:
+  url: ${BUDGETING_SERVICE_URL:http://localhost:8089}/budgets
+
+transactionclient:
+  url: ${TRANSACTION_SERVICE_URL:http://localhost:8086}/transactions/categories/primary

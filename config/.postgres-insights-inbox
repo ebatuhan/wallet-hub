@@ -1,3 +1,0 @@
-POSTGRES_DB=insights_inbox_db
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres

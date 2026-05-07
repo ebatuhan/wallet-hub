@@ -12,6 +12,8 @@
 *.env
 .env.local
 .env.*.local
+config/.*
+keycloak/
 
 target/
 pom.xml.tag
@@ -457,18 +459,7 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
-consent-service/.factorypath
-consent-service/.settings/org.eclipse.jdt.apt.core.prefs
-.gitignore
-consent-service/.settings/org.eclipse.core.resources.prefs
-consent-service/.settings/org.eclipse.m2e.core.prefs
-consent-service/.project
-consent-service/.settings/org.eclipse.jdt.core.prefs
-consent-service/.classpath
-shared/.classpath
-shared/.factorypath
-shared/.project
-shared/.settings/org.eclipse.jdt.apt.core.prefs
-shared/.settings/org.eclipse.core.resources.prefs
-shared/.settings/org.eclipse.jdt.core.prefs
-shared/.settings/org.eclipse.m2e.core.prefs
+.classpath
+.factorypath
+.project
+.settings/

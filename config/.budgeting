@@ -1,4 +1,0 @@
-SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-budgeting:5432/budgeting_db
-SPRING_DATASOURCE_USERNAME=postgres
-SPRING_DATASOURCE_PASSWORD=postgres
-TRANSACTION_SERVICE_URL=http://transaction-service:8086

@@ -1,19 +1,19 @@
-name: Transaction Service Tests
+name: AI Assistant Tests
 
 on:
   pull_request:
     paths:
-      - "services/transaction-service/**"
+      - "services/ai-assistant-service/**"
       - "services/shared/**"
-      - ".github/workflows/transaction-service-tests.yml"
+      - ".github/workflows/ai-assistant-service-tests.yml"
   push:
     branches:
       - dev
       - main
     paths:
-      - "services/transaction-service/**"
+      - "services/ai-assistant-service/**"
       - "services/shared/**"
-      - ".github/workflows/transaction-service-tests.yml"
+      - ".github/workflows/ai-assistant-service-tests.yml"
   workflow_dispatch:
 
 permissions:
@@ -21,9 +21,9 @@ permissions:
 
 jobs:
   test:
-    name: Test transaction service
+    name: Test ai-assistant-service service
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
@@ -39,21 +39,21 @@ jobs:
       - name: Install shared module
         run: mvn --batch-mode --no-transfer-progress -f services/shared/pom.xml clean install
 
-      - name: Verify transaction service
-        run: mvn --batch-mode --no-transfer-progress -f services/transaction-service/pom.xml clean verify
+      - name: Verify ai-assistant-service service
+        run: mvn --batch-mode --no-transfer-progress -f services/ai-assistant-service/pom.xml clean verify
 
       - name: Upload Surefire reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: transaction-service-surefire-reports
-          path: services/transaction-service/target/surefire-reports/
+          name: ai-assistant-surefire-reports
+          path: services/ai-assistant-service/target/surefire-reports/
           if-no-files-found: error
 
       - name: Upload Failsafe reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: transaction-service-failsafe-reports
-          path: services/transaction-service/target/failsafe-reports/
+          name: ai-assistant-failsafe-reports
+          path: services/ai-assistant-service/target/failsafe-reports/
           if-no-files-found: error

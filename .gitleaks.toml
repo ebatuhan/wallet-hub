@@ -1,0 +1,6 @@
+[allowlist]
+description = "Allow deterministic test fixtures"
+paths = [
+  '''services/.*/src/test/resources/keycloak/.*''',
+  '''keycloak-export/.*'''
+]
