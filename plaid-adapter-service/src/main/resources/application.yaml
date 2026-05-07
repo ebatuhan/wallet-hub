@@ -9,6 +9,9 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
 
+  flyway:
+    baseline-on-migrate: true
+
   security:
     oauth2:
       client:
