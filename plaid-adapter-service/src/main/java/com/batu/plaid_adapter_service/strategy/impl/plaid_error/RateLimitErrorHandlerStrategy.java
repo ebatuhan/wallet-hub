@@ -11,7 +11,7 @@ import com.plaid.client.model.PlaidError;
 public class RateLimitErrorHandlerStrategy implements PlaidErrorHandlerStrategy {
 
     @Override
-    public void handle(PlaidError error) {
-        throw new PlaidRetryableException("Service exceed rate limit on calling Plaid API.", HttpStatus.TOO_MANY_REQUESTS);
+    public RuntimeException toException(PlaidError error) {
+        return new PlaidRetryableException("Service exceed rate limit on calling Plaid API.", HttpStatus.TOO_MANY_REQUESTS);
     }
 }

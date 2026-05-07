@@ -11,12 +11,12 @@ import com.plaid.client.model.PlaidError;
 public class DefaultPlaidErrorHandlerStrategy implements PlaidErrorHandlerStrategy {
 
     @Override
-    public void handle(PlaidError error) {
+    public RuntimeException toException(PlaidError error) {
         String displayMessage = error.getDisplayMessage() != null
                 ? error.getDisplayMessage()
                 : "An error occurred in Plaid";
 
-        throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, displayMessage);
+        return new ResponseStatusException(HttpStatus.BAD_GATEWAY, displayMessage);
     }
 
 }

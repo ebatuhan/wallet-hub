@@ -20,9 +20,9 @@ public class PlaidErrorHandlerFactory {
         return strategies.getOrDefault(name, strategies.get("DEFAULT_ERROR_HANDLER"));
     }
 
-    public void execute(PlaidError plaidError) {
+    public RuntimeException toException(PlaidError plaidError) {
         var strategy = getStrategy(plaidError.getErrorCode());
 
-        strategy.handle(plaidError);
+        return strategy.toException(plaidError);
     }
 }

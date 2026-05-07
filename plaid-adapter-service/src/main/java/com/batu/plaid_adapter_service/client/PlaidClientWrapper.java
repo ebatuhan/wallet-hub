@@ -77,16 +77,27 @@ public class PlaidClientWrapper {
             return response.body();
         }
 
+        if (response.isSuccessful()) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Plaid returned empty response body");
+        }
+
         var errorBody = response.errorBody();
         if (errorBody == null) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Plaid returned empty error body");
         }
 
-        PlaidError plaidError = gson.fromJson(errorBody.string(), PlaidError.class);
+        PlaidError plaidError;
+        try {
+            plaidError = gson.fromJson(errorBody.string(), PlaidError.class);
+        } catch (RuntimeException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Plaid returned malformed error body", exception);
+        }
 
-        plaidErrorHandlerFactory.execute(plaidError);
+        if (plaidError == null || plaidError.getErrorCode() == null || plaidError.getErrorCode().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Plaid returned malformed error body");
+        }
 
-        return null; //TODO ?????
+        throw plaidErrorHandlerFactory.toException(plaidError);
     }
 
     @FunctionalInterface

@@ -1,0 +1,49 @@
+{
+  "realm": "wallet-hub",
+  "enabled": true,
+  "clients": [
+    {
+      "clientId": "wallet-hub-test",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "protocol": "openid-connect"
+    }
+  ],
+  "users": [
+    {
+      "id": "85000000-0000-0000-0000-000000000001",
+      "username": "plaid-user-a",
+      "firstName": "Plaid",
+      "lastName": "User A",
+      "email": "plaid-user-a@example.test",
+      "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "85000000-0000-0000-0000-000000000002",
+      "username": "plaid-user-b",
+      "firstName": "Plaid",
+      "lastName": "User B",
+      "email": "plaid-user-b@example.test",
+      "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}
