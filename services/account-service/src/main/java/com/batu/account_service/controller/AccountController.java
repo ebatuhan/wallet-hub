@@ -24,6 +24,9 @@ import com.batu.shared.dto.response.AccountSummaryResponseDto;
 import com.batu.shared.dto.response.AccountViewDto;
 import com.batu.shared.dto.response.CursorResponse;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -32,10 +35,13 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/accounts")
 @RequiredArgsConstructor
+@Tag(name = "Accounts", description = "User account lookup, summaries, and paginated account views.")
+@SecurityRequirement(name = "bearerAuth")
 public class AccountController {
     private final AccountService accountService;
 
     @GetMapping("/{accountId}")
+    @Operation(summary = "Get account", description = "Returns one account owned by the authenticated user.")
     public ResponseEntity<AccountResponseDto> getAccount(
             @PathVariable UUID accountId,
             @AuthenticationPrincipal Jwt jwt) {
@@ -43,16 +49,19 @@ public class AccountController {
     }
 
     @GetMapping("/summary")
+    @Operation(summary = "Get account summary", description = "Returns balance totals and account summary data for the authenticated user.")
     public ResponseEntity<AccountSummaryResponseDto> getAccountSummary(@AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(accountService.getAccountSummary(jwt));
     }
 
     @PostMapping("/batch")
+    @Operation(summary = "Resolve account names", description = "Returns account names for the supplied account IDs.")
     public ResponseEntity<List<AccountNameResponseDto>> getAccountsByGivenIds(@Valid @RequestBody AccountNameRequestDto request) {
         return ResponseEntity.ok(accountService.getAccountsByGivenIds(request));
     }
 
     @GetMapping
+    @Operation(summary = "List accounts", description = "Returns a cursor-paginated account view with optional filters and sorting.")
     public ResponseEntity<CursorResponse<AccountViewDto>> getAllAccounts(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) String accountName,

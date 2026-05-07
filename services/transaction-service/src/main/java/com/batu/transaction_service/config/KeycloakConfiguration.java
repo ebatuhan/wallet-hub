@@ -42,6 +42,7 @@ public class KeycloakConfiguration {
                 .authorizeHttpRequests(
                         auth -> auth
                                 .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
+                                .requestMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll()
                                 .requestMatchers(HttpMethod.PUT, "/transactions/*").hasAuthority(SERVICE_AUTHORITY)
                                 .requestMatchers(HttpMethod.DELETE, "/transactions/accounts/*").hasAuthority(SERVICE_AUTHORITY)
                                 .requestMatchers("/transactions/categories/primary/**").permitAll()

@@ -22,6 +22,9 @@ import com.batu.budgeting.enums.BudgetSortField;
 import com.batu.budgeting.service.BudgetService;
 import com.batu.shared.dto.response.CursorResponse;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -31,11 +34,14 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/budgets")
 @RequiredArgsConstructor
+@Tag(name = "Budgets", description = "Category budget management endpoints.")
+@SecurityRequirement(name = "bearerAuth")
 public class BudgetController {
 
     private final BudgetService budgetService;
 
     @PostMapping
+    @Operation(summary = "Create budget", description = "Creates a category budget for the authenticated user.")
     public ResponseEntity<BudgetResponse> createBudget(
             @Valid @RequestBody CreateBudgetRequest request,
             @AuthenticationPrincipal Jwt principal) {
@@ -43,6 +49,7 @@ public class BudgetController {
     }
 
     @PutMapping("/{budgetId}")
+    @Operation(summary = "Update budget", description = "Updates an existing budget owned by the authenticated user.")
     public ResponseEntity<BudgetResponse> updateBudget(
             @PathVariable UUID budgetId,
             @Valid @RequestBody CreateBudgetRequest request,
@@ -51,6 +58,7 @@ public class BudgetController {
     }
 
     @GetMapping
+    @Operation(summary = "List budgets", description = "Returns cursor-paginated budgets for the authenticated user.")
     public ResponseEntity<CursorResponse<BudgetResponse>> getBudgets(
             @AuthenticationPrincipal Jwt principal,
             @RequestParam(required = false) String cursor,
@@ -61,6 +69,7 @@ public class BudgetController {
     }
 
     @DeleteMapping("/{budgetId}")
+    @Operation(summary = "Deactivate budget", description = "Marks an existing budget inactive for the authenticated user.")
     public ResponseEntity<Void> deactivateBudget(
             @PathVariable UUID budgetId,
             @AuthenticationPrincipal Jwt principal) {

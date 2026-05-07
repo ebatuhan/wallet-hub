@@ -16,16 +16,22 @@ import com.batu.shared.dto.response.TransactionDto;
 import com.batu.shared.dto.response.TransactionViewResponseDto;
 import com.batu.transaction_service.service.TransactionService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/transactions")
 @RequiredArgsConstructor
+@Tag(name = "Transactions", description = "Transaction browsing endpoints.")
+@SecurityRequirement(name = "bearerAuth")
 public class TransactionController {
 
     private final TransactionService transactionService;
 
     @GetMapping
+    @Operation(summary = "List transactions", description = "Returns cursor-paginated transactions with optional category and account filters.")
     public ResponseEntity<CursorResponse<TransactionViewResponseDto>> getTransactions(
             @AuthenticationPrincipal Jwt principal,
             @RequestParam(required = false) String category,
@@ -43,6 +49,7 @@ public class TransactionController {
     }
 
     @GetMapping("/{transactionId}")
+    @Operation(summary = "Get transaction", description = "Returns a single transaction owned by the authenticated user.")
     public ResponseEntity<TransactionDto> getTransactionById(
             @AuthenticationPrincipal Jwt principal,
             @PathVariable UUID transactionId) {

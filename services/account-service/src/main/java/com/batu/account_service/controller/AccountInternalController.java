@@ -18,6 +18,7 @@ import com.batu.shared.dto.request.AccountUpsertRequestDto;
 import com.batu.shared.dto.response.AccountResponseDto;
 import com.batu.shared.dto.response.AccountUpsertResponseDto;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -25,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/accounts/internal")
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('ROLE_service')")
+@Hidden
 public class AccountInternalController {
     private final AccountService accountService;
 

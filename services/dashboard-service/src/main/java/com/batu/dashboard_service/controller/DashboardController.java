@@ -20,16 +20,22 @@ import com.batu.dashboard_service.service.DashboardService;
 import com.batu.shared.dto.response.BudgetResponseDto;
 import com.batu.shared.dto.response.CursorResponse;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/dashboard")
 @RequiredArgsConstructor
+@Tag(name = "Dashboard", description = "User dashboard summary and drill-down endpoints.")
+@SecurityRequirement(name = "bearerAuth")
 public class DashboardController {
 
     private final DashboardService dashboardService;
 
     @GetMapping("/summary")
+    @Operation(summary = "Get user dashboard summary", description = "Returns user-level account, transaction, spending, and recent activity summary data.")
     public ResponseEntity<UserDashboardSummaryResponseDto> getSummary(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
@@ -39,6 +45,7 @@ public class DashboardController {
     }
 
     @GetMapping("/budgets")
+    @Operation(summary = "Get dashboard budgets", description = "Returns enriched budget data for dashboard views.")
     public ResponseEntity<CursorResponse<BudgetResponseDto>> getBudgets(
             @RequestParam(required = false) Integer limit,
             @RequestParam(required = false) String cursor,
@@ -49,6 +56,7 @@ public class DashboardController {
     }
 
     @GetMapping("/accounts/{accountId}/summary")
+    @Operation(summary = "Get account dashboard summary", description = "Returns dashboard summary data for one account.")
     public ResponseEntity<AccountDashboardSummaryResponseDto> getAccountSummary(
             @PathVariable UUID accountId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
@@ -60,6 +68,7 @@ public class DashboardController {
     }
 
     @GetMapping("/transactions/{transactionId}/summary")
+    @Operation(summary = "Get transaction dashboard summary", description = "Returns dashboard summary data for one transaction.")
     public ResponseEntity<TransactionDashboardSummaryResponseDto> getTransactionSummary(
             @PathVariable UUID transactionId,
             @AuthenticationPrincipal Jwt principal) {
