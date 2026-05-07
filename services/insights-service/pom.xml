@@ -29,6 +29,7 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+		<jacoco.version>0.8.13</jacoco.version>
 		<spring-cloud.version>2025.1.0</spring-cloud.version>
    		<flyway.version>10.22.0</flyway.version>
 	</properties>
@@ -214,6 +215,39 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>${jacoco.version}</version>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>prepare-agent-integration</id>
+						<goals>
+							<goal>prepare-agent-integration</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report-integration</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>report-integration</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

@@ -10,7 +10,6 @@ on:
   push:
     branches:
       - dev
-      - main
     paths:
       - "services/shared/**"
       - ".github/workflows/shared-tests.yml"
@@ -49,4 +48,12 @@ jobs:
         with:
           name: shared-surefire-reports
           path: services/shared/target/surefire-reports/
+          if-no-files-found: error
+
+      - name: Upload JaCoCo reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-jacoco-reports
+          path: services/shared/target/site/jacoco/
           if-no-files-found: error

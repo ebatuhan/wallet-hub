@@ -9,7 +9,6 @@ on:
   push:
     branches:
       - dev
-      - main
     paths:
       - "services/account-service/**"
       - "services/shared/**"
@@ -56,4 +55,14 @@ jobs:
         with:
           name: account-service-failsafe-reports
           path: services/account-service/target/failsafe-reports/
+          if-no-files-found: error
+
+      - name: Upload JaCoCo reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: account-service-jacoco-reports
+          path: |
+            services/account-service/target/site/jacoco/
+            services/account-service/target/site/jacoco-it/
           if-no-files-found: error
