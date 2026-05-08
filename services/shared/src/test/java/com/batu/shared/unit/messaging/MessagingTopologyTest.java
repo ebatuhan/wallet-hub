@@ -26,6 +26,7 @@ class MessagingTopologyTest {
     void constants_whenTransactionEventsAreDefined_shouldExposeStableQueuesRoutingKeysAndEventTypes() {
         assertThat(MessagingTopology.TRANSACTION_RECORDED_QUEUE).isEqualTo("insights.transaction-recorded.v1");
         assertThat(MessagingTopology.TRANSACTION_REMOVED_QUEUE).isEqualTo("insights.transaction-removed.v1");
+        assertThat(MessagingTopology.TRANSACTION_ACCOUNT_REMOVED_QUEUE).isEqualTo("transactions.account-removed.v1");
         assertThat(MessagingTopology.BUDGETING_TRANSACTION_RECORDED_QUEUE).isEqualTo("budgeting.transaction-recorded.v1");
         assertThat(MessagingTopology.TRANSACTION_PERSISTED_QUEUE).isEqualTo(MessagingTopology.TRANSACTION_RECORDED_QUEUE);
         assertThat(MessagingTopology.BUDGETING_TRANSACTION_PERSISTED_QUEUE)

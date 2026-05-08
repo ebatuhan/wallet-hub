@@ -1,4 +1,4 @@
-package com.batu.transaction_service;
+package com.batu.transaction_service.controller;
 
 import java.util.UUID;
 

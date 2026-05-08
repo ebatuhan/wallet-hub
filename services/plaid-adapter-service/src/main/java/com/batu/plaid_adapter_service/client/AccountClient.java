@@ -23,6 +23,5 @@ public interface AccountClient {
     List<AccountResponseDto> findAccountsByConnectionId(@PathVariable("connectionId") UUID connectionId);
 
     @PutMapping("/internal/deactivate-by-connection/{connectionId}")
-    List<AccountUpsertResponseDto> deactivateAccountsByConnection(
-            @PathVariable("connectionId") UUID connectionId);
+    void deactivateAccountsByConnection(@PathVariable("connectionId") UUID connectionId);
 }

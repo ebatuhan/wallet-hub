@@ -164,25 +164,8 @@ public class TransactionServiceImpl implements TransactionService {
 
         @Override
         @Transactional
-        public List<TransactionUpsertResponseDto> deactivateTransactionsByAccountId(UUID accountId) {
-                List<Transaction> transactions = transactionRepository.findByAccountIdAndIsActiveTrue(accountId);
-
-                for (Transaction transaction : transactions) {
-                        transaction.setActive(false);
-                }
-
-                List<Transaction> savedTransactions = transactionRepository.saveAll(transactions);
-
-                for (Transaction transaction : savedTransactions) {
-                        eventPublisher.publishTransactionRemoved(new TransactionRemoved(
-                                        transaction.getTransactionId(),
-                                        transaction.getUserId(),
-                                        transaction.getAccountId()));
-                }
-
-                return savedTransactions.stream()
-                                .map(transaction -> toUpsertResponse(transaction, transaction.getDetailedCategory()))
-                                .toList();
+        public void deactivateTransactionsByAccountId(UUID accountId) {
+                transactionRepository.deactivateActiveTransactionsByAccountId(accountId);
         }
 
         private TransactionUpsertResponseDto toUpsertResponse(

@@ -119,6 +119,36 @@ class AccountRepositoryIT {
     }
 
     @Test
+    void findActiveAccountRemovalsByConnectionId_whenAccountsExist_shouldReturnOnlyActiveMatchingAccounts() {
+        saveAccount(ACCOUNT_ID, USER_ID, CONNECTION_ID, "Checking", "Bank", "depository", "checking", "100.00", "90.00", "USD", true);
+        saveAccount(SAVINGS_ACCOUNT_ID, USER_ID, CONNECTION_ID, "Savings", "Bank", "depository", "savings", "50.00", "40.00", "USD", false);
+        saveAccount(FOREIGN_ACCOUNT_ID, OTHER_USER_ID, OTHER_CONNECTION_ID, "Foreign", "Bank", "depository", "checking", "200.00", "180.00", "USD", true);
+
+        var result = accountRepository.findActiveAccountRemovalsByConnectionId(CONNECTION_ID);
+
+        assertThat(result).singleElement().satisfies(account -> {
+            assertThat(account.getAccountId()).isEqualTo(ACCOUNT_ID);
+            assertThat(account.getUserId()).isEqualTo(USER_ID);
+            assertThat(account.getConnectionId()).isEqualTo(CONNECTION_ID);
+        });
+    }
+
+    @Test
+    void deactivateActiveAccountsByConnectionId_whenAccountsExist_shouldBulkDeactivateOnlyActiveMatchingAccounts() {
+        saveAccount(ACCOUNT_ID, USER_ID, CONNECTION_ID, "Checking", "Bank", "depository", "checking", "100.00", "90.00", "USD", true);
+        saveAccount(SAVINGS_ACCOUNT_ID, USER_ID, CONNECTION_ID, "Savings", "Bank", "depository", "savings", "50.00", "40.00", "USD", false);
+        saveAccount(FOREIGN_ACCOUNT_ID, OTHER_USER_ID, OTHER_CONNECTION_ID, "Foreign", "Bank", "depository", "checking", "200.00", "180.00", "USD", true);
+
+        int updated = accountRepository.deactivateActiveAccountsByConnectionId(CONNECTION_ID);
+        entityManager.clear();
+
+        assertThat(updated).isEqualTo(1);
+        assertThat(accountRepository.findById(ACCOUNT_ID).orElseThrow().isActive()).isFalse();
+        assertThat(accountRepository.findById(SAVINGS_ACCOUNT_ID).orElseThrow().isActive()).isFalse();
+        assertThat(accountRepository.findById(FOREIGN_ACCOUNT_ID).orElseThrow().isActive()).isTrue();
+    }
+
+    @Test
     void upsertAccount_whenAccountIsNew_shouldInsertActiveAccount() {
         var request = upsertRequest(ACCOUNT_ID, USER_ID, CONNECTION_ID, "Checking", "100.00", "90.00");
 

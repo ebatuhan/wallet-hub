@@ -38,5 +38,5 @@ public interface AccountService {
 
     AccountUpsertResponseDto upsertAccount(AccountUpsertRequestDto request);
 
-    List<AccountUpsertResponseDto> deactivateAccountsByConnection(UUID connectionId);
+    void deactivateAccountsByConnection(UUID connectionId);
 }

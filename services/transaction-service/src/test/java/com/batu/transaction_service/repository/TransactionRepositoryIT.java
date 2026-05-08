@@ -104,6 +104,22 @@ class TransactionRepositoryIT {
     }
 
     @Test
+    void deactivateActiveTransactionsByAccountId_whenTransactionsExist_shouldBulkDeactivateOnlyActiveMatchingTransactions() {
+        TransactionDetailedCategory category = saveCategory("FOOD_AND_DRINK", "FOOD_AND_DRINK_COFFEE");
+        saveTransaction(TRANSACTION_ID, USER_ID, ACCOUNT_ID, category, true, "Coffee Shop");
+        saveTransaction(OTHER_TRANSACTION_ID, USER_ID, ACCOUNT_ID, category, false, "Inactive");
+        saveTransaction(FOREIGN_TRANSACTION_ID, USER_ID, OTHER_ACCOUNT_ID, category, true, "Other Account");
+
+        int updated = transactionRepository.deactivateActiveTransactionsByAccountId(ACCOUNT_ID);
+        entityManager.clear();
+
+        assertThat(updated).isEqualTo(1);
+        assertThat(transactionRepository.findById(TRANSACTION_ID).orElseThrow().isActive()).isFalse();
+        assertThat(transactionRepository.findById(OTHER_TRANSACTION_ID).orElseThrow().isActive()).isFalse();
+        assertThat(transactionRepository.findById(FOREIGN_TRANSACTION_ID).orElseThrow().isActive()).isTrue();
+    }
+
+    @Test
     void findBySpecification_whenFiltersAreProvided_shouldReturnOnlyActiveOwnedMatchingTransactions() {
         TransactionDetailedCategory foodCategory = saveCategory("FOOD_AND_DRINK", "FOOD_AND_DRINK_COFFEE");
         TransactionDetailedCategory travelCategory = saveCategory("TRAVEL", "TRAVEL_FLIGHTS");

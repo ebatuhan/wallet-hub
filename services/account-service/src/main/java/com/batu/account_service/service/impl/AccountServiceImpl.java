@@ -160,23 +160,16 @@ public class AccountServiceImpl implements AccountService {
 
         @Override
         @Transactional
-        public List<AccountUpsertResponseDto> deactivateAccountsByConnection(UUID connectionId) {
-                List<Account> accounts = accountRepository.findByConnectionIdAndIsActiveTrue(connectionId);
+        public void deactivateAccountsByConnection(UUID connectionId) {
+                var removedAccounts = accountRepository.findActiveAccountRemovalsByConnectionId(connectionId);
+                accountRepository.deactivateActiveAccountsByConnectionId(connectionId);
 
-                for (Account account : accounts) {
-                        account.setActive(false);
-                }
-
-                List<Account> savedAccounts = accountRepository.saveAll(accounts);
-
-                for (Account account : savedAccounts) {
+                for (var account : removedAccounts) {
                         eventPublisher.publishAccountRemoved(new AccountRemoved(
                                         account.getAccountId(),
                                         account.getUserId(),
                                         account.getConnectionId()));
                 }
-
-                return savedAccounts.stream().map(this::toUpsertResponse).toList();
         }
 
         private AccountUpsertResponseDto toUpsertResponse(Account account) {

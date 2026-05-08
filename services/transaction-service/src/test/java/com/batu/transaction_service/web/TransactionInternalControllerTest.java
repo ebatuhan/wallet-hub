@@ -6,14 +6,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -31,7 +29,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.batu.shared.dto.request.TransactionUpsertRequestDto;
 import com.batu.shared.dto.response.TransactionUpsertResponseDto;
 import com.batu.shared.error.CommonApplicationErrorAdvice;
-import com.batu.transaction_service.TransactionInternalController;
+import com.batu.transaction_service.controller.TransactionInternalController;
 import com.batu.transaction_service.config.KeycloakConfiguration;
 import com.batu.transaction_service.service.TransactionService;
 
@@ -139,28 +137,6 @@ class TransactionInternalControllerTest {
                 .andExpect(jsonPath("$.errors.isoCurrencyCode").value("ISO currency code must be 3 characters"));
 
         verify(transactionService, never()).upsertTransaction(any(TransactionUpsertRequestDto.class));
-    }
-
-    @Test
-    void deactivateTransactionsByAccount_whenServiceJwtHasRole_shouldReturnDeactivatedTransactions() throws Exception {
-        when(transactionService.deactivateTransactionsByAccountId(ACCOUNT_ID)).thenReturn(List.of(upsertResponse(false)));
-
-        mockMvc.perform(put("/transactions/internal/deactivate-by-account/{accountId}", ACCOUNT_ID)
-                .with(serviceJwt()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].transactionId").value(TRANSACTION_ID.toString()))
-                .andExpect(jsonPath("$[0].active").value(false));
-
-        verify(transactionService).deactivateTransactionsByAccountId(ACCOUNT_ID);
-    }
-
-    @Test
-    void deactivateTransactionsByAccount_whenAccountIdIsInvalid_shouldReturnBadRequestAndNotCallService() throws Exception {
-        mockMvc.perform(put("/transactions/internal/deactivate-by-account/{accountId}", "not-a-uuid")
-                .with(serviceJwt()))
-                .andExpect(status().isBadRequest());
-
-        verify(transactionService, never()).deactivateTransactionsByAccountId(any(UUID.class));
     }
 
     private org.springframework.test.web.servlet.request.RequestPostProcessor serviceJwt() {

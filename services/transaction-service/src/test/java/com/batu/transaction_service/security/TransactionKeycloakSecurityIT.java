@@ -181,19 +181,6 @@ class TransactionKeycloakSecurityIT {
         assertThat(response.body()).contains(TRANSACTION_ID.toString(), USER_A_ID.toString(), ACCOUNT_ID.toString(), "true");
     }
 
-    @Test
-    void deactivateInternalTransactions_whenServiceRoleTokenIsValid_shouldReturnOk() throws Exception {
-        TransactionDetailedCategory category = saveCategory();
-        transactionRepository.saveAndFlush(transaction(TRANSACTION_ID, USER_A_ID, ACCOUNT_ID, category, true));
-
-        HttpResponse<String> response = send(authorizedRequest(
-                "/transactions/internal/deactivate-by-account/" + ACCOUNT_ID,
-                tokenFor("transaction-service-user")).PUT(HttpRequest.BodyPublishers.noBody()));
-
-        assertThat(response.statusCode()).isEqualTo(HttpStatus.OK.value());
-        assertThat(response.body()).contains(TRANSACTION_ID.toString(), USER_A_ID.toString(), ACCOUNT_ID.toString(), "false");
-    }
-
     private static Transferable realmJson() {
         try {
             return Transferable.of(new ClassPathResource("keycloak/wallet-hub-realm.json")
@@ -250,8 +237,7 @@ class TransactionKeycloakSecurityIT {
 
     private static Stream<Arguments> internalEndpointRequests() {
         return Stream.of(
-                Arguments.of(new InternalEndpointRequest("POST", "/transactions/internal/upsert", validUpsertJson())),
-                Arguments.of(new InternalEndpointRequest("PUT", "/transactions/internal/deactivate-by-account/" + ACCOUNT_ID, null)));
+                Arguments.of(new InternalEndpointRequest("POST", "/transactions/internal/upsert", validUpsertJson())));
     }
 
     private static String validUpsertJson() {

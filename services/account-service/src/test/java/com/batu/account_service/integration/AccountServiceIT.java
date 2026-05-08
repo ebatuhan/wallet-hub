@@ -119,10 +119,9 @@ class AccountServiceIT {
         Account checking = saveAccount(ACCOUNT_ID, "Checking");
         Account savings = saveAccount(SAVINGS_ACCOUNT_ID, "Savings");
 
-        var response = accountService.deactivateAccountsByConnection(CONNECTION_ID);
+        accountService.deactivateAccountsByConnection(CONNECTION_ID);
         entityManager.clear();
 
-        assertThat(response).hasSize(2).allSatisfy(account -> assertThat(account.isActive()).isFalse());
         assertThat(accountRepository.findById(checking.getAccountId()).orElseThrow().isActive()).isFalse();
         assertThat(accountRepository.findById(savings.getAccountId()).orElseThrow().isActive()).isFalse();
 

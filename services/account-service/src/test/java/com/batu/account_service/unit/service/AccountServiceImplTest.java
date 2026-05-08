@@ -38,6 +38,7 @@ import com.batu.account_service.enums.AccountSortField;
 import com.batu.account_service.messaging.OutboxDomainEventPublisher;
 import com.batu.account_service.repository.AccountRepository;
 import com.batu.account_service.repository.AccountRepository.AccountCurrencyTotalProjection;
+import com.batu.account_service.repository.AccountRepository.AccountRemovalProjection;
 import com.batu.account_service.service.impl.AccountServiceImpl;
 import com.batu.shared.cursor.CursorUtils;
 import com.batu.shared.dto.request.AccountNameRequestDto;
@@ -308,31 +309,27 @@ class AccountServiceImplTest {
     }
 
     @Test
-    void deactivateAccountsByConnection_whenActiveAccountsExist_shouldDeactivateSaveAndPublishRemovedEvents() {
-        Account checking = account(ACCOUNT_ID, USER_ID, CONNECTION_ID, "Checking", true);
-        Account savings = account(OTHER_ACCOUNT_ID, USER_ID, CONNECTION_ID, "Savings", true);
-        when(accountRepository.findByConnectionIdAndIsActiveTrue(CONNECTION_ID)).thenReturn(List.of(checking, savings));
-        when(accountRepository.saveAll(List.of(checking, savings))).thenReturn(List.of(checking, savings));
+    void deactivateAccountsByConnection_whenActiveAccountsExist_shouldBulkDeactivateAndPublishRemovedEvents() {
+        when(accountRepository.findActiveAccountRemovalsByConnectionId(CONNECTION_ID)).thenReturn(List.of(
+                accountRemoval(ACCOUNT_ID),
+                accountRemoval(OTHER_ACCOUNT_ID)));
         ArgumentCaptor<AccountRemoved> eventCaptor = ArgumentCaptor.forClass(AccountRemoved.class);
 
-        var response = accountService.deactivateAccountsByConnection(CONNECTION_ID);
+        accountService.deactivateAccountsByConnection(CONNECTION_ID);
 
-        assertThat(checking.isActive()).isFalse();
-        assertThat(savings.isActive()).isFalse();
-        assertThat(response).hasSize(2).allSatisfy(account -> assertThat(account.isActive()).isFalse());
+        verify(accountRepository).deactivateActiveAccountsByConnectionId(CONNECTION_ID);
         verify(eventPublisher, org.mockito.Mockito.times(2)).publishAccountRemoved(eventCaptor.capture());
         assertThat(eventCaptor.getAllValues()).extracting(AccountRemoved::getAccountId)
                 .containsExactly(ACCOUNT_ID, OTHER_ACCOUNT_ID);
     }
 
     @Test
-    void deactivateAccountsByConnection_whenNoAccountsExist_shouldReturnEmptyListAndNotPublishEvents() {
-        when(accountRepository.findByConnectionIdAndIsActiveTrue(CONNECTION_ID)).thenReturn(List.of());
-        when(accountRepository.saveAll(List.of())).thenReturn(List.of());
+    void deactivateAccountsByConnection_whenNoAccountsExist_shouldBulkDeactivateAndNotPublishEvents() {
+        when(accountRepository.findActiveAccountRemovalsByConnectionId(CONNECTION_ID)).thenReturn(List.of());
 
-        var response = accountService.deactivateAccountsByConnection(CONNECTION_ID);
+        accountService.deactivateAccountsByConnection(CONNECTION_ID);
 
-        assertThat(response).isEmpty();
+        verify(accountRepository).deactivateActiveAccountsByConnectionId(CONNECTION_ID);
         verify(eventPublisher, never()).publishAccountRemoved(any(AccountRemoved.class));
     }
 
@@ -348,6 +345,25 @@ class AccountServiceImplTest {
                 .header("alg", "none")
                 .subject(userId.toString())
                 .build();
+    }
+
+    private AccountRemovalProjection accountRemoval(UUID accountId) {
+        return new AccountRemovalProjection() {
+            @Override
+            public UUID getAccountId() {
+                return accountId;
+            }
+
+            @Override
+            public UUID getUserId() {
+                return USER_ID;
+            }
+
+            @Override
+            public UUID getConnectionId() {
+                return CONNECTION_ID;
+            }
+        };
     }
 
     private static Stream<Arguments> inaccessibleAccountCases() {

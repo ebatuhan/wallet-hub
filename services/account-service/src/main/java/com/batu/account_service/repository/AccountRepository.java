@@ -9,6 +9,7 @@ import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -23,6 +24,25 @@ public interface AccountRepository extends JpaRepository<Account, UUID>, JpaSpec
     List<Account> findByConnectionIdAndIsActiveTrue(UUID connectionId);
 
     List<Account> findByConnectionIdAndIsActiveTrueOrderByCreatedAtDesc(UUID connectionId);
+
+    @Query("""
+            select account.accountId as accountId,
+                   account.userId as userId,
+                   account.connectionId as connectionId
+            from Account account
+            where account.connectionId = :connectionId
+              and account.isActive = true
+            """)
+    List<AccountRemovalProjection> findActiveAccountRemovalsByConnectionId(@Param("connectionId") UUID connectionId);
+
+    @Modifying
+    @Query("""
+            update Account account
+            set account.isActive = false
+            where account.connectionId = :connectionId
+              and account.isActive = true
+            """)
+    int deactivateActiveAccountsByConnectionId(@Param("connectionId") UUID connectionId);
 
     List<Account> findAllByAccountIdIn(Collection<UUID> accountIds);
 
@@ -55,5 +75,13 @@ public interface AccountRepository extends JpaRepository<Account, UUID>, JpaSpec
         BigDecimal getCurrentBalanceTotal();
 
         BigDecimal getAvailableBalanceTotal();
+    }
+
+    interface AccountRemovalProjection {
+        UUID getAccountId();
+
+        UUID getUserId();
+
+        UUID getConnectionId();
     }
 }

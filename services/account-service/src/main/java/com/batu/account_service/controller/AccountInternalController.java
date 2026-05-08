@@ -41,7 +41,8 @@ public class AccountInternalController {
     }
 
     @PutMapping("/deactivate-by-connection/{connectionId}")
-    public ResponseEntity<List<AccountUpsertResponseDto>> deactivateAccountsByConnection(@PathVariable UUID connectionId) {
-        return ResponseEntity.ok(accountService.deactivateAccountsByConnection(connectionId));
+    public ResponseEntity<Void> deactivateAccountsByConnection(@PathVariable UUID connectionId) {
+        accountService.deactivateAccountsByConnection(connectionId);
+        return ResponseEntity.noContent().build();
     }
 }

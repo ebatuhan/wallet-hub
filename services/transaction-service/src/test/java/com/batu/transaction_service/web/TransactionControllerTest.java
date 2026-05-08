@@ -35,7 +35,7 @@ import com.batu.shared.dto.response.TransactionDto;
 import com.batu.shared.dto.response.TransactionPrimaryCategoryDto;
 import com.batu.shared.dto.response.TransactionViewResponseDto;
 import com.batu.shared.error.CommonApplicationErrorAdvice;
-import com.batu.transaction_service.TransactionController;
+import com.batu.transaction_service.controller.TransactionController;
 import com.batu.transaction_service.config.KeycloakConfiguration;
 import com.batu.transaction_service.service.TransactionService;
 

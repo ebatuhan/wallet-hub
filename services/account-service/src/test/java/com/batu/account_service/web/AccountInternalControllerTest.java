@@ -160,14 +160,10 @@ class AccountInternalControllerTest {
     }
 
     @Test
-    void deactivateAccountsByConnection_whenServiceJwtHasRole_shouldReturnDeactivatedAccounts() throws Exception {
-        when(accountService.deactivateAccountsByConnection(CONNECTION_ID)).thenReturn(List.of(upsertResponse(false)));
-
+    void deactivateAccountsByConnection_whenServiceJwtHasRole_shouldReturnNoContent() throws Exception {
         mockMvc.perform(put("/accounts/internal/deactivate-by-connection/{connectionId}", CONNECTION_ID)
                 .with(serviceJwt()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].accountId").value(ACCOUNT_ID.toString()))
-                .andExpect(jsonPath("$[0].active").value(false));
+                .andExpect(status().isNoContent());
 
         verify(accountService).deactivateAccountsByConnection(CONNECTION_ID);
     }

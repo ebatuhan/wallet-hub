@@ -26,7 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.batu.shared.dto.response.TransactionPrimaryCategoryDto;
 import com.batu.shared.error.CommonApplicationErrorAdvice;
-import com.batu.transaction_service.TransactionCategoryController;
+import com.batu.transaction_service.controller.TransactionCategoryController;
 import com.batu.transaction_service.config.KeycloakConfiguration;
 import com.batu.transaction_service.entity.TransactionPrimaryCategory;
 import com.batu.transaction_service.service.PrimaryCategoryService;

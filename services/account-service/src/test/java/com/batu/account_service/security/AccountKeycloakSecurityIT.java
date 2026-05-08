@@ -153,15 +153,15 @@ class AccountKeycloakSecurityIT {
     }
 
     @Test
-    void deactivateInternalAccounts_whenServiceRoleTokenIsValid_shouldReturnOk() throws Exception {
-        accountRepository.saveAndFlush(account(USER_A_ID, CONNECTION_ID));
+    void deactivateInternalAccounts_whenServiceRoleTokenIsValid_shouldReturnNoContent() throws Exception {
+        Account account = accountRepository.saveAndFlush(account(USER_A_ID, CONNECTION_ID));
 
         HttpResponse<String> response = send(authorizedRequest(
                 "/accounts/internal/deactivate-by-connection/" + CONNECTION_ID,
                 tokenFor("account-service-user")).PUT(HttpRequest.BodyPublishers.noBody()));
 
-        assertThat(response.statusCode()).isEqualTo(HttpStatus.OK.value());
-        assertThat(response.body()).contains("Checking", USER_A_ID.toString(), CONNECTION_ID.toString(), "false");
+        assertThat(response.statusCode()).isEqualTo(HttpStatus.NO_CONTENT.value());
+        assertThat(accountRepository.findById(account.getAccountId()).orElseThrow().isActive()).isFalse();
     }
 
     private static Transferable realmJson() {

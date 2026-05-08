@@ -3,6 +3,7 @@ package com.batu.transaction_service.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import java.math.BigDecimal;
@@ -145,20 +146,18 @@ class TransactionServiceImplIT {
     }
 
     @Test
-    void deactivateTransactionsByAccountId_whenActiveTransactionsExist_shouldDeactivateAndPublishRemovedEvents() {
+    void deactivateTransactionsByAccountId_whenActiveTransactionsExist_shouldBulkDeactivateWithoutPublishingRemovedEvents() {
         TransactionDetailedCategory category = saveCategory("FOOD_AND_DRINK", "FOOD_AND_DRINK_COFFEE");
         saveTransaction(TRANSACTION_ID, USER_ID, ACCOUNT_ID, category, true, "Coffee Shop");
         saveTransaction(OTHER_TRANSACTION_ID, USER_ID, OTHER_ACCOUNT_ID, category, true, "Other Account");
 
-        var response = transactionService.deactivateTransactionsByAccountId(ACCOUNT_ID);
+        transactionService.deactivateTransactionsByAccountId(ACCOUNT_ID);
         transactionRepository.flush();
         entityManager.clear();
 
-        assertThat(response).hasSize(1);
-        assertThat(response.getFirst().isActive()).isFalse();
         assertThat(transactionRepository.findById(TRANSACTION_ID).orElseThrow().isActive()).isFalse();
         assertThat(transactionRepository.findById(OTHER_TRANSACTION_ID).orElseThrow().isActive()).isTrue();
-        verify(eventPublisher).publishTransactionRemoved(any(TransactionRemoved.class));
+        verify(eventPublisher, never()).publishTransactionRemoved(any(TransactionRemoved.class));
     }
 
     private TransactionDetailedCategory saveCategory(String primaryCode, String detailedCode) {

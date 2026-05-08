@@ -3,6 +3,7 @@ package com.batu.plaid_adapter_service.unit.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -38,7 +40,6 @@ import com.batu.shared.dto.request.ExchangeTokenRequestDto;
 import com.batu.shared.dto.request.LinkTokenRequestDto;
 import com.batu.shared.dto.request.TransactionUpsertRequestDto;
 import com.batu.shared.dto.response.AccountResponseDto;
-import com.batu.shared.dto.response.AccountUpsertResponseDto;
 import com.plaid.client.model.AccountBalance;
 import com.plaid.client.model.AccountBase;
 import com.plaid.client.model.AccountSubtype;
@@ -244,20 +245,16 @@ class PlaidIntegrationServiceImplTest {
     }
 
     @Test
-    void removeConnection_whenConnectionActive_shouldRemovePlaidItemDeactivateAccountsTransactionsAndConnection() {
+    void removeConnection_whenConnectionActive_shouldDeactivateConnectionAccountsThenRemovePlaidItem() {
         Connection connection = connection(true);
         when(connectionService.readByIdForUpdate(CONNECTION_ID)).thenReturn(connection);
-        when(accountClient.deactivateAccountsByConnection(CONNECTION_ID)).thenReturn(List.of(
-                accountUpsertResponse(ACCOUNT_ID),
-                accountUpsertResponse(OTHER_ACCOUNT_ID)));
 
         plaidIntegrationService.removeConnection(CONNECTION_ID, "USER_REQUESTED_REMOVAL");
 
-        verify(plaidClient).removeItem(any());
-        verify(accountClient).deactivateAccountsByConnection(CONNECTION_ID);
-        verify(transactionClient).deactivateTransactionsByAccount(ACCOUNT_ID);
-        verify(transactionClient).deactivateTransactionsByAccount(OTHER_ACCOUNT_ID);
-        verify(connectionService).deactivate(CONNECTION_ID, "USER_REQUESTED_REMOVAL");
+        InOrder order = inOrder(connectionService, accountClient, plaidClient);
+        order.verify(connectionService).deactivate(CONNECTION_ID, "USER_REQUESTED_REMOVAL");
+        order.verify(accountClient).deactivateAccountsByConnection(CONNECTION_ID);
+        order.verify(plaidClient).removeItem(any());
     }
 
     @Test
@@ -398,12 +395,6 @@ class PlaidIntegrationServiceImplTest {
     private AccountResponseDto accountResponse(String mask, String subtype) {
         return new AccountResponseDto(ACCOUNT_ID, "Test Bank", "Checking", "depository", subtype, mask,
                 BigDecimal.valueOf(100), BigDecimal.valueOf(90), "USD", Instant.EPOCH, Instant.EPOCH);
-    }
-
-    private AccountUpsertResponseDto accountUpsertResponse(UUID accountId) {
-        return new AccountUpsertResponseDto(accountId, USER_ID, CONNECTION_ID, "Test Bank", "Checking", "depository",
-                "checking", "0000", BigDecimal.valueOf(100), BigDecimal.valueOf(90), "USD", false,
-                Instant.EPOCH, Instant.EPOCH);
     }
 
     private AccountUpsertRequestDto accountRequest() {

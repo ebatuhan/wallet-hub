@@ -46,7 +46,6 @@ import com.batu.shared.dto.request.ConnectionAccountMetadataDto;
 import com.batu.shared.dto.request.ExchangeTokenRequestDto;
 import com.batu.shared.dto.request.TransactionUpsertRequestDto;
 import com.batu.shared.dto.response.AccountResponseDto;
-import com.batu.shared.dto.response.AccountUpsertResponseDto;
 import com.plaid.client.model.AccountBalance;
 import com.plaid.client.model.AccountBase;
 import com.plaid.client.model.AccountSubtype;
@@ -240,16 +239,13 @@ class PlaidIntegrationServiceIT {
     @Test
     void removeConnection_whenActiveConnectionExists_shouldRemovePlaidItemDeactivateDownstreamAndPersistInactive() {
         Connection connection = saveConnection(USER_ID, "item-remove", true, "ins-1", "Test Bank");
-        UUID accountId = UUID.fromString("84000000-0000-0000-0000-000000000099");
-        when(accountClient.deactivateAccountsByConnection(connection.getConnectionId()))
-                .thenReturn(List.of(accountUpsertResponse(accountId, connection.getConnectionId())));
 
         plaidIntegrationService.removeConnection(connection.getConnectionId(), "USER_REQUESTED_REMOVAL");
         entityManager.flush();
         entityManager.clear();
 
+        verify(accountClient).deactivateAccountsByConnection(connection.getConnectionId());
         verify(plaidClient).removeItem(any());
-        verify(transactionClient).deactivateTransactionsByAccount(accountId);
         Connection persisted = connectionRepository.findById(connection.getConnectionId()).orElseThrow();
         assertThat(persisted.isActive()).isFalse();
         assertThat(persisted.getErrorCode()).isEqualTo("USER_REQUESTED_REMOVAL");
@@ -263,7 +259,6 @@ class PlaidIntegrationServiceIT {
 
         verify(plaidClient, never()).removeItem(any());
         verify(accountClient, never()).deactivateAccountsByConnection(any());
-        verify(transactionClient, never()).deactivateTransactionsByAccount(any());
     }
 
     private Connection saveConnection(UUID userId, String externalId, boolean active, String institutionId, String institutionName) {
@@ -311,12 +306,6 @@ class PlaidIntegrationServiceIT {
     private AccountResponseDto accountResponse(String mask, String subtype) {
         return new AccountResponseDto(UUID.randomUUID(), "Test Bank", "Checking", "depository", subtype, mask,
                 BigDecimal.valueOf(100), BigDecimal.valueOf(90), "USD", Instant.EPOCH, Instant.EPOCH);
-    }
-
-    private AccountUpsertResponseDto accountUpsertResponse(UUID accountId, UUID connectionId) {
-        return new AccountUpsertResponseDto(accountId, OTHER_USER_ID, connectionId, "Test Bank", "Checking", "depository",
-                "checking", "0000", BigDecimal.valueOf(100), BigDecimal.valueOf(90), "USD", false,
-                Instant.EPOCH, Instant.EPOCH);
     }
 
     @TestConfiguration(proxyBeanMethods = false)

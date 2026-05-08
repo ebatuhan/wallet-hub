@@ -250,31 +250,19 @@ class TransactionServiceImplTest {
     }
 
     @Test
-    void deactivateTransactionsByAccountId_whenActiveTransactionsExist_shouldDeactivateSaveAndPublishRemovedEvents() {
-        Transaction coffee = transaction(TRANSACTION_ID, USER_ID, ACCOUNT_ID, true, false);
-        Transaction groceries = transaction(OTHER_TRANSACTION_ID, USER_ID, ACCOUNT_ID, true, true);
-        when(transactionRepository.findByAccountIdAndIsActiveTrue(ACCOUNT_ID)).thenReturn(List.of(coffee, groceries));
-        when(transactionRepository.saveAll(List.of(coffee, groceries))).thenReturn(List.of(coffee, groceries));
-        ArgumentCaptor<TransactionRemoved> eventCaptor = ArgumentCaptor.forClass(TransactionRemoved.class);
+    void deactivateTransactionsByAccountId_whenCalled_shouldBulkDeactivateWithoutPublishingEvents() {
 
-        var response = transactionService.deactivateTransactionsByAccountId(ACCOUNT_ID);
+        transactionService.deactivateTransactionsByAccountId(ACCOUNT_ID);
 
-        assertThat(coffee.isActive()).isFalse();
-        assertThat(groceries.isActive()).isFalse();
-        assertThat(response).hasSize(2).allSatisfy(transaction -> assertThat(transaction.isActive()).isFalse());
-        verify(eventPublisher, org.mockito.Mockito.times(2)).publishTransactionRemoved(eventCaptor.capture());
-        assertThat(eventCaptor.getAllValues()).extracting(TransactionRemoved::getTransactionId)
-                .containsExactly(TRANSACTION_ID, OTHER_TRANSACTION_ID);
+        verify(transactionRepository).deactivateActiveTransactionsByAccountId(ACCOUNT_ID);
+        verify(eventPublisher, never()).publishTransactionRemoved(any());
     }
 
     @Test
-    void deactivateTransactionsByAccountId_whenNoActiveTransactionsExist_shouldReturnEmptyListAndNotPublishEvents() {
-        when(transactionRepository.findByAccountIdAndIsActiveTrue(ACCOUNT_ID)).thenReturn(List.of());
-        when(transactionRepository.saveAll(List.of())).thenReturn(List.of());
+    void deactivateTransactionsByAccountId_whenNoActiveTransactionsExist_shouldStillUseBulkNoopAndNotPublishEvents() {
+        transactionService.deactivateTransactionsByAccountId(ACCOUNT_ID);
 
-        var response = transactionService.deactivateTransactionsByAccountId(ACCOUNT_ID);
-
-        assertThat(response).isEmpty();
+        verify(transactionRepository).deactivateActiveTransactionsByAccountId(ACCOUNT_ID);
         verify(eventPublisher, never()).publishTransactionRemoved(any());
     }
 

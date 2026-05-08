@@ -30,5 +30,5 @@ public interface TransactionService {
 
     TransactionUpsertResponseDto upsertTransaction(TransactionUpsertRequestDto request);
 
-    List<TransactionUpsertResponseDto> deactivateTransactionsByAccountId(UUID accountId);
+    void deactivateTransactionsByAccountId(UUID accountId);
 }

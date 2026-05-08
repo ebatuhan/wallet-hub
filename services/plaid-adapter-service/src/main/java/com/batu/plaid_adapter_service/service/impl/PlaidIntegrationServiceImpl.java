@@ -30,7 +30,6 @@ import com.batu.plaid_adapter_service.util.DeterministicIdGenerator;
 import com.batu.shared.dto.request.ExchangeTokenRequestDto;
 import com.batu.shared.dto.request.LinkTokenRequestDto;
 import com.batu.shared.dto.response.AccountResponseDto;
-import com.batu.shared.dto.response.AccountUpsertResponseDto;
 import com.batu.shared.dto.response.ExchangeTokenResponseDto;
 import com.batu.shared.dto.response.LinkTokenResponseDto;
 import com.plaid.client.model.AccountBase;
@@ -158,15 +157,9 @@ public class PlaidIntegrationServiceImpl implements PlaidIntegrationService {
             return;
         }
 
-        plaidClient.removeItem(new ItemRemoveRequest().accessToken(connection.getAccessToken()));
-
-        List<AccountUpsertResponseDto> deactivatedAccounts = accountClient.deactivateAccountsByConnection(
-                connection.getConnectionId());
-        for (AccountUpsertResponseDto account : deactivatedAccounts) {
-            transactionClient.deactivateTransactionsByAccount(account.getAccountId());
-        }
-
         connectionService.deactivate(connectionId, reason);
+        accountClient.deactivateAccountsByConnection(connection.getConnectionId());
+        plaidClient.removeItem(new ItemRemoveRequest().accessToken(connection.getAccessToken()));
     }
 
     @Override
