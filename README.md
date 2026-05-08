@@ -4,6 +4,10 @@ Wallet Hub is a personal finance backend built with Spring Boot microservices. I
 
 The local stack uses Docker Compose with Keycloak for authentication, PostgreSQL and ClickHouse for storage, RabbitMQ for messaging, Spring Cloud Config for service configuration, and Grafana LGTM for observability.
 
+## Architecture
+
+![Wallet Hub backend architecture](assets/general-architecture.png)
+
 ## Services
 
 - `api-gateway`: entry point for frontend/API clients.
