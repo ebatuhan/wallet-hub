@@ -18,6 +18,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -84,6 +85,24 @@ class TransactionControllerTest {
                 .andExpect(jsonPath("$.nextCursor").value("cursor-2"));
 
         verify(transactionService).transactions(any(Jwt.class), eq("FOOD_AND_DRINK"), eq(ACCOUNT_ID), eq("cursor-1"), eq(20));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "0, Limit must be at least 1",
+            "101, Limit cannot exceed 100"
+    })
+    void getTransactions_whenLimitIsOutsideAllowedBoundary_shouldReturnValidationProblemAndNotCallService(
+            String limit,
+            String expectedMessage) throws Exception {
+        mockMvc.perform(get("/transactions")
+                .with(jwt().jwt(jwt -> jwt.subject(USER_ID.toString())))
+                .param("limit", limit))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("Request validation failed"))
+                .andExpect(jsonPath("$.errors.limit").value(expectedMessage));
+
+        verify(transactionService, never()).transactions(any(Jwt.class), any(), any(), any(), any(Integer.class));
     }
 
     @ParameterizedTest

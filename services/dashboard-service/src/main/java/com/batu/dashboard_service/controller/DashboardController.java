@@ -23,6 +23,8 @@ import com.batu.shared.dto.response.CursorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -39,7 +41,7 @@ public class DashboardController {
     public ResponseEntity<UserDashboardSummaryResponseDto> getSummary(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-            @RequestParam(required = false) Integer recentLimit,
+            @RequestParam(required = false) @Min(value = 1, message = "Limit must be at least 1") @Max(value = 100, message = "Limit cannot exceed 100") Integer recentLimit,
             @AuthenticationPrincipal Jwt principal) {
         return ResponseEntity.ok(dashboardService.getUserSummary(from, to, recentLimit, principal));
     }
@@ -47,7 +49,7 @@ public class DashboardController {
     @GetMapping("/budgets")
     @Operation(summary = "Get dashboard budgets", description = "Returns enriched budget data for dashboard views.")
     public ResponseEntity<CursorResponse<BudgetResponseDto>> getBudgets(
-            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) @Min(value = 1, message = "Limit must be at least 1") @Max(value = 100, message = "Limit cannot exceed 100") Integer limit,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) String sortBy,
             @RequestParam(required = false) String direction,
@@ -61,7 +63,7 @@ public class DashboardController {
             @PathVariable UUID accountId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) @Min(value = 1, message = "Limit must be at least 1") @Max(value = 100, message = "Limit cannot exceed 100") Integer limit,
             @RequestParam(required = false) String cursor,
             @AuthenticationPrincipal Jwt principal) {
         return ResponseEntity.ok(dashboardService.getAccountSummary(accountId, from, to, limit, cursor, principal));

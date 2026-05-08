@@ -19,6 +19,8 @@ import com.batu.transaction_service.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -37,7 +39,7 @@ public class TransactionController {
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) UUID accountId,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Limit must be at least 1") @Max(value = 100, message = "Limit cannot exceed 100") int limit) {
 
         CursorResponse<TransactionViewResponseDto> response = transactionService.transactions(
                 principal,
