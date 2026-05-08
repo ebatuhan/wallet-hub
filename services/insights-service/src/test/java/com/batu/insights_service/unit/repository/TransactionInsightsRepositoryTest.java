@@ -96,7 +96,7 @@ class TransactionInsightsRepositoryTest {
     }
 
     @Test
-    void findByInterval_whenCalled_shouldUseMaterializedSpendingDailyQueryAndParameters() {
+    void findByInterval_whenCalled_shouldUseDirectRawSpendingQueryAndParameters() {
         Date from = Date.valueOf("2026-04-01");
         Date to = Date.valueOf("2026-04-30");
         List<SpendingCategoryAggregate> expected = List.of(new SpendingCategoryAggregate(
@@ -113,15 +113,17 @@ class TransactionInsightsRepositoryTest {
         verify(jdbcTemplate).query(sqlCaptor.capture(), any(RowMapper.class), eq(USER_ID), eq(from), eq(to));
         assertThat(sqlCaptor.getValue())
                 .contains("WITH category_totals AS")
-                .contains("FROM clickhouse.spending_daily")
+                .contains("FROM clickhouse.transactions")
                 .contains("PREWHERE user_id = ?")
                 .contains("date BETWEEN ? AND ?")
-                .contains("SUM(total_amount) AS total_amount")
+                .contains("WHERE is_active = 1")
+                .contains("AND is_outflow = 1")
+                .contains("SUM(abs(amount)) AS total_amount")
                 .contains("ORDER BY iso_currency_code ASC, percentage DESC");
     }
 
     @Test
-    void findByIntervalAndAccount_whenCalled_shouldUseAccountScopedMaterializedQueryAndParameters() {
+    void findByIntervalAndAccount_whenCalled_shouldUseAccountScopedRawQueryAndParameters() {
         Date from = Date.valueOf("2026-04-01");
         Date to = Date.valueOf("2026-04-30");
         when(jdbcTemplate.query(anyString(), any(RowMapper.class), eq(USER_ID), eq(from), eq(to), eq(ACCOUNT_ID)))
@@ -133,12 +135,14 @@ class TransactionInsightsRepositoryTest {
         verify(jdbcTemplate).query(sqlCaptor.capture(), any(RowMapper.class), eq(USER_ID), eq(from), eq(to), eq(ACCOUNT_ID));
         assertThat(sqlCaptor.getValue())
                 .contains("AND account_id = ?")
-                .contains("FROM clickhouse.spending_daily")
+                .contains("FROM clickhouse.transactions")
+                .contains("WHERE is_active = 1")
+                .contains("AND is_outflow = 1")
                 .contains("GROUP BY iso_currency_code, primary_category_id");
     }
 
     @Test
-    void findIncomeByInterval_whenCalled_shouldUseMaterializedIncomeDailyQueryAndParameters() {
+    void findIncomeByInterval_whenCalled_shouldUseDirectRawIncomeQueryAndParameters() {
         Date from = Date.valueOf("2026-04-01");
         Date to = Date.valueOf("2026-04-30");
         List<IncomeTotalByCurrencyDto> expected = List.of(new IncomeTotalByCurrencyDto("USD", new BigDecimal("1000.00")));
@@ -150,14 +154,16 @@ class TransactionInsightsRepositoryTest {
         ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
         verify(jdbcTemplate).query(sqlCaptor.capture(), any(RowMapper.class), eq(USER_ID), eq(from), eq(to));
         assertThat(sqlCaptor.getValue())
-                .contains("FROM clickhouse.income_daily")
+                .contains("FROM clickhouse.transactions")
                 .contains("PREWHERE user_id = ?")
-                .contains("SUM(total_income) AS total_income")
+                .contains("WHERE is_active = 1")
+                .contains("AND is_outflow = 0")
+                .contains("SUM(amount) AS total_income")
                 .contains("ORDER BY iso_currency_code ASC");
     }
 
     @Test
-    void findSpendingGraphByInterval_whenCalled_shouldUseMaterializedSpendingDailyGraphQueryAndParameters() {
+    void findSpendingGraphByInterval_whenCalled_shouldUseDirectRawGraphQueryAndParameters() {
         Date from = Date.valueOf("2026-04-01");
         Date to = Date.valueOf("2026-04-30");
         List<SpendingGraphAggregate> expected = List.of(new SpendingGraphAggregate(
@@ -166,15 +172,17 @@ class TransactionInsightsRepositoryTest {
                 new BigDecimal("20.00")));
         when(jdbcTemplate.query(anyString(), any(RowMapper.class), eq(USER_ID), eq(from), eq(to))).thenReturn(expected);
 
-        var result = repository.findSpendingGraphByInterval(from, to, USER_ID, "toDate(latest_date)");
+        var result = repository.findSpendingGraphByInterval(from, to, USER_ID, "toDate(date)");
 
         assertThat(result).isSameAs(expected);
         ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
         verify(jdbcTemplate).query(sqlCaptor.capture(), any(RowMapper.class), eq(USER_ID), eq(from), eq(to));
         assertThat(sqlCaptor.getValue())
-                .contains("toDate(latest_date) AS bucket")
-                .contains("FROM clickhouse.spending_daily")
-                .contains("SUM(total_amount) AS total_amount")
+                .contains("toDate(date) AS bucket")
+                .contains("FROM clickhouse.transactions")
+                .contains("WHERE is_active = 1")
+                .contains("AND is_outflow = 1")
+                .contains("SUM(abs(amount)) AS total_amount")
                 .contains("GROUP BY iso_currency_code, bucket");
     }
 
@@ -185,12 +193,15 @@ class TransactionInsightsRepositoryTest {
         when(jdbcTemplate.query(anyString(), any(RowMapper.class), eq(USER_ID), eq(from), eq(to), eq(ACCOUNT_ID)))
                 .thenReturn(List.of());
 
-        repository.findSpendingGraphByIntervalAndAccount(from, to, USER_ID, ACCOUNT_ID, "toDate(toStartOfWeek(latest_date))");
+        repository.findSpendingGraphByIntervalAndAccount(from, to, USER_ID, ACCOUNT_ID, "toDate(toStartOfWeek(date))");
 
         ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
         verify(jdbcTemplate).query(sqlCaptor.capture(), any(RowMapper.class), eq(USER_ID), eq(from), eq(to), eq(ACCOUNT_ID));
         assertThat(sqlCaptor.getValue())
                 .contains("AND account_id = ?")
-                .contains("toDate(toStartOfWeek(latest_date)) AS bucket");
+                .contains("FROM clickhouse.transactions")
+                .contains("toDate(toStartOfWeek(date)) AS bucket")
+                .contains("WHERE is_active = 1")
+                .contains("AND is_outflow = 1");
     }
 }

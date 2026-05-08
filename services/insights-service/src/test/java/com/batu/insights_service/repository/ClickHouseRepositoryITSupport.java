@@ -29,6 +29,8 @@ abstract class ClickHouseRepositoryITSupport {
         if (!migrated) {
             ScriptUtils.executeSqlScript(defaultDataSource.getConnection(),
                     new ClassPathResource("db/migration/clickhouse/V1__create_insights_projection_tables.sql"));
+            ScriptUtils.executeSqlScript(defaultDataSource.getConnection(),
+                    new ClassPathResource("db/migration/clickhouse/V2__drop_insights_aggregate_tables.sql"));
             migrated = true;
         }
 
@@ -38,8 +40,6 @@ abstract class ClickHouseRepositoryITSupport {
     @BeforeEach
     void cleanTables() {
         jdbcTemplate.execute("TRUNCATE TABLE clickhouse.transactions");
-        jdbcTemplate.execute("TRUNCATE TABLE clickhouse.spending_daily");
-        jdbcTemplate.execute("TRUNCATE TABLE clickhouse.income_daily");
         jdbcTemplate.execute("TRUNCATE TABLE clickhouse.account_balance_history");
         jdbcTemplate.execute("TRUNCATE TABLE clickhouse.inbox_events");
     }

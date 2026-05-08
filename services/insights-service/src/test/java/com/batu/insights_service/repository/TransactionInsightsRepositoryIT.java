@@ -34,7 +34,7 @@ class TransactionInsightsRepositoryIT extends ClickHouseRepositoryITSupport {
     }
 
     @Test
-    void findByInterval_shouldReadMaterializedSpendingByCurrencyAndCategory() {
+    void findByInterval_shouldReadRawSpendingByCurrencyAndCategory() {
         repository.save(row("2026-04-01", FOOD_CATEGORY_ID, "-30.00", true, true, "USD", USER_ID, ACCOUNT_ID));
         repository.save(row("2026-04-02", FOOD_CATEGORY_ID, "-10.00", true, true, "USD", USER_ID, ACCOUNT_ID));
         repository.save(row("2026-04-02", TRAVEL_CATEGORY_ID, "-60.00", true, true, "USD", USER_ID, ACCOUNT_ID));
@@ -65,7 +65,7 @@ class TransactionInsightsRepositoryIT extends ClickHouseRepositoryITSupport {
     }
 
     @Test
-    void findIncomeByInterval_shouldReadMaterializedIncomeOnly() {
+    void findIncomeByInterval_shouldReadRawIncomeOnly() {
         repository.save(row("2026-04-01", FOOD_CATEGORY_ID, "1200.00", false, true, "USD", USER_ID, ACCOUNT_ID));
         repository.save(row("2026-04-02", FOOD_CATEGORY_ID, "300.00", false, true, "USD", USER_ID, ACCOUNT_ID));
         repository.save(row("2026-04-02", FOOD_CATEGORY_ID, "500.00", false, true, "EUR", USER_ID, ACCOUNT_ID));
@@ -115,6 +115,40 @@ class TransactionInsightsRepositoryIT extends ClickHouseRepositoryITSupport {
         Integer totalRows = jdbcTemplate.queryForObject("SELECT count() FROM clickhouse.transactions", Integer.class);
         assertThat(remainingMatchingRows).isZero();
         assertThat(totalRows).isEqualTo(2);
+    }
+
+    @Test
+    void deleteByAccount_shouldRemoveAccountFromAllTransactionInsightQueries() {
+        repository.save(row("2026-04-01", FOOD_CATEGORY_ID, "-10.00", true, true, "USD", USER_ID, ACCOUNT_ID));
+        repository.save(row("2026-04-02", TRAVEL_CATEGORY_ID, "-30.00", true, true, "USD", USER_ID, ACCOUNT_ID));
+        repository.save(row("2026-04-02", FOOD_CATEGORY_ID, "200.00", false, true, "USD", USER_ID, ACCOUNT_ID));
+        repository.save(row("2026-04-01", FOOD_CATEGORY_ID, "-50.00", true, true, "USD", USER_ID, OTHER_ACCOUNT_ID));
+        repository.save(row("2026-04-02", FOOD_CATEGORY_ID, "500.00", false, true, "USD", USER_ID, OTHER_ACCOUNT_ID));
+
+        repository.deleteByAccount(ACCOUNT_ID, USER_ID);
+
+        assertThat(repository.findByIntervalAndAccount(date("2026-04-01"), date("2026-04-30"), USER_ID, ACCOUNT_ID))
+                .isEmpty();
+        assertThat(repository.findSpendingGraphByIntervalAndAccount(
+                date("2026-04-01"), date("2026-04-30"), USER_ID, ACCOUNT_ID, "date"))
+                .isEmpty();
+
+        List<SpendingCategoryAggregate> allSpending = repository.findByInterval(
+                date("2026-04-01"), date("2026-04-30"), USER_ID);
+        assertThat(allSpending).singleElement().satisfies(aggregate ->
+                assertAggregate(aggregate, "USD", FOOD_CATEGORY_ID, "50.00", "100.00"));
+
+        List<SpendingGraphAggregate> allGraph = repository.findSpendingGraphByInterval(
+                date("2026-04-01"), date("2026-04-30"), USER_ID, "date");
+        assertThat(allGraph).singleElement().satisfies(point ->
+                assertGraphPoint(point, "USD", "2026-04-01", "50.00"));
+
+        List<IncomeTotalByCurrencyDto> income = repository.findIncomeByInterval(
+                date("2026-04-01"), date("2026-04-30"), USER_ID);
+        assertThat(income).singleElement().satisfies(total -> {
+            assertThat(total.isoCurrencyCode()).isEqualTo("USD");
+            assertThat(total.totalIncome()).isEqualByComparingTo("500.00");
+        });
     }
 
     private static TransactionInsightRow row(String date, UUID categoryId, String amount, boolean isOutflow,

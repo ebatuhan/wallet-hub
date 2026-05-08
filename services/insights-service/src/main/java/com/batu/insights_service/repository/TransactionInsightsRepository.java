@@ -99,10 +99,12 @@ public class TransactionInsightsRepository {
                     SELECT
                         iso_currency_code,
                         primary_category_id,
-                        SUM(total_amount) AS total_amount
-                    FROM clickhouse.spending_daily
+                        SUM(abs(amount)) AS total_amount
+                    FROM clickhouse.transactions
                     PREWHERE user_id = ?
                       AND date BETWEEN ? AND ?
+                    WHERE is_active = 1
+                      AND is_outflow = 1
                     GROUP BY iso_currency_code, primary_category_id
                 )
                 SELECT
@@ -122,11 +124,13 @@ public class TransactionInsightsRepository {
                     SELECT
                         iso_currency_code,
                         primary_category_id,
-                        SUM(total_amount) AS total_amount
-                    FROM clickhouse.spending_daily
+                        SUM(abs(amount)) AS total_amount
+                    FROM clickhouse.transactions
                     PREWHERE user_id = ?
                       AND date BETWEEN ? AND ?
                       AND account_id = ?
+                    WHERE is_active = 1
+                      AND is_outflow = 1
                     GROUP BY iso_currency_code, primary_category_id
                 )
                 SELECT
@@ -144,10 +148,12 @@ public class TransactionInsightsRepository {
         String sql = """
                 SELECT
                     iso_currency_code,
-                    SUM(total_income) AS total_income
-                FROM clickhouse.income_daily
+                    SUM(amount) AS total_income
+                FROM clickhouse.transactions
                 PREWHERE user_id = ?
                   AND date BETWEEN ? AND ?
+                WHERE is_active = 1
+                  AND is_outflow = 0
                 GROUP BY iso_currency_code
                 ORDER BY iso_currency_code ASC
                 """;
@@ -172,11 +178,13 @@ public class TransactionInsightsRepository {
                 SELECT
                     iso_currency_code,
                     %s AS bucket,
-                    SUM(total_amount) AS total_amount
-                FROM clickhouse.spending_daily
+                    SUM(abs(amount)) AS total_amount
+                FROM clickhouse.transactions
                 PREWHERE user_id = ?
                   AND date BETWEEN ? AND ?
                 %s
+                WHERE is_active = 1
+                  AND is_outflow = 1
                 GROUP BY iso_currency_code, bucket
                 ORDER BY iso_currency_code ASC, bucket ASC
                 """, bucketExpression, accountFilter);
