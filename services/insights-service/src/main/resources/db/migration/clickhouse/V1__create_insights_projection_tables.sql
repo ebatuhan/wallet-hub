@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS clickhouse.transactions
 )
 ENGINE = MergeTree
 PARTITION BY toYYYYMM(date)
-ORDER BY (account_id, date, transaction_id);
+ORDER BY (user_id, date, account_id, transaction_id);
 
 ALTER TABLE clickhouse.transactions ADD COLUMN IF NOT EXISTS primary_category_id UUID;
 ALTER TABLE clickhouse.transactions DROP COLUMN IF EXISTS primary_category_code;

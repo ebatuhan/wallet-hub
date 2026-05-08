@@ -31,6 +31,8 @@ abstract class ClickHouseRepositoryITSupport {
                     new ClassPathResource("db/migration/clickhouse/V1__create_insights_projection_tables.sql"));
             ScriptUtils.executeSqlScript(defaultDataSource.getConnection(),
                     new ClassPathResource("db/migration/clickhouse/V2__drop_insights_aggregate_tables.sql"));
+            ScriptUtils.executeSqlScript(defaultDataSource.getConnection(),
+                    new ClassPathResource("db/migration/clickhouse/V3__reorder_transactions_by_user_date.sql"));
             migrated = true;
         }
 
