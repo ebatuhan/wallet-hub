@@ -20,13 +20,11 @@ public interface InsightsClient {
 
     @GetMapping("/spendings")
     ResponseEntity<SpendingPerCategoryResponseDto> getSpendingByCategory(
-            @RequestParam("from") String from,
-            @RequestParam("to") String to);
+            @RequestParam("from") String from);
 
     @GetMapping("/spendings/graph")
     ResponseEntity<SpendingGraphResponseDto> getSpendingGraph(
-            @RequestParam("from") String from,
-            @RequestParam("to") String to);
+            @RequestParam("from") String from);
 
     @GetMapping("/income")
     ResponseEntity<IncomeSummaryResponseDto> getIncome(
@@ -36,14 +34,12 @@ public interface InsightsClient {
     @GetMapping("/spendings/{accountId}")
     ResponseEntity<SpendingPerCategoryByAccountResponseDto> getSpendingByCategoryByAccount(
             @PathVariable("accountId") UUID accountId,
-            @RequestParam("from") String from,
-            @RequestParam("to") String to);
+            @RequestParam("from") String from);
 
     @GetMapping("/spendings/graph/{accountId}")
     ResponseEntity<SpendingGraphResponseDto> getSpendingGraphByAccount(
             @PathVariable("accountId") UUID accountId,
-            @RequestParam("from") String from,
-            @RequestParam("to") String to);
+            @RequestParam("from") String from);
 
     @GetMapping("/accounts/{accountId}/balance-history")
     ResponseEntity<List<AccountBalanceDataPointDto>> getAccountBalanceHistory(

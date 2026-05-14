@@ -43,7 +43,7 @@ class SpringAIToolCallFlowIT {
         FakeToolCallingChatModel chatModel = new FakeToolCallingChatModel();
         DashboardClient dashboardClient = org.mockito.Mockito.mock(DashboardClient.class);
         UserDashboardSummaryResponseDto dashboardSummary = dashboardSummary();
-        when(dashboardClient.getSummary(null, null)).thenReturn(ResponseEntity.ok(dashboardSummary));
+        when(dashboardClient.getSummary(null)).thenReturn(ResponseEntity.ok(dashboardSummary));
         ChatMemory chatMemory = MessageWindowChatMemory.builder().build();
         ChatClient guardChatClient = ChatClient.builder(chatModel).build();
         ChatClient assistantChatClient = ChatClient.builder(chatModel)
@@ -65,7 +65,7 @@ class SpringAIToolCallFlowIT {
                 .content();
 
         assertThat(content).isEqualTo("I reviewed your dashboard summary and found one active account.");
-        verify(dashboardClient).getSummary(null, null);
+        verify(dashboardClient).getSummary(null);
         assertThat(chatModel.guardPrompts).hasSize(1);
         assertThat(chatModel.guardPrompts.getFirst()).contains("Analyze my spending this month");
         assertThat(chatModel.assistantPrompts).hasSize(2);

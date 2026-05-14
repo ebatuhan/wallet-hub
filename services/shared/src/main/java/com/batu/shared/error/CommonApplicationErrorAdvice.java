@@ -2,6 +2,9 @@ package com.batu.shared.error;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +26,7 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import feign.FeignException;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
 
@@ -32,6 +36,9 @@ public class CommonApplicationErrorAdvice extends ResponseEntityExceptionHandler
 
     private static final Logger logger = LoggerFactory.getLogger(CommonApplicationErrorAdvice.class);
     private static final String GENERIC_ERROR_MESSAGE = "Unexpected error occurred. Please try again later.";
+    private static final String DOWNSTREAM_ERROR_MESSAGE = "Downstream service request failed.";
+    private static final Pattern UPSTREAM_MESSAGE_PATTERN = Pattern.compile(
+            "\\\"(?:detail|message|error)\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
 
     @ExceptionHandler(ResponseStatusException.class)
     public ProblemDetail handleResponseStatusException(ResponseStatusException ex) {
@@ -93,6 +100,50 @@ public class CommonApplicationErrorAdvice extends ResponseEntityExceptionHandler
         recordExceptionOnCurrentSpan(ex);
         logger.error("Data access error", ex);
         return ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, GENERIC_ERROR_MESSAGE);
+    }
+
+    @ExceptionHandler(FeignException.class)
+    public ProblemDetail handleFeignException(FeignException ex) {
+        HttpStatusCode status = resolveFeignStatus(ex);
+        if (status.is5xxServerError()) {
+            recordExceptionOnCurrentSpan(ex);
+            logger.error("Downstream service error", ex);
+        }
+
+        String detail = status.is5xxServerError()
+                ? DOWNSTREAM_ERROR_MESSAGE
+                : upstreamDetail(ex).orElse(DOWNSTREAM_ERROR_MESSAGE);
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, detail);
+        problemDetail.setProperty("message", detail);
+        problemDetail.setProperty("upstreamStatus", ex.status());
+        return problemDetail;
+    }
+
+    private HttpStatusCode resolveFeignStatus(FeignException ex) {
+        HttpStatusCode upstreamStatus = HttpStatusCode.valueOf(ex.status());
+        if (upstreamStatus.is5xxServerError()) {
+            return HttpStatus.BAD_GATEWAY;
+        }
+        if (upstreamStatus.is4xxClientError()) {
+            return upstreamStatus;
+        }
+        return HttpStatus.BAD_GATEWAY;
+    }
+
+    private Optional<String> upstreamDetail(FeignException ex) {
+        String body = ex.contentUTF8();
+        if (body == null || body.isBlank()) {
+            return Optional.empty();
+        }
+
+        Matcher matcher = UPSTREAM_MESSAGE_PATTERN.matcher(body);
+        if (matcher.find() && !matcher.group(1).isBlank()) {
+            return Optional.of(matcher.group(1));
+        }
+        if (body.length() <= 500 && !body.startsWith("{")) {
+            return Optional.of(body);
+        }
+        return Optional.empty();
     }
 
     private void recordExceptionOnCurrentSpan(Exception ex) {

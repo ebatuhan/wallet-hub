@@ -30,23 +30,23 @@ class DashboardToolsTest {
     private DashboardClient dashboardClient;
 
     @Test
-    void getDashboardSummary_whenDatesProvided_shouldDelegateAndWrapBody() {
+    void getDashboardSummary_whenPeriodProvided_shouldDelegateAndWrapBody() {
         UserDashboardSummaryResponseDto body = userSummary();
-        when(dashboardClient.getSummary("2026-05-01", "2026-05-31")).thenReturn(ResponseEntity.ok(body));
+        when(dashboardClient.getSummary("2026-05")).thenReturn(ResponseEntity.ok(body));
 
-        var response = new DashboardTools(dashboardClient).getDashboardSummary("2026-05-01", "2026-05-31");
+        var response = new DashboardTools(dashboardClient).getDashboardSummary("2026-05");
 
         assertThat(response.success()).isTrue();
         assertThat(response.message()).isEqualTo("Dashboard summary loaded.");
         assertThat(response.data()).isSameAs(body);
-        verify(dashboardClient).getSummary("2026-05-01", "2026-05-31");
+        verify(dashboardClient).getSummary("2026-05");
     }
 
     @Test
     void getDashboardSummary_whenDownstreamBodyIsNull_shouldReturnFailureInsteadOfSuccessfulNullData() {
-        when(dashboardClient.getSummary(null, null)).thenReturn(ResponseEntity.ok(null));
+        when(dashboardClient.getSummary(null)).thenReturn(ResponseEntity.ok(null));
 
-        var response = new DashboardTools(dashboardClient).getDashboardSummary(null, null);
+        var response = new DashboardTools(dashboardClient).getDashboardSummary(null);
 
         assertThat(response.success()).isFalse();
         assertThat(response.message()).contains("Dashboard summary unavailable");
@@ -56,24 +56,24 @@ class DashboardToolsTest {
     @Test
     void getAccountDashboardSummary_whenOptionalParamsProvided_shouldDelegateAllParamsAndWrapBody() {
         AccountDashboardSummaryResponseDto body = accountSummary();
-        when(dashboardClient.getAccountSummary(ACCOUNT_ID, "2026-05-01", "2026-05-31", 20, "cursor-1"))
+        when(dashboardClient.getAccountSummary(ACCOUNT_ID, "2026-05", 20, "cursor-1"))
                 .thenReturn(ResponseEntity.ok(body));
 
         var response = new DashboardTools(dashboardClient)
-                .getAccountDashboardSummary(ACCOUNT_ID, "2026-05-01", "2026-05-31", 20, "cursor-1");
+                .getAccountDashboardSummary(ACCOUNT_ID, "2026-05", 20, "cursor-1");
 
         assertThat(response.success()).isTrue();
         assertThat(response.message()).isEqualTo("Account dashboard summary loaded.");
         assertThat(response.data()).isSameAs(body);
-        verify(dashboardClient).getAccountSummary(ACCOUNT_ID, "2026-05-01", "2026-05-31", 20, "cursor-1");
+        verify(dashboardClient).getAccountSummary(ACCOUNT_ID, "2026-05", 20, "cursor-1");
     }
 
     @Test
     void getAccountDashboardSummary_whenDownstreamBodyIsNull_shouldReturnFailureInsteadOfSuccessfulNullData() {
-        when(dashboardClient.getAccountSummary(ACCOUNT_ID, null, null, null, null)).thenReturn(ResponseEntity.ok(null));
+        when(dashboardClient.getAccountSummary(ACCOUNT_ID, null, null, null)).thenReturn(ResponseEntity.ok(null));
 
         var response = new DashboardTools(dashboardClient)
-                .getAccountDashboardSummary(ACCOUNT_ID, null, null, null, null);
+                .getAccountDashboardSummary(ACCOUNT_ID, null, null, null);
 
         assertThat(response.success()).isFalse();
         assertThat(response.message()).contains("Account dashboard summary unavailable");

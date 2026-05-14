@@ -1,7 +1,10 @@
 package com.batu.dashboard_service.service.impl;
 
 import java.time.LocalDate;
+import java.time.Year;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,8 +12,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import io.micrometer.observation.annotation.Observed;
 
@@ -51,23 +56,20 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     @Observed(name = "dashboard.aggregate.summary", contextualName = "dashboard aggregate summary")
-    public UserDashboardSummaryResponseDto getUserSummary(LocalDate from, LocalDate to, Integer recentLimit, Jwt principal) {
+    public UserDashboardSummaryResponseDto getUserSummary(String from, Integer recentLimit, Jwt principal) {
         UUID userId = UUID.fromString(principal.getSubject());
-        LocalDate[] range = resolveRange(from, to);
+        PeriodRange range = resolvePeriod(from);
         int limit = recentLimit == null ? 5 : recentLimit;
-        String fromParam = range[0].format(ISO_DATE);
-        String toParam = range[1].format(ISO_DATE);
-        LocalDate[] yearlyRange = resolveYearRange(range[1]);
-        String yearlyFromParam = yearlyRange[0].format(ISO_DATE);
-        String yearlyToParam = yearlyRange[1].format(ISO_DATE);
+        String fromParam = range.from().format(ISO_DATE);
+        String toParam = range.to().format(ISO_DATE);
 
         var accountSummary = accountClient.getAccountSummary().getBody();
         CursorResponse<TransactionViewResponseDto> recentTransactions = transactionClient
                 .getTransactions(null, limit, null)
                 .getBody();
         IncomeSummaryResponseDto incomeResponse = insightsClient.getIncome(fromParam, toParam).getBody();
-        SpendingPerCategoryResponseDto spendingResponse = insightsClient.getSpendingByCategory(fromParam, toParam).getBody();
-        SpendingGraphResponseDto yearlyTrendByCurrency = insightsClient.getSpendingGraph(yearlyFromParam, yearlyToParam).getBody();
+        SpendingPerCategoryResponseDto spendingResponse = insightsClient.getSpendingByCategory(range.period()).getBody();
+        SpendingGraphResponseDto yearlyTrendByCurrency = insightsClient.getSpendingGraph(range.period()).getBody();
 
         var spendingSection = new UserDashboardSummaryResponseDto.SpendingSectionDto(
                 enrichSpendingGroups(spendingResponse == null ? List.of() : spendingResponse.spendingByCurrency()),
@@ -75,7 +77,7 @@ public class DashboardServiceImpl implements DashboardService {
 
         return new UserDashboardSummaryResponseDto(
                 userId,
-                new UserDashboardSummaryResponseDto.PeriodDto(range[0], range[1]),
+                new UserDashboardSummaryResponseDto.PeriodDto(range.from(), range.to()),
                 accountSummary,
                 new UserDashboardSummaryResponseDto.IncomeSectionDto(
                         incomeResponse == null ? List.of() : incomeResponse.totalsByCurrency()),
@@ -95,21 +97,21 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     @Observed(name = "dashboard.aggregate.account-summary", contextualName = "dashboard aggregate account summary")
-    public AccountDashboardSummaryResponseDto getAccountSummary(UUID accountId, LocalDate from, LocalDate to,
+    public AccountDashboardSummaryResponseDto getAccountSummary(UUID accountId, String from,
             Integer limit, String cursor, Jwt principal) {
         UUID userId = UUID.fromString(principal.getSubject());
-        LocalDate[] range = resolveRange(from, to);
+        PeriodRange range = resolvePeriod(from);
         int transactionLimit = limit == null ? 10 : limit;
-        String fromParam = range[0].format(ISO_DATE);
-        String toParam = range[1].format(ISO_DATE);
+        String fromParam = range.from().format(ISO_DATE);
+        String toParam = range.to().format(ISO_DATE);
 
         var account = accountClient.getAccount(accountId).getBody();
         var balanceHistory = insightsClient.getAccountBalanceHistory(accountId, fromParam, toParam).getBody();
         SpendingPerCategoryByAccountResponseDto spendingResponse = insightsClient
-                .getSpendingByCategoryByAccount(accountId, fromParam, toParam)
+                .getSpendingByCategoryByAccount(accountId, range.period())
                 .getBody();
         SpendingGraphResponseDto spendingGraph = insightsClient
-                .getSpendingGraphByAccount(accountId, fromParam, toParam)
+                .getSpendingGraphByAccount(accountId, range.period())
                 .getBody();
         CursorResponse<TransactionViewResponseDto> transactions = transactionClient
                 .getTransactions(accountId, transactionLimit, cursor)
@@ -121,7 +123,7 @@ public class DashboardServiceImpl implements DashboardService {
 
         return new AccountDashboardSummaryResponseDto(
                 userId,
-                new UserDashboardSummaryResponseDto.PeriodDto(range[0], range[1]),
+                new UserDashboardSummaryResponseDto.PeriodDto(range.from(), range.to()),
                 account,
                 balanceHistory == null ? List.of() : balanceHistory,
                 spendingSection,
@@ -238,14 +240,20 @@ public class DashboardServiceImpl implements DashboardService {
                 totalAmount);
     }
 
-    private LocalDate[] resolveRange(LocalDate from, LocalDate to) {
-        LocalDate today = LocalDate.now();
-        LocalDate resolvedFrom = from == null ? today.withDayOfMonth(1) : from;
-        LocalDate resolvedTo = to == null ? today : to;
-        return new LocalDate[] { resolvedFrom, resolvedTo };
+    private PeriodRange resolvePeriod(String from) {
+        String period = from == null || from.isBlank() ? YearMonth.now().toString() : from;
+        try {
+            if (period.length() == 7) {
+                YearMonth month = YearMonth.parse(period);
+                return new PeriodRange(period, month.atDay(1), month.atEndOfMonth());
+            }
+            Year year = Year.parse(period);
+            return new PeriodRange(period, year.atMonth(1).atDay(1), year.atMonth(12).atEndOfMonth());
+        } catch (DateTimeParseException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "'from' must be YYYY or YYYY-MM", ex);
+        }
     }
 
-    private LocalDate[] resolveYearRange(LocalDate date) {
-        return new LocalDate[] { date.withDayOfYear(1), date.withMonth(12).withDayOfMonth(31) };
+    private record PeriodRange(String period, LocalDate from, LocalDate to) {
     }
 }

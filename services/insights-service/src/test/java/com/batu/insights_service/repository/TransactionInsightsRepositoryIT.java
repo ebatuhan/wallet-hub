@@ -34,7 +34,7 @@ class TransactionInsightsRepositoryIT extends ClickHouseRepositoryITSupport {
     }
 
     @Test
-    void findByInterval_shouldReadRawSpendingByCurrencyAndCategory() {
+    void findSpendingByMonths_shouldReadMonthlySpendingByCurrencyAndCategory() {
         repository.save(row("2026-04-01", FOOD_CATEGORY_ID, "-30.00", true, true, "USD", USER_ID, ACCOUNT_ID));
         repository.save(row("2026-04-02", FOOD_CATEGORY_ID, "-10.00", true, true, "USD", USER_ID, ACCOUNT_ID));
         repository.save(row("2026-04-02", TRAVEL_CATEGORY_ID, "-60.00", true, true, "USD", USER_ID, ACCOUNT_ID));
@@ -43,8 +43,8 @@ class TransactionInsightsRepositoryIT extends ClickHouseRepositoryITSupport {
         repository.save(row("2026-04-03", FOOD_CATEGORY_ID, "-99.00", true, false, "USD", USER_ID, ACCOUNT_ID));
         repository.save(row("2026-04-03", FOOD_CATEGORY_ID, "-77.00", true, true, "USD", OTHER_USER_ID, ACCOUNT_ID));
 
-        List<SpendingCategoryAggregate> spending = repository.findByInterval(
-                date("2026-04-01"), date("2026-04-30"), USER_ID);
+        List<SpendingCategoryAggregate> spending = repository.findSpendingByMonths(
+                date("2026-04-01"), date("2026-04-01"), USER_ID);
 
         assertThat(spending).hasSize(3);
         assertAggregate(spending.get(0), "EUR", FOOD_CATEGORY_ID, "25.00", "100.00");
@@ -53,12 +53,12 @@ class TransactionInsightsRepositoryIT extends ClickHouseRepositoryITSupport {
     }
 
     @Test
-    void findByIntervalAndAccount_shouldRestrictSpendingToRequestedAccount() {
+    void findSpendingByMonthsAndAccount_shouldRestrictSpendingToRequestedAccount() {
         repository.save(row("2026-04-01", FOOD_CATEGORY_ID, "-30.00", true, true, "USD", USER_ID, ACCOUNT_ID));
         repository.save(row("2026-04-01", TRAVEL_CATEGORY_ID, "-70.00", true, true, "USD", USER_ID, OTHER_ACCOUNT_ID));
 
-        List<SpendingCategoryAggregate> spending = repository.findByIntervalAndAccount(
-                date("2026-04-01"), date("2026-04-30"), USER_ID, ACCOUNT_ID);
+        List<SpendingCategoryAggregate> spending = repository.findSpendingByMonthsAndAccount(
+                date("2026-04-01"), date("2026-04-01"), USER_ID, ACCOUNT_ID);
 
         assertThat(spending).singleElement().satisfies(aggregate ->
                 assertAggregate(aggregate, "USD", FOOD_CATEGORY_ID, "30.00", "100.00"));
@@ -84,19 +84,29 @@ class TransactionInsightsRepositoryIT extends ClickHouseRepositoryITSupport {
     }
 
     @Test
-    void findSpendingGraphByInterval_shouldBucketAndOrderSpendingByCurrency() {
+    void findWeeklySpendingGraph_shouldBucketAndOrderSpendingByCurrency() {
         repository.save(row("2026-04-01", FOOD_CATEGORY_ID, "-10.00", true, true, "USD", USER_ID, ACCOUNT_ID));
         repository.save(row("2026-04-02", FOOD_CATEGORY_ID, "-20.00", true, true, "USD", USER_ID, ACCOUNT_ID));
         repository.save(row("2026-04-03", FOOD_CATEGORY_ID, "-30.00", true, true, "EUR", USER_ID, ACCOUNT_ID));
         repository.save(row("2026-04-03", FOOD_CATEGORY_ID, "-90.00", true, true, "USD", OTHER_USER_ID, ACCOUNT_ID));
 
-        List<SpendingGraphAggregate> graph = repository.findSpendingGraphByInterval(
-                date("2026-04-01"), date("2026-04-30"), USER_ID, "date");
+        List<SpendingGraphAggregate> graph = repository.findWeeklySpendingGraph(date("2026-04-01"), USER_ID);
 
-        assertThat(graph).hasSize(3);
-        assertGraphPoint(graph.get(0), "EUR", "2026-04-03", "30.00");
-        assertGraphPoint(graph.get(1), "USD", "2026-04-01", "10.00");
-        assertGraphPoint(graph.get(2), "USD", "2026-04-02", "20.00");
+        assertThat(graph).hasSize(2);
+        assertGraphPoint(graph.get(0), "EUR", "2026-03-30", "30.00");
+        assertGraphPoint(graph.get(1), "USD", "2026-03-30", "30.00");
+    }
+
+    @Test
+    void findMonthlySpendingGraph_shouldReturnMonthlyCurrencyTotals() {
+        repository.save(row("2026-04-01", FOOD_CATEGORY_ID, "-10.00", true, true, "USD", USER_ID, ACCOUNT_ID));
+        repository.save(row("2026-04-15", TRAVEL_CATEGORY_ID, "-20.00", true, true, "USD", USER_ID, ACCOUNT_ID));
+
+        List<SpendingGraphAggregate> graph = repository.findMonthlySpendingGraph(
+                date("2026-01-01"), date("2026-12-01"), USER_ID);
+
+        assertThat(graph).singleElement().satisfies(point ->
+                assertGraphPoint(point, "USD", "2026-04-01", "30.00"));
     }
 
     @Test
@@ -127,21 +137,32 @@ class TransactionInsightsRepositoryIT extends ClickHouseRepositoryITSupport {
 
         repository.deleteByAccount(ACCOUNT_ID, USER_ID);
 
-        assertThat(repository.findByIntervalAndAccount(date("2026-04-01"), date("2026-04-30"), USER_ID, ACCOUNT_ID))
+        assertThat(repository.findSpendingByMonthsAndAccount(date("2026-04-01"), date("2026-04-01"), USER_ID, ACCOUNT_ID))
                 .isEmpty();
-        assertThat(repository.findSpendingGraphByIntervalAndAccount(
-                date("2026-04-01"), date("2026-04-30"), USER_ID, ACCOUNT_ID, "date"))
+        assertThat(repository.findWeeklySpendingGraphByAccount(date("2026-04-01"), USER_ID, ACCOUNT_ID))
                 .isEmpty();
 
-        List<SpendingCategoryAggregate> allSpending = repository.findByInterval(
-                date("2026-04-01"), date("2026-04-30"), USER_ID);
+        Integer monthlyRowsForRemovedAccount = jdbcTemplate.queryForObject(
+                "SELECT count() FROM clickhouse.monthly_spending WHERE account_id = ? AND user_id = ?",
+                Integer.class,
+                ACCOUNT_ID,
+                USER_ID);
+        Integer weeklyRowsForRemovedAccount = jdbcTemplate.queryForObject(
+                "SELECT count() FROM clickhouse.weekly_spending WHERE account_id = ? AND user_id = ?",
+                Integer.class,
+                ACCOUNT_ID,
+                USER_ID);
+        assertThat(monthlyRowsForRemovedAccount).isZero();
+        assertThat(weeklyRowsForRemovedAccount).isZero();
+
+        List<SpendingCategoryAggregate> allSpending = repository.findSpendingByMonths(
+                date("2026-04-01"), date("2026-04-01"), USER_ID);
         assertThat(allSpending).singleElement().satisfies(aggregate ->
                 assertAggregate(aggregate, "USD", FOOD_CATEGORY_ID, "50.00", "100.00"));
 
-        List<SpendingGraphAggregate> allGraph = repository.findSpendingGraphByInterval(
-                date("2026-04-01"), date("2026-04-30"), USER_ID, "date");
+        List<SpendingGraphAggregate> allGraph = repository.findWeeklySpendingGraph(date("2026-04-01"), USER_ID);
         assertThat(allGraph).singleElement().satisfies(point ->
-                assertGraphPoint(point, "USD", "2026-04-01", "50.00"));
+                assertGraphPoint(point, "USD", "2026-03-30", "50.00"));
 
         List<IncomeTotalByCurrencyDto> income = repository.findIncomeByInterval(
                 date("2026-04-01"), date("2026-04-30"), USER_ID);

@@ -18,8 +18,7 @@ public interface DashboardClient {
 
     @GetMapping("/summary")
     ResponseEntity<UserDashboardSummaryResponseDto> getSummary(
-            @RequestParam(value = "from", required = false) String from,
-            @RequestParam(value = "to", required = false) String to);
+            @RequestParam(value = "from", required = false) String from);
 
     @GetMapping("/budgets")
     ResponseEntity<CursorResponse<BudgetResponseDto>> getBudgets(
@@ -32,7 +31,6 @@ public interface DashboardClient {
     ResponseEntity<AccountDashboardSummaryResponseDto> getAccountSummary(
             @PathVariable("accountId") UUID accountId,
             @RequestParam(value = "from", required = false) String from,
-            @RequestParam(value = "to", required = false) String to,
             @RequestParam(value = "limit", required = false) Integer limit,
             @RequestParam(value = "cursor", required = false) String cursor);
 }

@@ -13,14 +13,14 @@ import com.batu.shared.dto.response.SpendingPerCategoryByAccountResponseDto;
 import com.batu.shared.dto.response.SpendingPerCategoryResponseDto;
 
 public interface TransactionInsightsService {
-    SpendingPerCategoryByAccountResponseDto getSpendingPerCategoryByAccount(Date from, Date to, UUID accountId, Jwt principal);
-    SpendingPerCategoryByAccountResponseDto getSpendingPerCategoryByAccount(Date from, Date to, UUID accountId, UUID userId);
-    SpendingPerCategoryResponseDto getSpendingByCategory(Date from, Date to, Jwt principal);
-    SpendingPerCategoryResponseDto getSpendingByCategory(Date from, Date to, UUID userId);
-    SpendingGraphResponseDto getSpendingGraph(Date from, Date to, Jwt principal);
-    SpendingGraphResponseDto getSpendingGraph(Date from, Date to, UUID userId);
-    SpendingGraphResponseDto getSpendingGraphByAccount(Date from, Date to, UUID accountId, Jwt principal);
-    SpendingGraphResponseDto getSpendingGraphByAccount(Date from, Date to, UUID accountId, UUID userId);
+    SpendingPerCategoryByAccountResponseDto getSpendingPerCategoryByAccount(String from, UUID accountId, Jwt principal);
+    SpendingPerCategoryByAccountResponseDto getSpendingPerCategoryByAccount(String from, UUID accountId, UUID userId);
+    SpendingPerCategoryResponseDto getSpendingByCategory(String from, Jwt principal);
+    SpendingPerCategoryResponseDto getSpendingByCategory(String from, UUID userId);
+    SpendingGraphResponseDto getSpendingGraph(String from, Jwt principal);
+    SpendingGraphResponseDto getSpendingGraph(String from, UUID userId);
+    SpendingGraphResponseDto getSpendingGraphByAccount(String from, UUID accountId, Jwt principal);
+    SpendingGraphResponseDto getSpendingGraphByAccount(String from, UUID accountId, UUID userId);
     IncomeSummaryResponseDto getIncome(Date from, Date to, Jwt principal);
     IncomeSummaryResponseDto getIncome(Date from, Date to, UUID userId);
 

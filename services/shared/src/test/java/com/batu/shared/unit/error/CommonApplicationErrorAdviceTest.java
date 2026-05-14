@@ -3,6 +3,9 @@ package com.batu.shared.unit.error;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
@@ -20,6 +23,10 @@ import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.batu.shared.error.CommonApplicationErrorAdvice;
+
+import feign.FeignException;
+import feign.Request;
+import feign.Response;
 
 class CommonApplicationErrorAdviceTest {
 
@@ -69,12 +76,55 @@ class CommonApplicationErrorAdviceTest {
         assertThat(problemDetail.getDetail()).doesNotContain("account_external_id_key");
     }
 
+    @Test
+    void handleFeignException_whenDownstreamReturnsNotFound_shouldPreserveStatusAndDetail() {
+        FeignException exception = feignException(404,
+                "{\"detail\":\"This account is not exists, or access restricted.\",\"status\":404}");
+
+        ProblemDetail problemDetail = advice.handleFeignException(exception);
+
+        assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
+        assertThat(problemDetail.getDetail()).isEqualTo("This account is not exists, or access restricted.");
+        assertThat(problemDetail.getProperties())
+                .containsEntry("message", "This account is not exists, or access restricted.")
+                .containsEntry("upstreamStatus", 404);
+    }
+
+    @Test
+    void handleFeignException_whenDownstreamReturnsServerError_shouldReturnBadGateway() {
+        FeignException exception = feignException(500, "{\"detail\":\"database exploded\"}");
+
+        ProblemDetail problemDetail = advice.handleFeignException(exception);
+
+        assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.BAD_GATEWAY.value());
+        assertThat(problemDetail.getDetail()).isEqualTo("Downstream service request failed.");
+        assertThat(problemDetail.getProperties()).containsEntry("upstreamStatus", 500);
+    }
+
     private MethodArgumentNotValidException validationExceptionWithFieldError(String field, String message) throws Exception {
         Method method = SampleController.class.getDeclaredMethod("create", SampleRequest.class);
         MethodParameter methodParameter = new MethodParameter(method, 0);
         BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(new SampleRequest(), "sampleRequest");
         bindingResult.addError(new FieldError("sampleRequest", field, message));
         return new MethodArgumentNotValidException(methodParameter, bindingResult);
+    }
+
+    private static FeignException feignException(int status, String body) {
+        Request request = Request.create(
+                Request.HttpMethod.GET,
+                "/test",
+                Collections.emptyMap(),
+                null,
+                StandardCharsets.UTF_8,
+                null);
+        Response response = Response.builder()
+                .status(status)
+                .reason("status")
+                .request(request)
+                .headers(Map.<String, Collection<String>>of())
+                .body(body, StandardCharsets.UTF_8)
+                .build();
+        return FeignException.errorStatus("GET /test", response);
     }
 
     private static class TestableCommonApplicationErrorAdvice extends CommonApplicationErrorAdvice {

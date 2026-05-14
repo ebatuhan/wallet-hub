@@ -19,6 +19,7 @@ import com.batu.shared.dto.response.SpendingPerCategoryByAccountResponseDto;
 import com.batu.shared.dto.response.SpendingPerCategoryResponseDto;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -33,21 +34,21 @@ public class TransactionInsightsController {
     private final TransactionInsightsService transactionInsightsService;
 
     @GetMapping("/spendings")
-    @Operation(summary = "Get spending by category", description = "Returns spending grouped by category for a date range.")
+    @Operation(summary = "Get spending by category", description = "Returns spending grouped by category for a year (from=YYYY) or month (from=YYYY-MM).")
     public ResponseEntity<SpendingPerCategoryResponseDto> getSpendingByCategory(
-            @RequestParam Date from,
-            @RequestParam Date to,
+            @Parameter(description = "Spending period. Use YYYY for yearly totals or YYYY-MM for monthly totals.", example = "2025-04")
+            @RequestParam String from,
             @AuthenticationPrincipal Jwt principal) {
-        return ResponseEntity.ok(transactionInsightsService.getSpendingByCategory(from, to, principal));
+        return ResponseEntity.ok(transactionInsightsService.getSpendingByCategory(from, principal));
     }
 
     @GetMapping("/spendings/graph")
-    @Operation(summary = "Get spending graph", description = "Returns spending graph data for a date range.")
+    @Operation(summary = "Get spending graph", description = "Returns monthly datapoints for from=YYYY and weekly datapoints for from=YYYY-MM.")
     public ResponseEntity<SpendingGraphResponseDto> getSpendingGraph(
-            @RequestParam Date from,
-            @RequestParam Date to,
+            @Parameter(description = "Spending period. Use YYYY for monthly graph buckets or YYYY-MM for weekly graph buckets.", example = "2025")
+            @RequestParam String from,
             @AuthenticationPrincipal Jwt principal) {
-        return ResponseEntity.ok(transactionInsightsService.getSpendingGraph(from, to, principal));
+        return ResponseEntity.ok(transactionInsightsService.getSpendingGraph(from, principal));
     }
 
     @GetMapping("/income")
@@ -60,22 +61,22 @@ public class TransactionInsightsController {
     }
 
     @GetMapping("/spendings/{accountId}")
-    @Operation(summary = "Get account spending by category", description = "Returns category spending for a specific account and date range.")
+    @Operation(summary = "Get account spending by category", description = "Returns account spending grouped by category for a year (from=YYYY) or month (from=YYYY-MM).")
     public ResponseEntity<SpendingPerCategoryByAccountResponseDto> getSpendingByCategoryByAccount(
-            @RequestParam Date from,
+            @Parameter(description = "Spending period. Use YYYY for yearly totals or YYYY-MM for monthly totals.", example = "2025-04")
+            @RequestParam String from,
             @PathVariable UUID accountId,
-            @RequestParam Date to,
             @AuthenticationPrincipal Jwt principal) {
-        return ResponseEntity.ok(transactionInsightsService.getSpendingPerCategoryByAccount(from, to, accountId, principal));
+        return ResponseEntity.ok(transactionInsightsService.getSpendingPerCategoryByAccount(from, accountId, principal));
     }
 
     @GetMapping("/spendings/graph/{accountId}")
-    @Operation(summary = "Get account spending graph", description = "Returns spending graph data for a specific account and date range.")
+    @Operation(summary = "Get account spending graph", description = "Returns account monthly datapoints for from=YYYY and weekly datapoints for from=YYYY-MM.")
     public ResponseEntity<SpendingGraphResponseDto> getSpendingGraphByAccount(
-            @RequestParam Date from,
+            @Parameter(description = "Spending period. Use YYYY for monthly graph buckets or YYYY-MM for weekly graph buckets.", example = "2025")
+            @RequestParam String from,
             @PathVariable UUID accountId,
-            @RequestParam Date to,
             @AuthenticationPrincipal Jwt principal) {
-        return ResponseEntity.ok(transactionInsightsService.getSpendingGraphByAccount(from, to, accountId, principal));
+        return ResponseEntity.ok(transactionInsightsService.getSpendingGraphByAccount(from, accountId, principal));
     }
 }

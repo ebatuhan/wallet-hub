@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -88,15 +89,15 @@ class TransactionInsightsRepositoryTest {
         repository.deleteByAccount(ACCOUNT_ID, USER_ID);
 
         ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
-        verify(jdbcTemplate).update(sqlCaptor.capture(), eq(ACCOUNT_ID), eq(USER_ID));
-        assertThat(sqlCaptor.getValue())
-                .contains("DELETE FROM clickhouse.transactions")
-                .contains("account_id = ?")
-                .contains("user_id = ?");
+        verify(jdbcTemplate, times(3)).update(sqlCaptor.capture(), eq(ACCOUNT_ID), eq(USER_ID));
+        assertThat(sqlCaptor.getAllValues())
+                .anySatisfy(sql -> assertThat(sql).contains("DELETE FROM clickhouse.transactions"))
+                .anySatisfy(sql -> assertThat(sql).contains("DELETE FROM clickhouse.monthly_spending"))
+                .anySatisfy(sql -> assertThat(sql).contains("DELETE FROM clickhouse.weekly_spending"));
     }
 
     @Test
-    void findByInterval_whenCalled_shouldUseDirectRawSpendingQueryAndParameters() {
+    void findSpendingByMonths_whenCalled_shouldUseMonthlyAggregateAndParameters() {
         Date from = Date.valueOf("2026-04-01");
         Date to = Date.valueOf("2026-04-30");
         List<SpendingCategoryAggregate> expected = List.of(new SpendingCategoryAggregate(
@@ -106,38 +107,33 @@ class TransactionInsightsRepositoryTest {
                 new BigDecimal("42.00")));
         when(jdbcTemplate.query(anyString(), any(RowMapper.class), eq(USER_ID), eq(from), eq(to))).thenReturn(expected);
 
-        var result = repository.findByInterval(from, to, USER_ID);
+        var result = repository.findSpendingByMonths(from, to, USER_ID);
 
         assertThat(result).isSameAs(expected);
         ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
         verify(jdbcTemplate).query(sqlCaptor.capture(), any(RowMapper.class), eq(USER_ID), eq(from), eq(to));
         assertThat(sqlCaptor.getValue())
                 .contains("WITH category_totals AS")
-                .contains("FROM clickhouse.transactions")
+                .contains("FROM clickhouse.monthly_spending")
                 .contains("PREWHERE user_id = ?")
-                .contains("date BETWEEN ? AND ?")
-                .contains("WHERE is_active = 1")
-                .contains("AND is_outflow = 1")
-                .contains("SUM(abs(amount)) AS total_amount")
+                .contains("month BETWEEN ? AND ?")
+                .contains("SUM(total_amount) AS total_amount")
                 .contains("ORDER BY iso_currency_code ASC, percentage DESC");
     }
 
     @Test
-    void findByIntervalAndAccount_whenCalled_shouldUseAccountScopedRawQueryAndParameters() {
+    void findSpendingByMonthsAndAccount_whenCalled_shouldUseAccountScopedMonthlyAggregateAndParameters() {
         Date from = Date.valueOf("2026-04-01");
-        Date to = Date.valueOf("2026-04-30");
-        when(jdbcTemplate.query(anyString(), any(RowMapper.class), eq(USER_ID), eq(from), eq(to), eq(ACCOUNT_ID)))
+        when(jdbcTemplate.query(anyString(), any(RowMapper.class), eq(USER_ID), eq(from), eq(from), eq(ACCOUNT_ID)))
                 .thenReturn(List.of());
 
-        repository.findByIntervalAndAccount(from, to, USER_ID, ACCOUNT_ID);
+        repository.findSpendingByMonthsAndAccount(from, from, USER_ID, ACCOUNT_ID);
 
         ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
-        verify(jdbcTemplate).query(sqlCaptor.capture(), any(RowMapper.class), eq(USER_ID), eq(from), eq(to), eq(ACCOUNT_ID));
+        verify(jdbcTemplate).query(sqlCaptor.capture(), any(RowMapper.class), eq(USER_ID), eq(from), eq(from), eq(ACCOUNT_ID));
         assertThat(sqlCaptor.getValue())
                 .contains("AND account_id = ?")
-                .contains("FROM clickhouse.transactions")
-                .contains("WHERE is_active = 1")
-                .contains("AND is_outflow = 1")
+                .contains("FROM clickhouse.monthly_spending")
                 .contains("GROUP BY iso_currency_code, primary_category_id");
     }
 
@@ -163,7 +159,7 @@ class TransactionInsightsRepositoryTest {
     }
 
     @Test
-    void findSpendingGraphByInterval_whenCalled_shouldUseDirectRawGraphQueryAndParameters() {
+    void findMonthlySpendingGraph_whenCalled_shouldUseMonthlyAggregateAndParameters() {
         Date from = Date.valueOf("2026-04-01");
         Date to = Date.valueOf("2026-04-30");
         List<SpendingGraphAggregate> expected = List.of(new SpendingGraphAggregate(
@@ -172,36 +168,47 @@ class TransactionInsightsRepositoryTest {
                 new BigDecimal("20.00")));
         when(jdbcTemplate.query(anyString(), any(RowMapper.class), eq(USER_ID), eq(from), eq(to))).thenReturn(expected);
 
-        var result = repository.findSpendingGraphByInterval(from, to, USER_ID, "toDate(date)");
+        var result = repository.findMonthlySpendingGraph(from, to, USER_ID);
 
         assertThat(result).isSameAs(expected);
         ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
         verify(jdbcTemplate).query(sqlCaptor.capture(), any(RowMapper.class), eq(USER_ID), eq(from), eq(to));
         assertThat(sqlCaptor.getValue())
-                .contains("toDate(date) AS bucket")
-                .contains("FROM clickhouse.transactions")
-                .contains("WHERE is_active = 1")
-                .contains("AND is_outflow = 1")
-                .contains("SUM(abs(amount)) AS total_amount")
+                .contains("month AS bucket")
+                .contains("FROM clickhouse.monthly_spending")
+                .contains("SUM(total_amount) AS total_amount")
                 .contains("GROUP BY iso_currency_code, bucket");
+    }
+
+    @Test
+    void findWeeklySpendingGraph_whenCalled_shouldUseWeeklyAggregateAndParameters() {
+        Date month = Date.valueOf("2026-04-01");
+        when(jdbcTemplate.query(anyString(), any(RowMapper.class), eq(USER_ID), eq(month), eq(month)))
+                .thenReturn(List.of());
+
+        repository.findWeeklySpendingGraph(month, USER_ID);
+
+        ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate).query(sqlCaptor.capture(), any(RowMapper.class), eq(USER_ID), eq(month), eq(month));
+        assertThat(sqlCaptor.getValue())
+                .contains("week_start AS bucket")
+                .contains("FROM clickhouse.weekly_spending")
+                .contains("month BETWEEN ? AND ?");
     }
 
     @Test
     void findSpendingGraphByIntervalAndAccount_whenCalled_shouldApplyAccountFilterAndParameters() {
         Date from = Date.valueOf("2026-04-01");
-        Date to = Date.valueOf("2026-04-30");
-        when(jdbcTemplate.query(anyString(), any(RowMapper.class), eq(USER_ID), eq(from), eq(to), eq(ACCOUNT_ID)))
+        when(jdbcTemplate.query(anyString(), any(RowMapper.class), eq(USER_ID), eq(from), eq(from), eq(ACCOUNT_ID)))
                 .thenReturn(List.of());
 
-        repository.findSpendingGraphByIntervalAndAccount(from, to, USER_ID, ACCOUNT_ID, "toDate(toStartOfWeek(date))");
+        repository.findWeeklySpendingGraphByAccount(from, USER_ID, ACCOUNT_ID);
 
         ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
-        verify(jdbcTemplate).query(sqlCaptor.capture(), any(RowMapper.class), eq(USER_ID), eq(from), eq(to), eq(ACCOUNT_ID));
+        verify(jdbcTemplate).query(sqlCaptor.capture(), any(RowMapper.class), eq(USER_ID), eq(from), eq(from), eq(ACCOUNT_ID));
         assertThat(sqlCaptor.getValue())
                 .contains("AND account_id = ?")
-                .contains("FROM clickhouse.transactions")
-                .contains("toDate(toStartOfWeek(date)) AS bucket")
-                .contains("WHERE is_active = 1")
-                .contains("AND is_outflow = 1");
+                .contains("FROM clickhouse.weekly_spending")
+                .contains("week_start AS bucket");
     }
 }

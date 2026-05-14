@@ -1,9 +1,7 @@
 package com.batu.dashboard_service.controller;
 
-import java.time.LocalDate;
 import java.util.UUID;
 
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -21,6 +19,7 @@ import com.batu.shared.dto.response.BudgetResponseDto;
 import com.batu.shared.dto.response.CursorResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
@@ -37,13 +36,13 @@ public class DashboardController {
     private final DashboardService dashboardService;
 
     @GetMapping("/summary")
-    @Operation(summary = "Get user dashboard summary", description = "Returns user-level account, transaction, spending, and recent activity summary data.")
+    @Operation(summary = "Get user dashboard summary", description = "Returns dashboard summary for a year (from=YYYY) or month (from=YYYY-MM). Omit from for the current month.")
     public ResponseEntity<UserDashboardSummaryResponseDto> getSummary(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @Parameter(description = "Dashboard period. Use YYYY for yearly summary or YYYY-MM for monthly summary.", example = "2025-04")
+            @RequestParam(required = false) String from,
             @RequestParam(required = false) @Min(value = 1, message = "Limit must be at least 1") @Max(value = 100, message = "Limit cannot exceed 100") Integer recentLimit,
             @AuthenticationPrincipal Jwt principal) {
-        return ResponseEntity.ok(dashboardService.getUserSummary(from, to, recentLimit, principal));
+        return ResponseEntity.ok(dashboardService.getUserSummary(from, recentLimit, principal));
     }
 
     @GetMapping("/budgets")
@@ -58,15 +57,15 @@ public class DashboardController {
     }
 
     @GetMapping("/accounts/{accountId}/summary")
-    @Operation(summary = "Get account dashboard summary", description = "Returns dashboard summary data for one account.")
+    @Operation(summary = "Get account dashboard summary", description = "Returns account dashboard summary for a year (from=YYYY) or month (from=YYYY-MM). Omit from for the current month.")
     public ResponseEntity<AccountDashboardSummaryResponseDto> getAccountSummary(
             @PathVariable UUID accountId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @Parameter(description = "Dashboard period. Use YYYY for yearly summary or YYYY-MM for monthly summary.", example = "2025-04")
+            @RequestParam(required = false) String from,
             @RequestParam(required = false) @Min(value = 1, message = "Limit must be at least 1") @Max(value = 100, message = "Limit cannot exceed 100") Integer limit,
             @RequestParam(required = false) String cursor,
             @AuthenticationPrincipal Jwt principal) {
-        return ResponseEntity.ok(dashboardService.getAccountSummary(accountId, from, to, limit, cursor, principal));
+        return ResponseEntity.ok(dashboardService.getAccountSummary(accountId, from, limit, cursor, principal));
     }
 
     @GetMapping("/transactions/{transactionId}/summary")

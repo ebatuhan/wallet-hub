@@ -84,27 +84,51 @@ public class TransactionInsightsRepository {
     }
 
     public void deleteByAccount(UUID accountId, UUID userId) {
-        final String sql = """
+        final String deleteTransactions = """
                 DELETE FROM clickhouse.transactions
                 WHERE account_id = ?
                   AND user_id = ?
                 """;
+        final String deleteMonthlySpending = """
+                DELETE FROM clickhouse.monthly_spending
+                WHERE account_id = ?
+                  AND user_id = ?
+                """;
+        final String deleteWeeklySpending = """
+                DELETE FROM clickhouse.weekly_spending
+                WHERE account_id = ?
+                  AND user_id = ?
+                """;
 
-        jdbcTemplate.update(sql, accountId, userId);
+        jdbcTemplate.update(deleteTransactions, accountId, userId);
+        jdbcTemplate.update(deleteMonthlySpending, accountId, userId);
+        jdbcTemplate.update(deleteWeeklySpending, accountId, userId);
     }
 
-    public List<SpendingCategoryAggregate> findByInterval(Date from, Date to, UUID userId) {
-        String sql = """
+    public List<SpendingCategoryAggregate> findSpendingByMonths(Date fromMonth, Date toMonth, UUID userId) {
+        String sql = spendingCategoryQuery(false);
+        return jdbcTemplate.query(sql, SPENDING_CATEGORY_AGGREGATE_MAPPER, userId, fromMonth, toMonth);
+    }
+
+    public List<SpendingCategoryAggregate> findSpendingByMonthsAndAccount(Date fromMonth, Date toMonth, UUID userId,
+            UUID accountId) {
+        String sql = spendingCategoryQuery(true);
+        return jdbcTemplate.query(sql, SPENDING_CATEGORY_AGGREGATE_MAPPER, userId, fromMonth, toMonth, accountId);
+    }
+
+    private String spendingCategoryQuery(boolean byAccount) {
+        String accountFilter = byAccount ? "AND account_id = ?" : "";
+
+        return String.format("""
                 WITH category_totals AS (
                     SELECT
                         iso_currency_code,
                         primary_category_id,
-                        SUM(abs(amount)) AS total_amount
-                    FROM clickhouse.transactions
+                        SUM(total_amount) AS total_amount
+                    FROM clickhouse.monthly_spending
                     PREWHERE user_id = ?
-                      AND date BETWEEN ? AND ?
-                    WHERE is_active = 1
-                      AND is_outflow = 1
+                      AND month BETWEEN ? AND ?
+                    %s
                     GROUP BY iso_currency_code, primary_category_id
                 )
                 SELECT
@@ -114,34 +138,7 @@ public class TransactionInsightsRepository {
                     round((total_amount * 100.0) / SUM(total_amount) OVER (PARTITION BY iso_currency_code), 2) AS percentage
                 FROM category_totals
                 ORDER BY iso_currency_code ASC, percentage DESC
-                """;
-        return jdbcTemplate.query(sql, SPENDING_CATEGORY_AGGREGATE_MAPPER, userId, from, to);
-    }
-
-    public List<SpendingCategoryAggregate> findByIntervalAndAccount(Date from, Date to, UUID userId, UUID accountId) {
-        String sql = """
-                WITH category_totals AS (
-                    SELECT
-                        iso_currency_code,
-                        primary_category_id,
-                        SUM(abs(amount)) AS total_amount
-                    FROM clickhouse.transactions
-                    PREWHERE user_id = ?
-                      AND date BETWEEN ? AND ?
-                      AND account_id = ?
-                    WHERE is_active = 1
-                      AND is_outflow = 1
-                    GROUP BY iso_currency_code, primary_category_id
-                )
-                SELECT
-                    iso_currency_code,
-                    primary_category_id,
-                    total_amount,
-                    round((total_amount * 100.0) / SUM(total_amount) OVER (PARTITION BY iso_currency_code), 2) AS percentage
-                FROM category_totals
-                ORDER BY iso_currency_code ASC, percentage DESC
-                """;
-        return jdbcTemplate.query(sql, SPENDING_CATEGORY_AGGREGATE_MAPPER, userId, from, to, accountId);
+                """, accountFilter);
     }
 
     public List<IncomeTotalByCurrencyDto> findIncomeByInterval(Date from, Date to, UUID userId) {
@@ -160,33 +157,41 @@ public class TransactionInsightsRepository {
         return jdbcTemplate.query(sql, INCOME_TOTAL_BY_CURRENCY_MAPPER, userId, from, to);
     }
 
-    public List<SpendingGraphAggregate> findSpendingGraphByInterval(Date from, Date to, UUID userId, String bucketExpression) {
-        String sql = spendingGraphQuery(bucketExpression, false);
-        return jdbcTemplate.query(sql, SPENDING_GRAPH_AGGREGATE_MAPPER, userId, from, to);
+    public List<SpendingGraphAggregate> findMonthlySpendingGraph(Date fromMonth, Date toMonth, UUID userId) {
+        String sql = spendingGraphQuery("clickhouse.monthly_spending", "month", "month", false);
+        return jdbcTemplate.query(sql, SPENDING_GRAPH_AGGREGATE_MAPPER, userId, fromMonth, toMonth);
     }
 
-    public List<SpendingGraphAggregate> findSpendingGraphByIntervalAndAccount(Date from, Date to, UUID userId, UUID accountId,
-            String bucketExpression) {
-        String sql = spendingGraphQuery(bucketExpression, true);
-        return jdbcTemplate.query(sql, SPENDING_GRAPH_AGGREGATE_MAPPER, userId, from, to, accountId);
+    public List<SpendingGraphAggregate> findMonthlySpendingGraphByAccount(Date fromMonth, Date toMonth, UUID userId,
+            UUID accountId) {
+        String sql = spendingGraphQuery("clickhouse.monthly_spending", "month", "month", true);
+        return jdbcTemplate.query(sql, SPENDING_GRAPH_AGGREGATE_MAPPER, userId, fromMonth, toMonth, accountId);
     }
 
-    private String spendingGraphQuery(String bucketExpression, boolean byAccount) {
+    public List<SpendingGraphAggregate> findWeeklySpendingGraph(Date month, UUID userId) {
+        String sql = spendingGraphQuery("clickhouse.weekly_spending", "month", "week_start", false);
+        return jdbcTemplate.query(sql, SPENDING_GRAPH_AGGREGATE_MAPPER, userId, month, month);
+    }
+
+    public List<SpendingGraphAggregate> findWeeklySpendingGraphByAccount(Date month, UUID userId, UUID accountId) {
+        String sql = spendingGraphQuery("clickhouse.weekly_spending", "month", "week_start", true);
+        return jdbcTemplate.query(sql, SPENDING_GRAPH_AGGREGATE_MAPPER, userId, month, month, accountId);
+    }
+
+    private String spendingGraphQuery(String tableName, String filterColumn, String bucketColumn, boolean byAccount) {
         String accountFilter = byAccount ? "AND account_id = ?" : "";
 
         return String.format("""
                 SELECT
                     iso_currency_code,
                     %s AS bucket,
-                    SUM(abs(amount)) AS total_amount
-                FROM clickhouse.transactions
+                    SUM(total_amount) AS total_amount
+                FROM %s
                 PREWHERE user_id = ?
-                  AND date BETWEEN ? AND ?
+                  AND %s BETWEEN ? AND ?
                 %s
-                WHERE is_active = 1
-                  AND is_outflow = 1
                 GROUP BY iso_currency_code, bucket
                 ORDER BY iso_currency_code ASC, bucket ASC
-                """, bucketExpression, accountFilter);
+                """, bucketColumn, tableName, filterColumn, accountFilter);
     }
 }

@@ -109,9 +109,9 @@ class InsightsKeycloakSecurityIT {
 
     @Test
     void getSpendingByCategory_whenTokenIsValid_shouldReturnOkAndPassRealJwt() throws Exception {
-        when(transactionInsightsService.getSpendingByCategory(any(Date.class), any(Date.class), any(Jwt.class)))
+        when(transactionInsightsService.getSpendingByCategory(any(String.class), any(Jwt.class)))
                 .thenAnswer(invocation -> {
-                    Jwt jwt = invocation.getArgument(2);
+                    Jwt jwt = invocation.getArgument(1);
                     return new SpendingPerCategoryResponseDto(
                             UUID.fromString(jwt.getSubject()),
                             List.of(new SpendingCurrencyGroupDto(
@@ -124,12 +124,12 @@ class InsightsKeycloakSecurityIT {
                 });
 
         HttpResponse<String> response = send(authorizedRequest(
-                "/api/insights/spendings?from=2026-04-01&to=2026-04-30",
+                "/api/insights/spendings?from=2026-04",
                 tokenFor("insights-user-a")).GET());
 
         assertThat(response.statusCode()).isEqualTo(HttpStatus.OK.value());
         assertThat(response.body()).contains(USER_ID.toString(), "USD", CATEGORY_ID.toString());
-        verify(transactionInsightsService).getSpendingByCategory(any(Date.class), any(Date.class), any(Jwt.class));
+        verify(transactionInsightsService).getSpendingByCategory(any(String.class), any(Jwt.class));
     }
 
     @Test
@@ -165,8 +165,8 @@ class InsightsKeycloakSecurityIT {
 
     private static Stream<Arguments> protectedGetEndpoints() {
         return Stream.of(
-                Arguments.of("/api/insights/spendings?from=2026-04-01&to=2026-04-30"),
-                Arguments.of("/api/insights/spendings/graph?from=2026-04-01&to=2026-04-30"),
+                Arguments.of("/api/insights/spendings?from=2026-04"),
+                Arguments.of("/api/insights/spendings/graph?from=2026-04"),
                 Arguments.of("/api/insights/income?from=2026-04-01&to=2026-04-30"),
                 Arguments.of("/api/insights/accounts/%s/balance-history?from=2026-04-01&to=2026-04-30".formatted(ACCOUNT_ID)));
     }

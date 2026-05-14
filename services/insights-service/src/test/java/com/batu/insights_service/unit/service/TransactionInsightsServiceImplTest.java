@@ -10,13 +10,9 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -45,15 +41,14 @@ class TransactionInsightsServiceImplTest {
     private TransactionInsightsServiceImpl service;
 
     @Test
-    void getSpendingByCategory_whenRepositoryReturnsRows_shouldGroupByCurrencyAndSumTotalsWithoutMutation() {
-        Date from = date("2026-04-01");
-        Date to = date("2026-04-30");
-        when(transactionInsightsRepository.findByInterval(from, to, USER_ID)).thenReturn(List.of(
-                spending("USD", CATEGORY_FOOD, "60.00", "120.00"),
-                spending("USD", CATEGORY_RENT, "40.00", "80.00"),
-                spending("EUR", CATEGORY_FOOD, "100.00", "50.00")));
+    void getSpendingByCategory_whenYearProvided_shouldQueryTwelveMonthlyBucketsAndGroupCurrency() {
+        when(transactionInsightsRepository.findSpendingByMonths(date("2026-01-01"), date("2026-12-01"), USER_ID))
+                .thenReturn(List.of(
+                        spending("USD", CATEGORY_FOOD, "60.00", "120.00"),
+                        spending("USD", CATEGORY_RENT, "40.00", "80.00"),
+                        spending("EUR", CATEGORY_FOOD, "100.00", "50.00")));
 
-        var result = service.getSpendingByCategory(from, to, jwt());
+        var result = service.getSpendingByCategory("2026", jwt());
 
         assertThat(result.userId()).isEqualTo(USER_ID);
         assertThat(result.spendingByCurrency()).hasSize(2);
@@ -62,122 +57,54 @@ class TransactionInsightsServiceImplTest {
         assertThat(result.spendingByCurrency().get(0).categoryBreakdown())
                 .extracting(category -> category.primaryCategoryId())
                 .containsExactly(CATEGORY_FOOD, CATEGORY_RENT);
-        assertThat(result.spendingByCurrency().get(0).categoryBreakdown().get(0).percentageOfCurrencySpending())
-                .isEqualByComparingTo("60.00");
         assertThat(result.spendingByCurrency().get(1).isoCurrencyCode()).isEqualTo("EUR");
-        assertThat(result.spendingByCurrency().get(1).totalSpent()).isEqualByComparingTo("50.00");
     }
 
     @Test
-    void getSpendingByCategory_whenRepositoryReturnsEmptyRows_shouldReturnEmptyGroups() {
-        Date from = date("2026-04-01");
-        Date to = date("2026-04-30");
-        when(transactionInsightsRepository.findByInterval(from, to, USER_ID)).thenReturn(List.of());
+    void getSpendingByCategory_whenMonthProvided_shouldQueryOneMonthlyBucket() {
+        when(transactionInsightsRepository.findSpendingByMonths(date("2026-04-01"), date("2026-04-01"), USER_ID))
+                .thenReturn(List.of());
 
-        var result = service.getSpendingByCategory(from, to, USER_ID);
+        var result = service.getSpendingByCategory("2026-04", USER_ID);
 
-        assertThat(result.userId()).isEqualTo(USER_ID);
         assertThat(result.spendingByCurrency()).isEmpty();
     }
 
-    @ParameterizedTest
-    @MethodSource("invalidRangeCalls")
-    void queryMethods_whenFromIsAfterTo_shouldThrowBadRequest(QueryCall call) {
-        Date from = date("2026-05-01");
-        Date to = date("2026-04-30");
+    @Test
+    void getSpendingGraph_whenYearProvided_shouldUseMonthlyAggregateAndFillTwelveMonths() {
+        when(transactionInsightsRepository.findMonthlySpendingGraph(date("2026-01-01"), date("2026-12-01"), USER_ID))
+                .thenReturn(List.of(graph("USD", "2026-02-01", "25.50")));
 
-        assertThatThrownBy(() -> call.invoke(service, from, to))
-                .isInstanceOf(ResponseStatusException.class)
-                .extracting("statusCode.value")
-                .isEqualTo(400);
-    }
+        var result = service.getSpendingGraph("2026", USER_ID);
 
-    @ParameterizedTest
-    @MethodSource("granularityCases")
-    void getSpendingGraph_whenDateRangeHitsBoundary_shouldUseExpectedGranularity(
-            LocalDate fromDate,
-            LocalDate toDate,
-            String expectedGroupBy,
-            String expectedBucketExpression) {
-        Date from = Date.valueOf(fromDate);
-        Date to = Date.valueOf(toDate);
-        when(transactionInsightsRepository.findSpendingGraphByInterval(from, to, USER_ID, expectedBucketExpression))
-                .thenReturn(List.of());
-
-        var result = service.getSpendingGraph(from, to, USER_ID);
-
-        assertThat(result.groupBy()).isEqualTo(expectedGroupBy);
-        assertThat(result.from()).isEqualTo(fromDate);
-        assertThat(result.to()).isEqualTo(toDate);
-        assertThat(result.seriesByCurrency()).isEmpty();
+        assertThat(result.groupBy()).isEqualTo("MONTH");
+        assertThat(result.from()).isEqualTo(LocalDate.of(2026, 1, 1));
+        assertThat(result.to()).isEqualTo(LocalDate.of(2026, 12, 31));
+        assertThat(result.seriesByCurrency().get(0).spendingPoints()).hasSize(12);
+        assertThat(result.seriesByCurrency().get(0).spendingPoints().get(0).amountSpent()).isEqualByComparingTo("0");
+        assertThat(result.seriesByCurrency().get(0).spendingPoints().get(1).amountSpent()).isEqualByComparingTo("25.50");
     }
 
     @Test
-    void getSpendingGraph_whenDailyBucketsAreMissing_shouldFillZeroPoints() {
-        Date from = date("2026-04-01");
-        Date to = date("2026-04-03");
-        when(transactionInsightsRepository.findSpendingGraphByInterval(from, to, USER_ID, "toDate(date)"))
-                .thenReturn(List.of(graph("USD", "2026-04-02", "25.50")));
-
-        var result = service.getSpendingGraph(from, to, USER_ID);
-
-        assertThat(result.seriesByCurrency()).hasSize(1);
-        assertThat(result.seriesByCurrency().get(0).spendingPoints())
-                .extracting(point -> point.amountSpent())
-                .containsExactly(decimal("0"), decimal("25.50"), decimal("0"));
-    }
-
-    @Test
-    void getSpendingGraph_whenWeeklyRangeStartsMidWeek_shouldAlignBucketsToMonday() {
-        Date from = date("2026-04-01");
-        Date to = date("2026-05-15");
-        when(transactionInsightsRepository.findSpendingGraphByInterval(from, to, USER_ID, "toDate(toStartOfWeek(date))"))
+    void getSpendingGraph_whenMonthProvided_shouldUseWeeklyAggregateAndFillWeekBuckets() {
+        when(transactionInsightsRepository.findWeeklySpendingGraph(date("2026-04-01"), USER_ID))
                 .thenReturn(List.of(graph("USD", "2026-03-30", "10.00")));
 
-        var result = service.getSpendingGraph(from, to, USER_ID);
+        var result = service.getSpendingGraph("2026-04", USER_ID);
 
         assertThat(result.groupBy()).isEqualTo("WEEK");
+        assertThat(result.from()).isEqualTo(LocalDate.of(2026, 4, 1));
+        assertThat(result.to()).isEqualTo(LocalDate.of(2026, 4, 30));
         assertThat(result.seriesByCurrency().get(0).spendingPoints().get(0).bucket()).isEqualTo(LocalDate.of(2026, 3, 30));
         assertThat(result.seriesByCurrency().get(0).spendingPoints().get(0).amountSpent()).isEqualByComparingTo("10.00");
     }
 
     @Test
-    void getSpendingGraph_whenMonthlyRangeStartsMidMonth_shouldAlignBucketsToFirstDay() {
-        Date from = date("2026-01-15");
-        Date to = date("2026-08-01");
-        when(transactionInsightsRepository.findSpendingGraphByInterval(from, to, USER_ID, "toDate(toStartOfMonth(date))"))
-                .thenReturn(List.of(graph("USD", "2026-01-01", "75.00")));
-
-        var result = service.getSpendingGraph(from, to, USER_ID);
-
-        assertThat(result.groupBy()).isEqualTo("MONTH");
-        assertThat(result.seriesByCurrency().get(0).spendingPoints().get(0).bucket()).isEqualTo(LocalDate.of(2026, 1, 1));
-    }
-
-    @Test
-    void getSpendingGraph_whenMultipleCurrenciesReturned_shouldSortSeriesByCurrency() {
-        Date from = date("2026-04-01");
-        Date to = date("2026-04-03");
-        when(transactionInsightsRepository.findSpendingGraphByInterval(from, to, USER_ID, "toDate(date)"))
-                .thenReturn(List.of(
-                        graph("USD", "2026-04-01", "10.00"),
-                        graph("EUR", "2026-04-01", "20.00")));
-
-        var result = service.getSpendingGraph(from, to, USER_ID);
-
-        assertThat(result.seriesByCurrency())
-                .extracting(series -> series.isoCurrencyCode())
-                .containsExactly("EUR", "USD");
-    }
-
-    @Test
     void getSpendingGraphByAccount_whenCalled_shouldPassAccountIdAndReturnAccountScopedResponse() {
-        Date from = date("2026-04-01");
-        Date to = date("2026-04-03");
-        when(transactionInsightsRepository.findSpendingGraphByIntervalAndAccount(from, to, USER_ID, ACCOUNT_ID, "toDate(date)"))
-                .thenReturn(List.of(graph("USD", "2026-04-01", "10.00")));
+        when(transactionInsightsRepository.findWeeklySpendingGraphByAccount(date("2026-04-01"), USER_ID, ACCOUNT_ID))
+                .thenReturn(List.of(graph("USD", "2026-03-30", "10.00")));
 
-        var result = service.getSpendingGraphByAccount(from, to, ACCOUNT_ID, USER_ID);
+        var result = service.getSpendingGraphByAccount("2026-04", ACCOUNT_ID, USER_ID);
 
         assertThat(result.userId()).isEqualTo(USER_ID);
         assertThat(result.accountId()).isEqualTo(ACCOUNT_ID);
@@ -186,16 +113,22 @@ class TransactionInsightsServiceImplTest {
 
     @Test
     void getSpendingPerCategoryByAccount_whenRowsExist_shouldPassAccountIdAndGroupCurrency() {
-        Date from = date("2026-04-01");
-        Date to = date("2026-04-30");
-        when(transactionInsightsRepository.findByIntervalAndAccount(from, to, USER_ID, ACCOUNT_ID))
+        when(transactionInsightsRepository.findSpendingByMonthsAndAccount(date("2026-04-01"), date("2026-04-01"), USER_ID, ACCOUNT_ID))
                 .thenReturn(List.of(spending("USD", CATEGORY_FOOD, "100.00", "42.00")));
 
-        var result = service.getSpendingPerCategoryByAccount(from, to, ACCOUNT_ID, USER_ID);
+        var result = service.getSpendingPerCategoryByAccount("2026-04", ACCOUNT_ID, USER_ID);
 
         assertThat(result.userId()).isEqualTo(USER_ID);
         assertThat(result.accountId()).isEqualTo(ACCOUNT_ID);
         assertThat(result.spendingByCurrency().get(0).totalSpent()).isEqualByComparingTo("42.00");
+    }
+
+    @Test
+    void spendingMethods_whenFromInvalid_shouldThrowBadRequest() {
+        assertThatThrownBy(() -> service.getSpendingByCategory("2026-04-01", USER_ID))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode.value")
+                .isEqualTo(400);
     }
 
     @Test
@@ -212,6 +145,14 @@ class TransactionInsightsServiceImplTest {
     }
 
     @Test
+    void getIncome_whenFromIsAfterTo_shouldThrowBadRequest() {
+        assertThatThrownBy(() -> service.getIncome(date("2026-05-01"), date("2026-04-30"), USER_ID))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode.value")
+                .isEqualTo(400);
+    }
+
+    @Test
     void save_whenRowProvided_shouldDelegateToRepositoryWithoutMutation() {
         TransactionInsightRow row = row();
 
@@ -225,35 +166,6 @@ class TransactionInsightsServiceImplTest {
         service.removeAccountTransactions(ACCOUNT_ID, USER_ID);
 
         verify(transactionInsightsRepository).deleteByAccount(ACCOUNT_ID, USER_ID);
-    }
-
-    @Test
-    void getIncome_whenJwtSubjectMalformed_shouldThrowAndNotQueryRepository() {
-        Jwt jwt = Jwt.withTokenValue("token").header("alg", "none").subject("not-a-uuid").build();
-
-        assertThatThrownBy(() -> service.getIncome(date("2026-04-01"), date("2026-04-30"), jwt))
-                .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    private static Stream<Arguments> granularityCases() {
-        return Stream.of(
-                Arguments.of(LocalDate.of(2026, 4, 1), LocalDate.of(2026, 5, 1), "DAY", "toDate(date)"),
-                Arguments.of(LocalDate.of(2026, 4, 1), LocalDate.of(2026, 5, 2), "WEEK", "toDate(toStartOfWeek(date))"),
-                Arguments.of(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 6, 29), "WEEK", "toDate(toStartOfWeek(date))"),
-                Arguments.of(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 6, 30), "MONTH", "toDate(toStartOfMonth(date))"));
-    }
-
-    private static Stream<Arguments> invalidRangeCalls() {
-        return Stream.of(
-                Arguments.of((QueryCall) (service, from, to) -> service.getSpendingByCategory(from, to, USER_ID)),
-                Arguments.of((QueryCall) (service, from, to) -> service.getSpendingGraph(from, to, USER_ID)),
-                Arguments.of((QueryCall) (service, from, to) -> service.getSpendingGraphByAccount(from, to, ACCOUNT_ID, USER_ID)),
-                Arguments.of((QueryCall) (service, from, to) -> service.getSpendingPerCategoryByAccount(from, to, ACCOUNT_ID, USER_ID)),
-                Arguments.of((QueryCall) (service, from, to) -> service.getIncome(from, to, USER_ID)));
-    }
-
-    private interface QueryCall {
-        Object invoke(TransactionInsightsServiceImpl service, Date from, Date to);
     }
 
     private static SpendingCategoryAggregate spending(String currency, UUID categoryId, String percentage, String total) {

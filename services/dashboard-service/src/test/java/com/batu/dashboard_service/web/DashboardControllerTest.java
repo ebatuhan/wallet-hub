@@ -10,9 +10,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -32,6 +37,10 @@ import com.batu.dashboard_service.service.DashboardService;
 import com.batu.shared.dto.response.BudgetResponseDto;
 import com.batu.shared.dto.response.CursorResponse;
 import com.batu.shared.error.CommonApplicationErrorAdvice;
+
+import feign.FeignException;
+import feign.Request;
+import feign.Response;
 
 @WebMvcTest(
         controllers = DashboardController.class,
@@ -71,13 +80,13 @@ class DashboardControllerTest {
                 .andExpect(jsonPath("$.detail").value("Request validation failed"))
                 .andExpect(jsonPath("$.errors.recentLimit").value(expectedMessage));
 
-        verify(dashboardService, never()).getUserSummary(any(), any(), any(), any(Jwt.class));
+        verify(dashboardService, never()).getUserSummary(any(), any(), any(Jwt.class));
     }
 
     @ParameterizedTest
     @ValueSource(strings = { "1", "100" })
     void getSummary_whenRecentLimitIsOnAllowedBoundary_shouldCallService(String limit) throws Exception {
-        when(dashboardService.getUserSummary(any(), any(), eq(Integer.parseInt(limit)), any(Jwt.class)))
+        when(dashboardService.getUserSummary(any(), eq(Integer.parseInt(limit)), any(Jwt.class)))
                 .thenReturn(userSummary());
 
         mockMvc.perform(get("/dashboard/summary")
@@ -86,7 +95,7 @@ class DashboardControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(USER_ID.toString()));
 
-        verify(dashboardService).getUserSummary(any(), any(), eq(Integer.parseInt(limit)), any(Jwt.class));
+        verify(dashboardService).getUserSummary(any(), eq(Integer.parseInt(limit)), any(Jwt.class));
     }
 
     @ParameterizedTest
@@ -138,13 +147,13 @@ class DashboardControllerTest {
                 .andExpect(jsonPath("$.detail").value("Request validation failed"))
                 .andExpect(jsonPath("$.errors.limit").value(expectedMessage));
 
-        verify(dashboardService, never()).getAccountSummary(any(UUID.class), any(), any(), any(), any(), any(Jwt.class));
+        verify(dashboardService, never()).getAccountSummary(any(UUID.class), any(), any(), any(), any(Jwt.class));
     }
 
     @ParameterizedTest
     @ValueSource(strings = { "1", "100" })
     void getAccountSummary_whenLimitIsOnAllowedBoundary_shouldCallService(String limit) throws Exception {
-        when(dashboardService.getAccountSummary(eq(ACCOUNT_ID), any(), any(), eq(Integer.parseInt(limit)), any(), any(Jwt.class)))
+        when(dashboardService.getAccountSummary(eq(ACCOUNT_ID), any(), eq(Integer.parseInt(limit)), any(), any(Jwt.class)))
                 .thenReturn(accountSummary());
 
         mockMvc.perform(get("/dashboard/accounts/{accountId}/summary", ACCOUNT_ID)
@@ -153,7 +162,21 @@ class DashboardControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(USER_ID.toString()));
 
-        verify(dashboardService).getAccountSummary(eq(ACCOUNT_ID), any(), any(), eq(Integer.parseInt(limit)), any(), any(Jwt.class));
+        verify(dashboardService).getAccountSummary(eq(ACCOUNT_ID), any(), eq(Integer.parseInt(limit)), any(), any(Jwt.class));
+    }
+
+    @Test
+    void getAccountSummary_whenDownstreamAccountIsNotFound_shouldReturnNotFoundProblem() throws Exception {
+        when(dashboardService.getAccountSummary(eq(ACCOUNT_ID), any(), any(), any(), any(Jwt.class)))
+                .thenThrow(feignException(404,
+                        "{\"detail\":\"This account is not exists, or access restricted.\",\"status\":404}"));
+
+        mockMvc.perform(get("/dashboard/accounts/{accountId}/summary", ACCOUNT_ID)
+                .with(jwt().jwt(jwt -> jwt.subject(USER_ID.toString()))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.detail").value("This account is not exists, or access restricted."))
+                .andExpect(jsonPath("$.message").value("This account is not exists, or access restricted."));
     }
 
     private UserDashboardSummaryResponseDto userSummary() {
@@ -162,5 +185,23 @@ class DashboardControllerTest {
 
     private AccountDashboardSummaryResponseDto accountSummary() {
         return new AccountDashboardSummaryResponseDto(USER_ID, null, null, List.of(), null, null);
+    }
+
+    private static FeignException feignException(int status, String body) {
+        Request request = Request.create(
+                Request.HttpMethod.GET,
+                "/accounts/" + ACCOUNT_ID,
+                Collections.emptyMap(),
+                null,
+                StandardCharsets.UTF_8,
+                null);
+        Response response = Response.builder()
+                .status(status)
+                .reason("status")
+                .request(request)
+                .headers(Map.<String, Collection<String>>of())
+                .body(body, StandardCharsets.UTF_8)
+                .build();
+        return FeignException.errorStatus("GET /accounts/{accountId}", response);
     }
 }

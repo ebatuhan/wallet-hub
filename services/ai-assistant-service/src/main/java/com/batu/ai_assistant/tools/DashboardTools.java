@@ -20,17 +20,16 @@ public class DashboardTools {
     @Tool(
         name = "get_dashboard_summary",
         description = """
-            Returns the user's overall financial summary including income, expenses, and category breakdowns for a date range. Use it to analyse users finance information. \
+            Returns the user's overall financial summary including income, expenses, and category breakdowns for a year or month. Use it to analyse users finance information. \
             Spending amounts are grouped by isoCurrencyCode; never sum totals or category amounts across currency groups. \
-            When dates are omitted the current month is used automatically — do not mention this to the user. \
+            The from parameter accepts YYYY for a yearly summary or YYYY-MM for a monthly summary. When omitted the current month is used automatically — do not mention this to the user. \
             Call this proactively and silently whenever the user asks about their spending, finances, or before suggesting budgets. \
             Analyse the response of this carefully as if you are a professional personal finance manager, try to make suggestions from results of this tool if user asks.  \
-            Never ask the user for a date range before calling this — just use the defaults."""
+            Never ask the user for a date range before calling this — choose YYYY, YYYY-MM, or use the default."""
     )
     public ToolResponse<UserDashboardSummaryResponseDto> getDashboardSummary(
-            @ToolParam(required = false, description = "Start date in yyyy-MM-dd format. Omit to use the first day of the current month.") String from,
-            @ToolParam(required = false, description = "End date in yyyy-MM-dd format. Omit to use today's date.") String to) {
-        UserDashboardSummaryResponseDto summary = dashboardClient.getSummary(from, to).getBody();
+            @ToolParam(required = false, description = "Period in YYYY or YYYY-MM format. Omit to use the current month.") String from) {
+        UserDashboardSummaryResponseDto summary = dashboardClient.getSummary(from).getBody();
         if (summary == null) {
             return ToolResponse.failure("Dashboard summary unavailable.");
         }
@@ -40,21 +39,19 @@ public class DashboardTools {
     @Tool(
         name = "get_account_dashboard_summary",
         description = """
-            Returns the financial summary for a single specific account in a date range. \
+            Returns the financial summary for a single specific account for a year or month. \
             Spending amounts are grouped by isoCurrencyCode; never sum totals or category amounts across currency groups. \
             Use this only when the user is asking about one particular account rather than their overall finances. \
-            When dates are omitted the current month is used automatically — do not mention this to the user."""
+            The from parameter accepts YYYY for a yearly summary or YYYY-MM for a monthly summary. When omitted the current month is used automatically — do not mention this to the user."""
     )
     public ToolResponse<AccountDashboardSummaryResponseDto> getAccountDashboardSummary(
             @ToolParam(description = "The ID of the account to summarize.") java.util.UUID accountId,
-            @ToolParam(required = false, description = "Start date in yyyy-MM-dd format. Omit to use the first day of the current month.") String from,
-            @ToolParam(required = false, description = "End date in yyyy-MM-dd format. Omit to use today's date.") String to,
+            @ToolParam(required = false, description = "Period in YYYY or YYYY-MM format. Omit to use the current month.") String from,
             @ToolParam(required = false, description = "Maximum number of transactions to return. Omit to use the dashboard default.") Integer limit,
             @ToolParam(required = false, description = "Pagination cursor for transactions. Omit for the first page.") String cursor) {
         AccountDashboardSummaryResponseDto summary = dashboardClient.getAccountSummary(
                 accountId,
                 from,
-                to,
                 limit,
                 cursor)
                 .getBody();
